@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact — Le Petit Marché</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #fffaf4;
+    --ink:     #2a1d12;
+    --muted:   #7a6a58;
+    --accent:  #c2622d;
+    --accent2: #f0a87a;
+    --soft:    #f8e7d8;
+    --fd:      'Playfair Display', Georgia, serif;
+    --fb:      'Source Sans 3', system-ui, sans-serif;
+    --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+    --spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  html { scroll-behavior: smooth; font-size: 16px; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--fb); line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,h4 { font-family: var(--fd); line-height: 1.1; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2.4rem, 6vw, 5rem); font-weight: 400; }
+  h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 400; margin-bottom: 1rem; }
+  h3 { font-size: clamp(1.2rem, 2.5vw, 1.6rem); font-weight: 600; margin-bottom: .5rem; }
+  p  { color: var(--muted); max-width: 60ch; line-height: 1.75; }
+  a  { color: var(--accent); text-decoration: none; }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 5vw;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+    transition: background .4s;
+  }
+  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    color: var(--muted); font-size: .9rem; letter-spacing: .05em;
+    text-transform: uppercase; transition: color .3s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: ""; position: absolute; left:0; bottom:-2px;
+    width:100%; height:1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .4s var(--ease);
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh; display: grid; place-items: center;
+    position: relative; overflow: clip; text-align: center;
+    padding: 2rem 5vw;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--ink) 100%);
+    animation: gradientDrift 12s ease-in-out infinite alternate;
+  }
+  @keyframes gradientDrift {
+    from { filter: hue-rotate(0deg); }
+    to   { filter: hue-rotate(15deg); }
+  }
+  .hero-bg img {
+    width:100%; height:100%; object-fit:cover; opacity:.65;
+    transform: scale(1.06);
+    animation: heroZoom 14s var(--ease) forwards;
+  }
+  @keyframes heroZoom { to { transform: scale(1); } }
+  .hero-overlay {
+    position: absolute; inset: 0; z-index: 1;
+    background: rgba(42,29,18,0.5);
+  }
+  .hero-content {
+    position: relative; z-index: 2; color: #fff; max-width: 800px;
+  }
+  .hero-eyebrow {
+    display: inline-block; font-size: .8rem; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent2);
+    margin-bottom: 1.5rem; opacity: 0;
+    animation: fadeUp .8s .2s var(--ease) forwards;
+  }
+  .hero-content h1 {
+    color: #fff; margin-bottom: 1.5rem;
+    opacity: 0; animation: fadeUp .9s .35s var(--ease) forwards;
+  }
+  .hero-content p {
+    color: rgba(255,255,255,.8); max-width: 52ch; margin: 0 auto 2.5rem;
+    font-size: 1.1rem;
+    opacity: 0; animation: fadeUp .9s .5s var(--ease) forwards;
+  }
+  .hero-cta {
+    display: inline-flex; align-items: center; gap: .5em;
+    padding: 1em 2.2em; border-radius: 999px;
+    background: var(--accent); color: #fff; font-weight: 600; font-size: 1rem;
+    box-shadow: 0 8px 28px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+    transition: transform .5s var(--spring), box-shadow .5s var(--ease);
+    opacity: 0; animation: fadeUp .9s .65s var(--ease) forwards;
+  }
+  .hero-cta:hover {
+    color: #fff; transform: translateY(-4px);
+    box-shadow: 0 18px 40px -12px color-mix(in srgb, var(--accent) 80%, transparent);
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(28px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* Sections */
+  section { padding: clamp(4rem,10vw,8rem) 5vw; }
+  .section-label {
+    font-size: .75rem; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1rem; display: block;
+  }
+  .container { width: min(100%, 1100px); margin-inline: auto; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; gap: 2rem; } }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1.5rem; margin-top: 3rem; }
+  .card {
+    background: var(--soft); border-radius: 16px; padding: 2rem;
+    transition: transform .5s var(--ease), box-shadow .5s var(--ease);
+  }
+  .card:hover { transform: translateY(-8px); box-shadow: 0 24px 48px -24px rgba(0,0,0,.25); }
+  .card-icon { font-size: 2rem; margin-bottom: 1rem; }
+
+  /* Gallery */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1rem; margin-top: 3rem; }
+  .gallery-item {
+    border-radius: 12px; overflow: clip; aspect-ratio: 4/3;
+    transition: transform .5s var(--ease);
+  }
+  .gallery-item:hover { transform: scale(1.03); }
+  .gallery-item img { width:100%; height:100%; object-fit:cover; display:block; }
+
+  /* Contact block */
+  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2rem; margin-top: 3rem; }
+  .contact-card {
+    background: var(--soft); border-radius: 16px; padding: 2rem;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .contact-card .label { font-size:.75rem; letter-spacing:.15em; text-transform:uppercase; color:var(--accent); }
+  .contact-card .value { font-size:1.05rem; font-weight:600; color: var(--ink); }
+
+  /* Divider */
+  .divider { border:none; border-top: 1px solid color-mix(in srgb,var(--ink) 10%,transparent); margin: 0; }
+
+  /* Footer */
+  footer {
+    padding: 3rem 5vw; text-align:center;
+    border-top: 1px solid color-mix(in srgb,var(--ink) 8%,transparent);
+    color: var(--muted); font-size:.85rem;
+  }
+
+  /* Reveal animation (driven by JS) */
+  .reveal {
+    opacity:0; transform: translateY(32px);
+    transition: opacity .8s var(--ease), transform .8s var(--ease);
+  }
+  .reveal.in { opacity:1; transform: none; }
+  .reveal.d1 { transition-delay:.08s; }
+  .reveal.d2 { transition-delay:.16s; }
+  .reveal.d3 { transition-delay:.24s; }
+  .reveal.d4 { transition-delay:.32s; }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+    .reveal { opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Le Petit Marché</a>
+  <ul class="nav-links"><li><a href="index.html" >Accueil</a></li>
+<li><a href="services.html" >Services</a></li>
+<li><a href="gallery.html" >Galerie</a></li>
+<li><a href="contact.html" style="color:var(--ink)">Contact</a></li></ul>
+</nav>
+
+<section style="padding-top:8rem;">
+  <div class="container">
+    <span class="section-label reveal">Venez nous voir</span>
+    <h2 class="reveal d1">Nous contacter</h2>
+    <p class="reveal d2">Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement.</p>
+
+    <div class="contact-grid">
+      <div class="contact-card reveal d1">
+        <span class="label">📍 Adresse</span>
+        <span class="value">12 Rue de Bretagne, Paris</span>
+        <a href="https://www.google.com/maps/search/?api=1&query=12+Rue+de+Bretagne,+Paris" target="_blank" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;">Voir sur la carte →</a>
+      </div>
+      <div class="contact-card reveal d2">
+        <span class="label">📞 Téléphone</span>
+        <span class="value">+33 1 42 00 00 00</span>
+        <a href="tel:+33142000000" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;">Appeler →</a>
+      </div>
+      <div class="contact-card reveal d3">
+        <span class="label">🕐 Horaires</span>
+        <span class="value" style="font-size:.9rem;white-space:pre-line;">Lun–Ven 12h–22h</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--soft);">
+  <div class="container" style="text-align:center;">
+    <div class="reveal">
+      <h2>Une question ?</h2>
+      <p style="margin:.8rem auto 2rem;">N'hésitez pas à nous appeler ou à passer directement en boutique.</p>
+      <a class="hero-cta" href="tel:+33142000000">Appeler maintenant</a>
+    </div>
+  </div>
+</section>
+
+<footer>© Le Petit Marché · Paris · Tous droits réservés</footer>
+
+<script>
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  },{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+})();
+</script>
+</body>
+</html>

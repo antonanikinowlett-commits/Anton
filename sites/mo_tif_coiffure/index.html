@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mo'tif Coiffure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  ::selection { background: #999999; color: #ffffff; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #999999; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: #ffffff; }
+  :focus-visible { outline: 2px solid #999999; outline-offset: 3px; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #ffffff;
+    color: #111111;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  /* ---------- sticky top nav ---------- */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.75rem;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+    transition: box-shadow 0.3s ease;
+  }
+  .top-nav .brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.15rem;
+    color: #111111;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+  }
+  .top-nav nav {
+    display: flex;
+    gap: 1.75rem;
+  }
+  .top-nav nav a {
+    position: relative;
+    color: #111111;
+    text-decoration: none;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+    padding-bottom: 0.35rem;
+    transition: opacity 0.25s ease;
+  }
+  .top-nav nav a::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 0;
+    height: 1.5px;
+    background: #999999;
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+  }
+  .top-nav nav a:hover, .top-nav nav a[aria-current="page"] {
+    opacity: 1;
+  }
+  .top-nav nav a:hover::after, .top-nav nav a[aria-current="page"]::after {
+    width: 100%;
+  }
+
+  /* ---------- hero banner ---------- */
+  .banner {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: 5rem 1.5rem 4.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 55%, rgba(153, 153, 153, 0.35) 160%);
+  }
+  .banner.hero {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background-image: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.78) 100%), url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0');
+    background-size: cover;
+    background-position: center;
+  }
+  .banner .kicker, .banner h1, .banner .tagline {
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+  }
+  .banner-content {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .banner .kicker {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #999999;
+    font-weight: 600;
+  }
+  .banner h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    color: #111111;
+    line-height: 1.15;
+  }
+  .banner .tagline {
+    margin: 1.1rem auto 0;
+    max-width: 520px;
+    font-size: 1.1rem;
+    color: #111111;
+    opacity: 0.9;
+  }
+  /* The hero banner always sits on a dark photo overlay, regardless of
+     theme, so it always needs light text -- unlike the compact banner on
+     other pages, which sits on the theme's own header_bg and should use
+     the theme's contrast color. */
+  .banner.hero .kicker, .banner.hero h1, .banner.hero .tagline {
+    color: #ffffff;
+  }
+  .banner.hero .btn-secondary {
+    color: #ffffff;
+    border-color: #ffffff;
+  }
+  .banner.hero .scroll-cue {
+    border-color: #ffffff;
+  }
+  .cta-row {
+    margin-top: 2.25rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block;
+    padding: 0.85rem 1.75rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    text-decoration: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  }
+  .btn-primary {
+    background: #999999;
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  .btn-primary:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12);
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    color: #111111;
+    border: 1.5px solid #111111;
+  }
+  .btn-secondary:hover {
+    transform: translateY(-3px) scale(1.03);
+    background: rgba(255,255,255,0.18);
+  }
+  .scroll-cue {
+    margin: 2.5rem auto 0;
+    width: 22px;
+    height: 22px;
+    border-right: 2px solid #111111;
+    border-bottom: 2px solid #111111;
+    transform: rotate(45deg);
+    opacity: 0.7;
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: rotate(45deg) translate(0, 0); }
+    50% { transform: rotate(45deg) translate(6px, 6px); }
+  }
+
+  /* ---------- scroll reveal ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  main {
+    max-width: 760px;
+    margin: 3.5rem auto;
+    padding: 0 1.5rem;
+  }
+  .card {
+    background: #fafafa;
+    border: 1px solid #dddddd;
+    border-radius: 16px;
+    padding: 2.25rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12);
+  }
+  .card h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    border-bottom: 1px solid #dddddd;
+    padding-bottom: 0.75rem;
+  }
+  .card ul {
+    padding-left: 1.1rem;
+    line-height: 1.9;
+  }
+  .info-row {
+    margin: 1.25rem 0;
+  }
+  .info-label {
+    font-weight: 600;
+    color: #999999;
+    display: block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.25rem;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  .gallery-item {
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+  .gallery-item img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease, filter 0.5s ease;
+  }
+  .gallery-item:hover img {
+    transform: scale(1.08);
+    filter: brightness(1.05);
+  }
+  .gallery-box {
+    background: #ffffff;
+    border: 1px dashed #dddddd;
+    border-radius: 12px;
+    padding: 2rem 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #111111;
+    opacity: 0.7;
+  }
+  footer {
+    text-align: center;
+    padding: 2.5rem 1.5rem 3rem;
+    font-size: 0.85rem;
+    color: #111111;
+    opacity: 0.65;
+  }
+  footer::before {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: #999999;
+    margin: 0 auto 1.25rem;
+  }
+
+  @media (max-width: 600px) {
+    .top-nav { flex-direction: column; gap: 0.75rem; padding: 1rem; }
+    .top-nav nav { gap: 1.1rem; }
+    .banner { padding: 3.5rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="top-nav">
+  <a class="brand" href="index.html">Mo'tif Coiffure</a>
+  <nav><a href="index.html" aria-current="page">Home</a><a href="services.html">Specialties</a><a href="gallery.html">Gallery</a><a href="contact.html">Contact</a></nav>
+</div>
+<header class="banner hero">
+  <div class="banner-content reveal">
+    <p class="kicker">Barber</p>
+    <h1>Mo'tif Coiffure</h1>
+    <p class="tagline">Seasonal tasting menu, natural wines</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="tel:+33146422985">Call Now</a>
+      <a class="btn btn-secondary" href="https://www.google.com/maps/search/?api=1&query=Mo%27tif%20Coiffure%2C%202%20Place%20Bonaventure%20Leca%2C%20Paris" target="_blank" rel="noopener">Get Directions</a>
+    </div>
+    <div class="scroll-cue" aria-hidden="true"></div>
+  </div>
+</header>
+<main>
+
+</main>
+<footer>
+  &copy; Mo'tif Coiffure
+</footer>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const revealed = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.15 });
+    revealed.forEach((el) => observer.observe(el));
+
+    const topNav = document.querySelector('.top-nav');
+    if (topNav) {
+      window.addEventListener('scroll', () => {
+        topNav.style.boxShadow = window.scrollY > 10 ? '0 4px 18px rgba(0,0,0,0.12)' : 'none';
+      });
+    }
+  });
+</script>
+</body>
+</html>

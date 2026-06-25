@@ -1,0 +1,35 @@
+{
+  "name": "Chez Denise",
+  "category": "restaurant",
+  "address": "5 Rue des Prouvaires",
+  "city": "Paris",
+  "phone": "+33 1 42 36 21 82",
+  "hours": "Horaires variables selon les sources - merci de nous appeler pour confirmer",
+  "lat": 48.8615239,
+  "lon": 2.3440891,
+  "description": "A la Tour de Montlhery - Chez Denise est une institution parisienne pres des Halles, reputee pour ses portions genereuses de cuisine traditionnelle francaise, son decor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidele a l'esprit bistrot d'antan.",
+  "_menu": {
+    "Entrees": [
+      ["Escargots (les 6)", "12€"], ["Gateau de foie de volaille", "15€"], ["Terrine du chef", "15€"],
+      ["Saumon cru marine", "22€"], ["Foie gras de canard maison", "22€"], ["Terrine de poissons", "15€"],
+      ["Frisee aux croutons", "10€"], ["Terrine de queue de boeuf", "16€"], ["Couteaux en persillade", "24€"],
+      ["Asperges vinaigrette", "16€"], ["Queue de boeuf en gelee", "15€"]
+    ],
+    "Poissons": [
+      ["Haddock au beurre blanc", "24€"], ["Saumon braise sauce moutarde", "24€"], ["Morue a l'auvergnate", "24€"],
+      ["Panache de poissons au basilic", "26€"], ["Colin froid sauce verte", "24€"], ["Raie aux capres", "24€"]
+    ],
+    "Plats du jour": [
+      ["Lapin a la moutarde", "24€"], ["Gigot d'agneau flageolets", "24€"], ["Tete de veau sauce ravigote", "24€"],
+      ["Daube de joue de boeuf", "22€"], ["Saute de veau au paprika", "24€"], ["Boeuf gros sel", "24€"],
+      ["Choux farcis", "20€"]
+    ],
+    "Carte permanente (grillades & abats)": [
+      ["Steak tartare", "24€"], ["Haricot de mouton", "24€"], ["Rognon de veau sauce moutarde", "25€"],
+      ["Foie de veau a l'anglaise", "25€"], ["Tripes au calvados", "22€"], ["Cotes d'agneau grillees", "26€"],
+      ["Cervelles d'agneau meuniere", "20€"], ["Brochette d'onglet de boeuf grille", "24€"],
+      ["Cote de boeuf grillee (pour 2, a la moelle)", "60€"], ["Onglet de boeuf grille", "24€"],
+      ["Andouillette grillee", "20€"], ["Pied de porc", "20€"]
+    ]
+  }
+}

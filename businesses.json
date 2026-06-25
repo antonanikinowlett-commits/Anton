@@ -1,0 +1,202 @@
+[
+  {
+    "name": "Café de la Paix",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "+33468053707",
+    "hours": "",
+    "lat": 42.6179663,
+    "lon": 2.4229309
+  },
+  {
+    "name": "Le Severo",
+    "category": "restaurant",
+    "address": "8 Rue des Plantes",
+    "city": "Paris",
+    "phone": "",
+    "hours": "Mo-Fr 12:00-14:00,19:30-21:30",
+    "lat": 48.8319911,
+    "lon": 2.3245334
+  },
+  {
+    "name": "La Terrasse",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8965817,
+    "lon": 2.2241626
+  },
+  {
+    "name": "Avant Seine",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8948889,
+    "lon": 2.2387542
+  },
+  {
+    "name": "Boldère",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8907277,
+    "lon": 2.23561
+  },
+  {
+    "name": "La Crypte Polska",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8672925,
+    "lon": 2.3255509
+  },
+  {
+    "name": "Chez Denise",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "+33 1 42 36 21 82",
+    "hours": "Mo-Su 12:00-24:00; Mo-Su 00:00-02:00",
+    "lat": 48.8615239,
+    "lon": 2.3440891
+  },
+  {
+    "name": "Café des Musées",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "+33 1 42 72 96 17",
+    "hours": "Mo-Su 12:00-15:00,19:00-23:30",
+    "lat": 48.8580708,
+    "lon": 2.3643313
+  },
+  {
+    "name": "Camille",
+    "category": "restaurant",
+    "address": "24 Rue des Francs Bourgeois",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8577772,
+    "lon": 2.3607273
+  },
+  {
+    "name": "Onhà Dô",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "Mo-Fr 12:00-14:30,19:00-22:30; Sa 12:00-15:00,19:00-23:00",
+    "lat": 48.8483768,
+    "lon": 2.3739692
+  },
+  {
+    "name": "Le Mumtaz",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8491606,
+    "lon": 2.4165683
+  },
+  {
+    "name": "Rani Mahal",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8687993,
+    "lon": 2.3373273
+  },
+  {
+    "name": "Café Moderne",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8689038,
+    "lon": 2.3422059
+  },
+  {
+    "name": "L'Excuse",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8533876,
+    "lon": 2.3620076
+  },
+  {
+    "name": "Le Lutétia Île Saint-Louis",
+    "category": "restaurant",
+    "address": "33 Quai de Bourbon",
+    "city": "Paris",
+    "phone": "+33 1 40 51 80 30",
+    "hours": "Mo-Su 07:30-23:00",
+    "lat": 48.8532987,
+    "lon": 2.3540953
+  },
+  {
+    "name": "Kusksi Original Couscous",
+    "category": "restaurant",
+    "address": "12 Rue Thouin",
+    "city": "Paris",
+    "phone": "+33 142010984",
+    "hours": "",
+    "lat": 48.8449458,
+    "lon": 2.3486915
+  },
+  {
+    "name": "Le Trait D'Union",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "Mo-Sa 07:00-02:00",
+    "lat": 48.8468341,
+    "lon": 2.3265156
+  },
+  {
+    "name": "Qasim",
+    "category": "restaurant",
+    "address": "Rue du Colisée",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8710439,
+    "lon": 2.3094204
+  },
+  {
+    "name": "Le Café Zéphyr",
+    "category": "restaurant",
+    "address": "Paris",
+    "city": "Paris",
+    "phone": "",
+    "hours": "",
+    "lat": 48.8718728,
+    "lon": 2.3418493
+  },
+  {
+    "name": "Le Caraqui",
+    "category": "restaurant",
+    "address": "55 Chemin Caraquis",
+    "city": "Bourges",
+    "phone": "+33 2 48 50 37 00",
+    "hours": "Tu-Su 12:00-14:00,19:00-22:00",
+    "lat": 47.0881179,
+    "lon": 2.4175339
+  }
+]

@@ -1,130 +1,200 @@
-import csv
+#!/usr/bin/env python3
+"""
+prospector.py — Step 1 of the SiteSnap pipeline.
+
+Finds small businesses in Paris (restaurants, florists, barbers, grocers)
+that genuinely have no website. Two-layer filter:
+  1. Overpass/OSM query that excludes anything tagged website or contact:website
+  2. DuckDuckGo web search per business to catch sites that OSM didn't tag
+
+Outputs a numbered list and writes results to businesses.json.
+No API key needed.
+
+Note: uses the stdlib (urllib) instead of the `requests` package, since
+`requests`/pip are not available in this environment.
+"""
+
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-CSV_FILE = "businesses.csv"
-MIN_RESULTS = 10
-MAX_RESULTS = 20
+# ── Config ────────────────────────────────────────────────────────────────────
 
-# OSM tag (key, value) -> our "type" label
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+
 CATEGORIES = [
-    ("shop", "florist", "florist"),
-    ("shop", "hairdresser", "barber"),
-    ("amenity", "restaurant", "restaurant"),
+    ("restaurant",  '[amenity=restaurant]'),
+    ("cafe",        '[amenity=cafe]'),
+    ("florist",     '[shop=florist]'),
+    ("barber",      '[shop=barber]'),
+    ("hairdresser", '[shop=hairdresser]'),
+    ("grocery",     '[shop=convenience]'),
+    ("bakery",      '[shop=bakery]'),
 ]
 
-# Bounding box roughly covering the city of Paris (south, west, north, east)
-PARIS_BBOX = "48.8155,2.2241,48.9022,2.4699"
+# Paris bounding box
+BBOX = "48.8155,2.2241,48.9022,2.4699"
 
-QUERY_TEMPLATE = """
-[out:json][timeout:50];
+DIRECTORY_DOMAINS = {
+    "tripadvisor.com","tripadvisor.fr","thefork.com","lafourchette.com",
+    "yelp.com","yelp.fr","google.com","google.fr","facebook.com",
+    "instagram.com","twitter.com","x.com","pagesjaunes.fr","petitfute.com",
+    "mappy.com","ubereats.com","deliveroo.fr","just-eat.fr","foursquare.com",
+    "youtube.com","wikipedia.org","restaurantguru.com","michelin.com",
+    "opentable.com","zenchef.com","linkedin.com","tiktok.com",
+}
+
+# ── Overpass ──────────────────────────────────────────────────────────────────
+
+def fetch_category(tag: str) -> list[dict]:
+    """Query OSM for businesses of one type with no website tag."""
+    query = f"""
+[out:json][timeout:30];
 (
-  node["{key}"="{value}"]["name"]["phone"][!"website"][!"contact:website"]({bbox});
-  way["{key}"="{value}"]["name"]["phone"][!"website"][!"contact:website"]({bbox});
+  node{tag}[!"website"][!"contact:website"](bbox:{BBOX});
+  way{tag}[!"website"][!"contact:website"](bbox:{BBOX});
 );
-out body;
+out center tags;
 """
-
-
-def fetch_category(key, value):
-    query = QUERY_TEMPLATE.format(key=key, value=value, bbox=PARIS_BBOX)
     data = urllib.parse.urlencode({"data": query}).encode("utf-8")
-    headers = {
-        "User-Agent": "prospector/1.0 (small business research script)",
-        "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+    headers = {"User-Agent": "curl/8.14.1"}
     request = urllib.request.Request(OVERPASS_URL, data=data, headers=headers)
-
-    max_attempts = 4
-    for attempt in range(1, max_attempts + 1):
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-            return payload.get("elements", [])
-        except urllib.error.HTTPError as exc:
-            if exc.code in (429, 504) and attempt < max_attempts:
-                wait = 15 * attempt
-                print(f"  Got HTTP {exc.code}, retrying in {wait}s...")
-                time.sleep(wait)
-                continue
-            raise
+    try:
+        with urllib.request.urlopen(request, timeout=35) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        return payload.get("elements", [])
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as e:
+        print(f"  Overpass error for {tag}: {e}")
+        return []
 
 
-def build_address(tags):
-    housenumber = tags.get("addr:housenumber", "")
-    street = tags.get("addr:street", "")
-    if housenumber and street:
-        return f"{housenumber} {street}"
-    if street:
-        return street
-    return ""
-
-
-def element_to_row(element, business_type):
-    tags = element.get("tags", {})
-    name = tags.get("name")
-    phone = tags.get("phone") or tags.get("contact:phone")
-    address = build_address(tags)
-
-    if not name or not phone or not address:
+def parse_element(el: dict, category: str) -> dict | None:
+    tags = el.get("tags", {})
+    name = tags.get("name", "").strip()
+    if not name:
         return None
 
-    city = tags.get("addr:city", "Paris")
-    postcode = tags.get("addr:postcode", "")
-    if city.lower() != "paris" and not postcode.startswith("75"):
-        return None
-    city = "Paris"
+    if el["type"] == "node":
+        lat, lon = el.get("lat"), el.get("lon")
+    else:
+        center = el.get("center", {})
+        lat, lon = center.get("lat"), center.get("lon")
+
+    street  = tags.get("addr:street", "")
+    housen  = tags.get("addr:housenumber", "")
+    city    = tags.get("addr:city", "Paris")
+    address = f"{housen} {street}".strip() or city
+    phone   = tags.get("phone") or tags.get("contact:phone", "")
+    hours   = tags.get("opening_hours", "")
 
     return {
         "name": name,
+        "category": category,
         "address": address,
-        "phone": phone,
         "city": city,
-        "type": business_type,
+        "phone": phone,
+        "hours": hours,
+        "lat": lat,
+        "lon": lon,
     }
 
+# ── Search verification ───────────────────────────────────────────────────────
+# Note: duckduckgo.com is unreachable from this environment's network, so
+# verification uses Bing's HTML search instead (same heuristic approach).
 
-def main():
-    rows = []
-    seen = set()
-    per_category_cap = -(-MAX_RESULTS // len(CATEGORIES))  # ceil division
+def _domain(d: str) -> str:
+    d = d.lower().strip()
+    return d[4:] if d.startswith("www.") else d
 
-    for index, (key, value, business_type) in enumerate(CATEGORIES):
-        if index > 0:
-            time.sleep(5)
-        print(f"Querying Overpass API for {business_type}s...")
-        elements = fetch_category(key, value)
-        category_rows = []
-        for element in elements:
-            row = element_to_row(element, business_type)
-            if row is None:
-                continue
-            dedupe_key = (row["name"], row["address"])
-            if dedupe_key in seen:
-                continue
-            seen.add(dedupe_key)
-            category_rows.append(row)
-            if len(category_rows) >= per_category_cap:
-                break
-        rows.extend(category_rows)
+def _is_directory(domain: str) -> bool:
+    d = _domain(domain)
+    return any(d == dd or d.endswith("." + dd) for dd in DIRECTORY_DOMAINS)
 
-    rows = rows[:MAX_RESULTS]
+def _name_tokens(name: str) -> list[str]:
+    stop = {"le","la","les","du","de","des","au","aux","the","a","l",
+            "restaurant","cafe","café","bar","chez","et","boulangerie"}
+    tokens = re.findall(r"[a-zA-Zà-ÿ0-9]+", name.lower())
+    return [t for t in tokens if len(t) > 2 and t not in stop]
 
-    if len(rows) < MIN_RESULTS:
-        print(f"Warning: only found {len(rows)} businesses (wanted at least {MIN_RESULTS}).")
+def _search_bing(query: str) -> list[str]:
+    """Return the result domains shown by Bing's HTML search for a query."""
+    url = "https://www.bing.com/search?" + urllib.parse.urlencode({"q": query})
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    request = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            html = response.read().decode("utf-8", errors="ignore")
+    except (urllib.error.URLError, urllib.error.HTTPError):
+        return []
+    return re.findall(r'<a class="tilk" aria-label="([^"]+)"', html)
 
-    with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "address", "phone", "city", "type"])
-        writer.writeheader()
-        writer.writerows(rows)
+def has_own_website(business: dict) -> bool:
+    """True if web search finds the business's own domain."""
+    name    = business["name"]
+    address = business["address"]
+    query   = f"{name} {address} site"
+    domains = _search_bing(query)
+    tokens  = _name_tokens(name)
+    for domain in domains[:10]:
+        if _is_directory(domain):
+            continue
+        d = _domain(domain)
+        if d and any(t in d for t in tokens):
+            return True
+    return False
 
-    print(f"Wrote {len(rows)} businesses to {CSV_FILE}")
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def run(max_results: int = 20) -> list[dict]:
+    print("🔍 Step 1 — Searching OSM for businesses without websites...\n")
+    candidates = []
+
+    for category, tag in CATEGORIES:
+        elements = fetch_category(tag)
+        for el in elements:
+            b = parse_element(el, category)
+            if b:
+                candidates.append(b)
+        print(f"  {category}: {len(elements)} raw results from OSM")
+        time.sleep(0.5)
+
+    # Deduplicate by name
+    seen, unique = set(), []
+    for b in candidates:
+        key = b["name"].lower().strip()
+        if key not in seen:
+            seen.add(key)
+            unique.append(b)
+
+    print(f"\n✅ {len(unique)} unique businesses found by OSM (no website tag).")
+    print("🌐 Running web search verification — this takes ~1s per business...\n")
+
+    verified = []
+    for b in unique:
+        has_site = has_own_website(b)
+        status = "❌ has site, skipping" if has_site else "✅ no site found"
+        print(f"  {status}: {b['name']} — {b['address']}")
+        if not has_site:
+            verified.append(b)
+        time.sleep(0.8)
+        if len(verified) >= max_results:
+            break
+
+    print(f"\n🎯 {len(verified)} verified businesses with no website.\n")
+
+    with open("businesses.json", "w", encoding="utf-8") as f:
+        json.dump(verified, f, ensure_ascii=False, indent=2)
+
+    return verified
 
 
 if __name__ == "__main__":
-    main()
+    results = run()
+    print("=" * 55)
+    for i, b in enumerate(results, 1):
+        print(f"  {i}. {b['name']} ({b['category']}) — {b['address']}")
+    print("=" * 55)
+    print(f"\nSaved to businesses.json")
