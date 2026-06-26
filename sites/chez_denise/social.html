@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivez-nous — Chez Denise</title>
+<script>(function(){try{var l=localStorage.getItem('lang');if(l)document.documentElement.lang=l;}catch(e){}}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #faf8f3;
+    --ink:     #1a1612;
+    --muted:   #7a7268;
+    --accent:  #b8975a;
+    --accent2: #d4b896;
+    --soft:    #f0e8d8;
+    --fd:      'Cormorant Garamond', Georgia, serif;
+    --fb:      'Jost', system-ui, sans-serif;
+    --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+    --spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  html { scroll-behavior: smooth; font-size: 16px; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--fb); line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,h4 { font-family: var(--fd); line-height: 1.1; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2.4rem, 6vw, 5rem); font-weight: 400; }
+  h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 400; margin-bottom: 1rem; }
+  h3 { font-size: clamp(1.2rem, 2.5vw, 1.6rem); font-weight: 600; margin-bottom: .5rem; }
+  p  { color: var(--muted); max-width: 60ch; line-height: 1.75; }
+  a  { color: var(--accent); text-decoration: none; }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center;
+    padding: 1.2rem 5vw;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+    transition: background .4s;
+    gap: 1rem;
+  }
+  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); flex-shrink: 0; }
+  .nav-links-wrap {
+    flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; display: flex; align-items: center;
+  }
+  .nav-links-wrap::-webkit-scrollbar { display: none; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; flex-wrap: nowrap; }
+  .nav-links a {
+    color: var(--muted); font-size: .9rem; letter-spacing: .05em;
+    text-transform: uppercase; transition: color .3s;
+    position: relative; white-space: nowrap;
+  }
+  .nav-links a::after {
+    content: ""; position: absolute; left:0; bottom:-2px;
+    width:100%; height:1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .4s var(--ease);
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* Language switcher */
+  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-btn {
+    background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
+    color: var(--muted); transition: all .2s;
+  }
+  .lang-btn:hover { color: var(--ink); border-color: var(--accent); }
+  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    nav { flex-wrap: wrap; padding: .8rem 5vw 0; gap: 0; }
+    .nav-logo { padding-bottom: .6rem; }
+    .lang-switcher { margin-left: auto; margin-bottom: .6rem; }
+    .nav-links-wrap {
+      width: 100%; flex: none;
+      border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+      padding: .45rem 0 .65rem;
+    }
+    .nav-links { gap: 1.6rem; }
+  }
+
+  /* Sections */
+  section { padding: clamp(4rem,10vw,8rem) 5vw; }
+  .section-label {
+    font-size: .75rem; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1rem; display: block;
+  }
+  .container { width: min(100%, 1100px); margin-inline: auto; }
+
+  /* Social cards */
+  .social-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+    gap: 1.5rem; margin-top: 3rem;
+  }
+  .social-card {
+    display: flex; align-items: center; gap: 1.2rem;
+    background: var(--soft); border-radius: 16px; padding: 1.6rem 1.8rem;
+    color: var(--ink);
+    transition: transform .5s var(--ease), box-shadow .5s var(--ease);
+  }
+  .social-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px -24px rgba(0,0,0,.25); }
+  .social-icon {
+    flex-shrink: 0; width: 52px; height: 52px; border-radius: 14px;
+    display: grid; place-items: center; color: #fff;
+  }
+  .social-icon svg { width: 26px; height: 26px; fill: currentColor; }
+  .social-meta { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+  .social-meta .name { font-size: 1.1rem; font-weight: 600; font-family: var(--fd); }
+  .social-meta .handle { font-size: .85rem; color: var(--muted); word-break: break-word; }
+  .social-meta .go { font-size: .78rem; letter-spacing: .04em; color: var(--accent); margin-top: .3rem; }
+
+  .ig  { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%); }
+  .fb  { background: #1877f2; }
+  .ta  { background: #34e0a1; color:#000 !important; }
+  .ta svg { fill:#000; }
+
+  /* Footer */
+  footer {
+    padding: 3rem 5vw; text-align:center;
+    border-top: 1px solid color-mix(in srgb,var(--ink) 8%,transparent);
+    color: var(--muted); font-size:.85rem;
+  }
+
+  /* Reveal animation (driven by JS) */
+  .reveal {
+    opacity:0; transform: translateY(32px);
+    transition: opacity .8s var(--ease), transform .8s var(--ease);
+  }
+  .reveal.in { opacity:1; transform: none; }
+  .reveal.d1 { transition-delay:.08s; }
+  .reveal.d2 { transition-delay:.16s; }
+  .reveal.d3 { transition-delay:.24s; }
+  .reveal.d4 { transition-delay:.32s; }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+    .reveal { opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Chez Denise</a>
+  <div class="nav-links-wrap">
+    <ul class="nav-links">
+      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Services" data-en="Menu">Services</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
+      <li><a href="social.html" style="color:var(--ink)" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+    </ul>
+  </div>
+  <div class="lang-switcher">
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+  </div>
+</nav>
+
+<section style="padding-top:8rem;">
+  <div class="container">
+    <span class="section-label reveal" data-fr="Restons en contact" data-en="Let's stay in touch">Restons en contact</span>
+    <h2 class="reveal d1" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</h2>
+    <p class="reveal d2" data-fr="Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients." data-en="Find Chez Denise on social media and read what our guests have to say.">Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients.</p>
+
+    <div class="social-grid">
+      <a class="social-card reveal d1" href="https://www.instagram.com/chezdenise_/" target="_blank" rel="noopener">
+        <span class="social-icon ig">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.62c-3.15 0-3.52.01-4.76.07-.92.04-1.42.2-1.75.33-.44.17-.75.37-1.08.7-.33.33-.53.64-.7 1.08-.13.33-.29.83-.33 1.75-.06 1.24-.07 1.61-.07 4.76s.01 3.52.07 4.76c.04.92.2 1.42.33 1.75.17.44.37.75.7 1.08.33.33.64.53 1.08.7.33.13.83.29 1.75.33 1.24.06 1.61.07 4.76.07s3.52-.01 4.76-.07c.92-.04 1.42-.2 1.75-.33.44-.17.75-.37 1.08-.7.33-.33.53-.64.7-1.08.13-.33.29-.83.33-1.75.06-1.24.07-1.61.07-4.76s-.01-3.52-.07-4.76c-.04-.92-.2-1.42-.33-1.75-.17-.44-.37-.75-.7-1.08-.33-.33-.64-.53-1.08-.7-.33-.13-.83-.29-1.75-.33-1.24-.06-1.61-.07-4.76-.07zm0 2.76a5.46 5.46 0 110 10.92 5.46 5.46 0 010-10.92zm0 9a3.54 3.54 0 100-7.08 3.54 3.54 0 000 7.08zm6.95-9.22a1.27 1.27 0 11-2.55 0 1.27 1.27 0 012.55 0z"/></svg>
+        </span>
+        <span class="social-meta">
+          <span class="name">Instagram</span>
+          <span class="handle">@chezdenise_</span>
+          <span class="go" data-fr="Voir le profil →" data-en="View profile →">Voir le profil →</span>
+        </span>
+      </a>
+
+      <a class="social-card reveal d2" href="https://www.facebook.com/chezdeniserestaurant/" target="_blank" rel="noopener">
+        <span class="social-icon fb">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.01 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96H15.83c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8v8.44C19.61 23.08 24 18.09 24 12.07z"/></svg>
+        </span>
+        <span class="social-meta">
+          <span class="name">Facebook</span>
+          <span class="handle">Chez Denise - La Tour de Montlhéry</span>
+          <span class="go" data-fr="Voir la page →" data-en="View page →">Voir la page →</span>
+        </span>
+      </a>
+
+      <a class="social-card reveal d3" href="https://www.tripadvisor.com/Restaurant_Review-g187147-d1159701-Reviews-Chez_Denise_La_Tour_de_Montlhery-Paris_Ile_de_France.html" target="_blank" rel="noopener">
+        <span class="social-icon ta">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.5c-2.45 0-4.7.55-6.6 1.5H1l1.6 1.74A4.46 4.46 0 0 0 5.6 18.4a4.45 4.45 0 0 0 3.3-1.46L12 20.5l3.1-3.56a4.45 4.45 0 0 0 3.3 1.46 4.46 4.46 0 0 0 3-7.66L23 9h-4.4A14.9 14.9 0 0 0 12 7.5zm-6.4 9a2.79 2.79 0 1 1 0-5.58 2.79 2.79 0 0 1 0 5.58zm6.4 0a2.79 2.79 0 0 1-5.58 0 2.79 2.79 0 0 1 5.58 0zm6.4 0a2.79 2.79 0 1 1 0-5.58 2.79 2.79 0 0 1 0 5.58zM5.6 12.6a1.13 1.13 0 1 0 0 2.26 1.13 1.13 0 0 0 0-2.26zm12.8 0a1.13 1.13 0 1 0 0 2.26 1.13 1.13 0 0 0 0-2.26z"/></svg>
+        </span>
+        <span class="social-meta">
+          <span class="name">Tripadvisor</span>
+          <span class="handle" data-fr="Avis & photos" data-en="Reviews & photos">Avis & photos</span>
+          <span class="go" data-fr="Lire les avis →" data-en="Read reviews →">Lire les avis →</span>
+        </span>
+      </a>
+    </div>
+
+    <p class="reveal d4" style="margin-top:2.5rem;font-size:.9rem;" data-fr="Pour réserver, merci de nous appeler directement au +33 1 42 36 21 82 — nous ne prenons pas de réservation en ligne." data-en="To book, please call us directly on +33 1 42 36 21 82 — we do not take online reservations.">Pour réserver, merci de nous appeler directement au +33 1 42 36 21 82 — nous ne prenons pas de réservation en ligne.</p>
+  </div>
+</section>
+
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+
+<script>
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-fr]').forEach(function(el) {
+    var t = el.getAttribute('data-' + lang);
+    if (t !== null) el.textContent = t;
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.id === 'btn-' + lang);
+  });
+}
+
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  }
+
+  setLang(localStorage.getItem('lang') || 'fr');
+})();
+</script>
+</body>
+</html>
