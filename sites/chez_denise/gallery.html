@@ -6,6 +6,7 @@
 <title>Galerie — Chez Denise</title>
 <script>(function(){try{var l=localStorage.getItem('lang');if(l)document.documentElement.lang=l;}catch(e){}}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://dynamic-media-cdn.tripadvisor.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -110,16 +111,16 @@
   .carousel-track { position: absolute; inset: 0; }
   .carousel-slide {
     position: absolute; inset: 0; opacity: 0; cursor: zoom-in;
-    transition: opacity .7s var(--ease); pointer-events: none;
+    transition: opacity .5s var(--ease); pointer-events: none;
   }
   .carousel-slide.active { opacity: 1; pointer-events: auto; }
   .carousel-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .carousel-btn {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 48px; height: 48px; border-radius: 50%; border: none; z-index: 3;
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    background: rgba(250,248,243,.86);
     color: var(--ink); font-size: 1.6rem; line-height: 1; cursor: pointer;
-    display: grid; place-items: center; backdrop-filter: blur(6px);
+    display: grid; place-items: center;
     transition: background .25s, color .25s, transform .25s;
   }
   .carousel-btn:hover { background: var(--accent); color: #fff; transform: translateY(-50%) scale(1.08); }
@@ -128,8 +129,7 @@
   .carousel-counter {
     position: absolute; bottom: 1rem; right: 1.2rem; z-index: 3;
     font-size: .8rem; letter-spacing: .05em; color: #fff;
-    background: rgba(0,0,0,.45); padding: .25em .75em; border-radius: 999px;
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,.5); padding: .25em .75em; border-radius: 999px;
   }
   @media (max-width: 600px) {
     .carousel-btn { width: 40px; height: 40px; font-size: 1.3rem; }
@@ -169,7 +169,7 @@
   .lightbox img {
     max-width: 100%; max-height: 100%; border-radius: 8px;
     box-shadow: 0 24px 64px -16px rgba(0,0,0,.6);
-    opacity: 0; transform: scale(.96); transition: opacity .35s var(--ease), transform .35s var(--ease);
+    opacity: 0; transform: scale(.96); transition: opacity .3s var(--ease), transform .3s var(--ease);
   }
   .lightbox.open img { opacity: 1; transform: scale(1); }
   .lightbox-close {
@@ -231,27 +231,27 @@
     <div class="carousel reveal d2">
       <div class="carousel-stage">
         <div class="carousel-track" id="carousel-track">
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-scaled.jpeg" alt="Façade de Chez Denise" loading="eager"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/51/caption.jpg" alt="Côte de bœuf et os à moelle" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/53/caption.jpg" alt="Foie gras maison" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/94/caption.jpg" alt="Salade" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/59/caption.jpg" alt="Carte du jour" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5937-scaled.jpeg" alt="Daube de bœuf" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/52/caption.jpg" alt="Os à moelle et pain grillé" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/93/caption.jpg" alt="Salle et collection d'art" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/50/caption.jpg" alt="Poulet rôti fermier" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-scaled.jpeg" alt="Terrine du chef" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4e/caption.jpg" alt="Dessert" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/92/caption.jpg" alt="Salle du restaurant" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/57/caption.jpg" alt="Plat mijoté en cuivre" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4f/caption.jpg" alt="Jarret de porc" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/58/caption.jpg" alt="L'équipe de Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5914-scaled.jpeg" alt="Rognons sauce moutarde" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/54/caption.jpg" alt="Terrine et frisée" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5950-scaled.jpeg" alt="Dessert maison" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="En salle Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/56/caption.jpg" alt="Fricassée aux champignons" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/55/caption.jpg" alt="Gratinée" loading="lazy"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-225x300.jpeg" alt="Façade de Chez Denise" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/32/ae/cc/51/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/32/ae/cc/51/caption.jpg" alt="Côte de bœuf et os à moelle" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/53/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/53/caption.jpg" alt="Foie gras maison" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/33/a8/67/94/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/33/a8/67/94/caption.jpg" alt="Salade" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/59/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/59/caption.jpg" alt="Carte du jour" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5937-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5937-225x300.jpeg" alt="Daube de bœuf" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/52/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/52/caption.jpg" alt="Os à moelle et pain grillé" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/33/a8/67/93/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/33/a8/67/93/caption.jpg" alt="Salle et collection d'art" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/32/ae/cc/50/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/32/ae/cc/50/caption.jpg" alt="Poulet rôti fermier" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-225x300.jpeg" alt="Terrine du chef" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/32/ae/cc/4e/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/32/ae/cc/4e/caption.jpg" alt="Dessert" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/33/a8/67/92/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/33/a8/67/92/caption.jpg" alt="Salle du restaurant" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/57/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/57/caption.jpg" alt="Plat mijoté en cuivre" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/32/ae/cc/4f/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/32/ae/cc/4f/caption.jpg" alt="Jarret de porc" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/58/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/58/caption.jpg" alt="L'équipe de Chez Denise" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5914-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5914-225x300.jpeg" alt="Rognons sauce moutarde" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/54/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/54/caption.jpg" alt="Terrine et frisée" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5950-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5950-225x300.jpeg" alt="Dessert maison" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-768x1024.jpeg" data-thumb="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-225x300.jpeg" alt="En salle Chez Denise" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/56/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/56/caption.jpg" alt="Fricassée aux champignons" decoding="async"></div>
+          <div class="carousel-slide"><img data-src="https://dynamic-media-cdn.tripadvisor.com/media/photo-w/31/6b/1e/55/caption.jpg" data-thumb="https://dynamic-media-cdn.tripadvisor.com/media/photo-f/31/6b/1e/55/caption.jpg" alt="Gratinée" decoding="async"></div>
         </div>
         <button class="carousel-btn prev" id="car-prev" aria-label="Précédent">&#8249;</button>
         <button class="carousel-btn next" id="car-next" aria-label="Suivant">&#8250;</button>
@@ -314,24 +314,37 @@ function setLang(lang) {
     var thumbsWrap = document.getElementById('thumbs');
     var thumbs = [];
 
+    // Only fetch the big image for the current slide and its neighbours,
+    // so we never download all 21 full photos up front.
+    function loadNear(i){
+      [i - 1, i, i + 1].forEach(function(k){
+        k = (k + total) % total;
+        var im = slides[k].querySelector('img');
+        if (im && !im.getAttribute('src') && im.dataset.src) im.setAttribute('src', im.dataset.src);
+      });
+    }
+
     slides.forEach(function(slide, i){
       var img = slide.querySelector('img');
 
-      // Build the matching thumbnail.
+      // Matching thumbnail uses a tiny image and loads lazily.
       var t = document.createElement('button');
       t.className = 'thumb';
       t.setAttribute('aria-label', 'Photo ' + (i + 1));
       var ti = document.createElement('img');
-      ti.src = img.getAttribute('src');
+      ti.src = img.dataset.thumb;
       ti.alt = img.getAttribute('alt') || '';
       ti.loading = 'lazy';
+      ti.decoding = 'async';
       t.appendChild(ti);
       t.addEventListener('click', function(){ go(i); restart(); });
       thumbsWrap.appendChild(t);
       thumbs.push(t);
 
-      // Click the big image to open it full-size.
-      slide.addEventListener('click', function(){ openLightbox(img.src, img.alt); });
+      // Click the big image to open it.
+      slide.addEventListener('click', function(){
+        openLightbox(img.getAttribute('src') || img.dataset.src, img.alt);
+      });
     });
 
     function render(){
@@ -341,7 +354,9 @@ function setLang(lang) {
       var at = thumbs[index];
       if (at && at.scrollIntoView) at.scrollIntoView({block:'nearest', inline:'nearest'});
     }
-    function go(i){ index = (i + total) % total; render(); }
+    function go(i){ index = (i + total) % total; loadNear(index); render(); }
+
+    loadNear(0);
     render();
 
     document.getElementById('car-prev').addEventListener('click', function(){ go(index - 1); restart(); });
