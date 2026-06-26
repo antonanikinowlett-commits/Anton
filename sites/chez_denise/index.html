@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chez Denise</title>
-
+<script>(function(){try{var l=localStorage.getItem('lang');if(l)document.documentElement.lang=l;}catch(e){}}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -37,19 +37,25 @@
   /* Nav */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center;
     padding: 1.2rem 5vw;
     background: color-mix(in srgb, var(--bg) 85%, transparent);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
     transition: background .4s;
+    gap: 1rem;
   }
-  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); flex-shrink: 0; }
+  .nav-links-wrap {
+    flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; display: flex; align-items: center;
+  }
+  .nav-links-wrap::-webkit-scrollbar { display: none; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; flex-wrap: nowrap; }
   .nav-links a {
     color: var(--muted); font-size: .9rem; letter-spacing: .05em;
     text-transform: uppercase; transition: color .3s;
-    position: relative;
+    position: relative; white-space: nowrap;
   }
   .nav-links a::after {
     content: ""; position: absolute; left:0; bottom:-2px;
@@ -59,6 +65,29 @@
   }
   .nav-links a:hover { color: var(--ink); }
   .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* Language switcher */
+  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-btn {
+    background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
+    color: var(--muted); transition: all .2s;
+  }
+  .lang-btn:hover { color: var(--ink); border-color: var(--accent); }
+  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    nav { flex-wrap: wrap; padding: .8rem 5vw 0; gap: 0; }
+    .nav-logo { padding-bottom: .6rem; }
+    .lang-switcher { margin-left: auto; margin-bottom: .6rem; }
+    .nav-links-wrap {
+      width: 100%; flex: none;
+      border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+      padding: .45rem 0 .65rem;
+    }
+    .nav-links { gap: 1.6rem; }
+  }
 
   /* Hero */
   .hero {
@@ -239,10 +268,18 @@
 
 <nav>
   <a class="nav-logo" href="index.html">Chez Denise</a>
-  <ul class="nav-links"><li><a href="index.html" style="color:var(--ink)">Accueil</a></li>
-<li><a href="services.html" >Services</a></li>
-<li><a href="gallery.html" >Galerie</a></li>
-<li><a href="contact.html" >Contact</a></li></ul>
+  <div class="nav-links-wrap">
+    <ul class="nav-links">
+      <li><a href="index.html" style="color:var(--ink)" data-fr="Accueil" data-en="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Services" data-en="Menu">Services</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+    </ul>
+  </div>
+  <div class="lang-switcher">
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+  </div>
 </nav>
 
 <section class="hero">
@@ -251,28 +288,40 @@
   <div class="hero-content">
     <span class="hero-eyebrow">Restaurant · Paris</span>
     <h1>Chez Denise</h1>
-    <p>Une adresse parisienne authentique, où chaque détail compte.</p>
-    <a class="hero-cta" href="contact.html">Nous contacter →</a>
+    <p data-fr="Une adresse parisienne authentique, où chaque détail compte." data-en="An authentic Parisian address, where every detail matters.">Une adresse parisienne authentique, où chaque détail compte.</p>
+    <a class="hero-cta" href="contact.html" data-fr="Nous contacter →" data-en="Contact us →">Nous contacter →</a>
   </div>
 </section>
 
 <section style="background:var(--soft);">
   <div class="container two-col">
     <div class="reveal">
-      <span class="section-label">Notre histoire</span>
-      <h2>À propos</h2>
-      <p>A la Tour de Montlhery - Chez Denise est une institution parisienne pres des Halles, reputee pour ses portions genereuses de cuisine traditionnelle francaise, son decor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidele a l'esprit bistrot d'antan.</p>
+      <span class="section-label" data-fr="Notre histoire" data-en="Our story">Notre histoire</span>
+      <h2 data-fr="À propos" data-en="About">À propos</h2>
+      <p data-fr="A la Tour de Montlhery - Chez Denise est une institution parisienne pres des Halles, reputee pour ses portions genereuses de cuisine traditionnelle francaise, son decor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidele a l'esprit bistrot d'antan." data-en="At La Tour de Montlhéry, Chez Denise is a Parisian institution near Les Halles, renowned for its generous portions of traditional French cuisine, its authentic zinc décor and its late hours. Taken over by the Bertrand Group in 2020, the establishment remains true to the old bistrot spirit.">A la Tour de Montlhery - Chez Denise est une institution parisienne pres des Halles, reputee pour ses portions genereuses de cuisine traditionnelle francaise, son decor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidele a l'esprit bistrot d'antan.</p>
       <br>
-      <a href="services.html" style="font-weight:600;color:var(--accent);">Voir nos services →</a>
+      <a href="services.html" style="font-weight:600;color:var(--accent);" data-fr="Voir nos services →" data-en="See our menu →">Voir nos services →</a>
     </div>
     <div class="reveal d1"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="À propos" style="width:100%;border-radius:16px;display:block;"></div>
   </div>
 </section>
 
 <hr class="divider">
-<footer>© Chez Denise · Paris · Tous droits réservés</footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-fr]').forEach(function(el) {
+    var t = el.getAttribute('data-' + lang);
+    if (t !== null) el.textContent = t;
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.id === 'btn-' + lang);
+  });
+}
+
 (function(){
   if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
     document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
@@ -285,7 +334,6 @@
     document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
   }
 
-  // Gallery: fade images in as they load, open a lightbox on click.
   document.querySelectorAll('.gallery-item img').forEach(function(img){
     function reveal(){ img.classList.add('loaded'); }
     if(img.complete){ reveal(); } else { img.addEventListener('load', reveal); }
@@ -315,7 +363,6 @@
     if(e.key === 'Escape') closeLightbox();
   });
 
-  // Reservation form: submit to Netlify Forms via fetch, no page reload.
   var form = document.getElementById('reservation-form');
   if(form){
     var status = document.getElementById('reservation-status');
@@ -332,14 +379,22 @@
       }).then(function(res){
         if(!res.ok) throw new Error('network');
         form.reset();
-        status.textContent = 'Merci ! Votre demande de réservation a bien été envoyée.';
+        var lang = localStorage.getItem('lang') || 'fr';
+        status.textContent = lang === 'en'
+          ? 'Thank you! Your reservation request has been sent.'
+          : 'Merci ! Votre demande de réservation a bien été envoyée.';
         status.className = 'reservation-status ok';
       }).catch(function(){
-        status.textContent = 'Une erreur est survenue — merci de nous appeler directement.';
+        var lang = localStorage.getItem('lang') || 'fr';
+        status.textContent = lang === 'en'
+          ? 'An error occurred — please call us directly.'
+          : 'Une erreur est survenue — merci de nous appeler directement.';
         status.className = 'reservation-status err';
       });
     });
   }
+
+  setLang(localStorage.getItem('lang') || 'fr');
 })();
 </script>
 </body>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Contact — Chez Denise</title>
-
+<script>(function(){try{var l=localStorage.getItem('lang');if(l)document.documentElement.lang=l;}catch(e){}}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -37,19 +37,25 @@
   /* Nav */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center;
     padding: 1.2rem 5vw;
     background: color-mix(in srgb, var(--bg) 85%, transparent);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
     transition: background .4s;
+    gap: 1rem;
   }
-  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); flex-shrink: 0; }
+  .nav-links-wrap {
+    flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; display: flex; align-items: center;
+  }
+  .nav-links-wrap::-webkit-scrollbar { display: none; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; flex-wrap: nowrap; }
   .nav-links a {
     color: var(--muted); font-size: .9rem; letter-spacing: .05em;
     text-transform: uppercase; transition: color .3s;
-    position: relative;
+    position: relative; white-space: nowrap;
   }
   .nav-links a::after {
     content: ""; position: absolute; left:0; bottom:-2px;
@@ -59,6 +65,29 @@
   }
   .nav-links a:hover { color: var(--ink); }
   .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* Language switcher */
+  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-btn {
+    background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
+    color: var(--muted); transition: all .2s;
+  }
+  .lang-btn:hover { color: var(--ink); border-color: var(--accent); }
+  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    nav { flex-wrap: wrap; padding: .8rem 5vw 0; gap: 0; }
+    .nav-logo { padding-bottom: .6rem; }
+    .lang-switcher { margin-left: auto; margin-bottom: .6rem; }
+    .nav-links-wrap {
+      width: 100%; flex: none;
+      border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+      padding: .45rem 0 .65rem;
+    }
+    .nav-links { gap: 1.6rem; }
+  }
 
   /* Hero */
   .hero {
@@ -130,50 +159,6 @@
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
   @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; gap: 2rem; } }
 
-  /* Cards */
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1.5rem; margin-top: 3rem; }
-  .card {
-    background: var(--soft); border-radius: 16px; padding: 2rem;
-    transition: transform .5s var(--ease), box-shadow .5s var(--ease);
-  }
-  .card:hover { transform: translateY(-8px); box-shadow: 0 24px 48px -24px rgba(0,0,0,.25); }
-  .card-icon { font-size: 2rem; margin-bottom: 1rem; }
-
-  /* Gallery */
-  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1rem; margin-top: 3rem; }
-  .gallery-item {
-    border-radius: 12px; overflow: clip; aspect-ratio: 4/3;
-    background: var(--soft); cursor: pointer;
-    transition: transform .5s var(--ease);
-  }
-  .gallery-item:hover { transform: scale(1.03); }
-  .gallery-item img {
-    width:100%; height:100%; object-fit:cover; display:block;
-    opacity: 0; transition: opacity .6s var(--ease);
-  }
-  .gallery-item img.loaded { opacity: 1; }
-
-  /* Lightbox */
-  .lightbox {
-    position: fixed; inset: 0; z-index: 1000; display: none;
-    align-items: center; justify-content: center;
-    background: rgba(0,0,0,.88); padding: 4vh 4vw;
-    cursor: zoom-out;
-  }
-  .lightbox.open { display: flex; }
-  .lightbox img {
-    max-width: 100%; max-height: 100%; border-radius: 8px;
-    box-shadow: 0 24px 64px -16px rgba(0,0,0,.6);
-    opacity: 0; transform: scale(.96); transition: opacity .35s var(--ease), transform .35s var(--ease);
-  }
-  .lightbox.open img { opacity: 1; transform: scale(1); }
-  .lightbox-close {
-    position: absolute; top: 1.5rem; right: 2rem;
-    color: #fff; font-size: 2.4rem; line-height: 1; cursor: pointer;
-    opacity: .8; transition: opacity .2s;
-  }
-  .lightbox-close:hover { opacity: 1; }
-
   /* Contact block */
   .contact-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2rem; margin-top: 3rem; }
   .contact-card {
@@ -239,32 +224,40 @@
 
 <nav>
   <a class="nav-logo" href="index.html">Chez Denise</a>
-  <ul class="nav-links"><li><a href="index.html" >Accueil</a></li>
-<li><a href="services.html" >Services</a></li>
-<li><a href="gallery.html" >Galerie</a></li>
-<li><a href="contact.html" style="color:var(--ink)">Contact</a></li></ul>
+  <div class="nav-links-wrap">
+    <ul class="nav-links">
+      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Services" data-en="Menu">Services</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
+      <li><a href="contact.html" style="color:var(--ink)" data-fr="Contact" data-en="Contact">Contact</a></li>
+    </ul>
+  </div>
+  <div class="lang-switcher">
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+  </div>
 </nav>
 
 <section style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal">Venez nous voir</span>
-    <h2 class="reveal d1">Nous contacter</h2>
-    <p class="reveal d2">Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement.</p>
+    <span class="section-label reveal" data-fr="Venez nous voir" data-en="Come visit us">Venez nous voir</span>
+    <h2 class="reveal d1" data-fr="Nous contacter" data-en="Contact us">Nous contacter</h2>
+    <p class="reveal d2" data-fr="Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement." data-en="We are at your disposal. Come visit us or call us directly.">Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement.</p>
 
     <div class="contact-grid">
       <div class="contact-card reveal d1">
-        <span class="label">📍 Adresse</span>
+        <span class="label" data-fr="📍 Adresse" data-en="📍 Address">📍 Adresse</span>
         <span class="value">5 Rue des Prouvaires, Paris</span>
-        <a href="https://www.google.com/maps/search/?api=1&query=5+Rue+des+Prouvaires,+Paris" target="_blank" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;">Voir sur la carte →</a>
+        <a href="https://www.google.com/maps/search/?api=1&query=5+Rue+des+Prouvaires,+Paris" target="_blank" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Voir sur la carte →" data-en="View on map →">Voir sur la carte →</a>
       </div>
       <div class="contact-card reveal d2">
-        <span class="label">📞 Téléphone</span>
+        <span class="label" data-fr="📞 Téléphone" data-en="📞 Phone">📞 Téléphone</span>
         <span class="value">+33 1 42 36 21 82</span>
-        <a href="tel:+33142362182" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;">Appeler →</a>
+        <a href="tel:+33142362182" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Appeler →" data-en="Call →">Appeler →</a>
       </div>
       <div class="contact-card reveal d3">
-        <span class="label">🕐 Horaires</span>
-        <span class="value" style="font-size:.9rem;white-space:pre-line;">Horaires variables selon les sources - merci de nous appeler pour confirmer</span>
+        <span class="label" data-fr="🕐 Horaires" data-en="🕐 Hours">🕐 Horaires</span>
+        <span class="value" style="font-size:.9rem;white-space:pre-line;" data-fr="Horaires variables selon les sources - merci de nous appeler pour confirmer" data-en="Variable hours depending on sources — please call to confirm">Horaires variables selon les sources - merci de nous appeler pour confirmer</span>
       </div>
     </div>
   </div>
@@ -272,35 +265,35 @@
 
 <section style="background:var(--soft);">
   <div class="container">
-    <span class="section-label reveal">Réservation</span>
-    <h2 class="reveal d1">Demander une table</h2>
-    <p class="reveal d2">Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation.</p>
+    <span class="section-label reveal" data-fr="Réservation" data-en="Reservation">Réservation</span>
+    <h2 class="reveal d1" data-fr="Demander une table" data-en="Request a table">Demander une table</h2>
+    <p class="reveal d2" data-fr="Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation." data-en="Fill in this form and we will contact you to confirm your reservation.">Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation.</p>
 
     <form name="reservation" id="reservation-form" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="reveal d3 booking-form">
       <input type="hidden" name="form-name" value="reservation">
       <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
 
       <div class="form-row">
-        <label>Nom complet
+        <label><span data-fr="Nom complet" data-en="Full name">Nom complet</span>
           <input type="text" name="name" required>
         </label>
-        <label>Téléphone
+        <label><span data-fr="Téléphone" data-en="Phone">Téléphone</span>
           <input type="tel" name="phone" required>
         </label>
       </div>
       <div class="form-row">
-        <label>Date
+        <label><span data-fr="Date" data-en="Date">Date</span>
           <input type="date" name="date" required>
         </label>
-        <label>Heure
+        <label><span data-fr="Heure" data-en="Time">Heure</span>
           <input type="time" name="time" required>
         </label>
-        <label>Nombre de personnes
+        <label><span data-fr="Nombre de personnes" data-en="Number of guests">Nombre de personnes</span>
           <input type="number" name="guests" min="1" max="30" value="2" required>
         </label>
       </div>
 
-      <button type="submit" class="hero-cta">Envoyer la demande →</button>
+      <button type="submit" class="hero-cta" data-fr="Envoyer la demande →" data-en="Send request →">Envoyer la demande →</button>
       <p id="reservation-status" class="reservation-status"></p>
     </form>
   </div>
@@ -309,16 +302,28 @@
 <section>
   <div class="container" style="text-align:center;">
     <div class="reveal">
-      <h2>Une question ?</h2>
-      <p style="margin:.8rem auto 2rem;">N'hésitez pas à nous appeler ou à passer directement en boutique.</p>
-      <a class="hero-cta" href="tel:+33142362182">Appeler maintenant</a>
+      <h2 data-fr="Une question ?" data-en="A question?">Une question ?</h2>
+      <p style="margin:.8rem auto 2rem;" data-fr="N'hésitez pas à nous appeler ou à passer directement en boutique." data-en="Don't hesitate to call us or come in directly.">N'hésitez pas à nous appeler ou à passer directement en boutique.</p>
+      <a class="hero-cta" href="tel:+33142362182" data-fr="Appeler maintenant" data-en="Call now">Appeler maintenant</a>
     </div>
   </div>
 </section>
 
-<footer>© Chez Denise · Paris · Tous droits réservés</footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-fr]').forEach(function(el) {
+    var t = el.getAttribute('data-' + lang);
+    if (t !== null) el.textContent = t;
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.id === 'btn-' + lang);
+  });
+}
+
 (function(){
   if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
     document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
@@ -331,37 +336,6 @@
     document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
   }
 
-  // Gallery: fade images in as they load, open a lightbox on click.
-  document.querySelectorAll('.gallery-item img').forEach(function(img){
-    function reveal(){ img.classList.add('loaded'); }
-    if(img.complete){ reveal(); } else { img.addEventListener('load', reveal); }
-  });
-
-  var lightbox = document.createElement('div');
-  lightbox.className = 'lightbox';
-  lightbox.innerHTML = '<span class="lightbox-close">&times;</span><img>';
-  document.body.appendChild(lightbox);
-  var lightboxImg = lightbox.querySelector('img');
-
-  function openLightbox(src, alt){
-    lightboxImg.src = src;
-    lightboxImg.alt = alt || '';
-    lightbox.classList.add('open');
-  }
-  function closeLightbox(){ lightbox.classList.remove('open'); }
-
-  document.querySelectorAll('.gallery-item').forEach(function(item){
-    item.addEventListener('click', function(){
-      var img = item.querySelector('img');
-      if(img) openLightbox(img.src, img.alt);
-    });
-  });
-  lightbox.addEventListener('click', closeLightbox);
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') closeLightbox();
-  });
-
-  // Reservation form: submit to Netlify Forms via fetch, no page reload.
   var form = document.getElementById('reservation-form');
   if(form){
     var status = document.getElementById('reservation-status');
@@ -378,14 +352,22 @@
       }).then(function(res){
         if(!res.ok) throw new Error('network');
         form.reset();
-        status.textContent = 'Merci ! Votre demande de réservation a bien été envoyée.';
+        var lang = localStorage.getItem('lang') || 'fr';
+        status.textContent = lang === 'en'
+          ? 'Thank you! Your reservation request has been sent.'
+          : 'Merci ! Votre demande de réservation a bien été envoyée.';
         status.className = 'reservation-status ok';
       }).catch(function(){
-        status.textContent = 'Une erreur est survenue — merci de nous appeler directement.';
+        var lang = localStorage.getItem('lang') || 'fr';
+        status.textContent = lang === 'en'
+          ? 'An error occurred — please call us directly.'
+          : 'Une erreur est survenue — merci de nous appeler directement.';
         status.className = 'reservation-status err';
       });
     });
   }
+
+  setLang(localStorage.getItem('lang') || 'fr');
 })();
 </script>
 </body>

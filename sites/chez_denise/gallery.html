@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Galerie — Chez Denise</title>
-
+<script>(function(){try{var l=localStorage.getItem('lang');if(l)document.documentElement.lang=l;}catch(e){}}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -37,19 +37,25 @@
   /* Nav */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center;
     padding: 1.2rem 5vw;
     background: color-mix(in srgb, var(--bg) 85%, transparent);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
     transition: background .4s;
+    gap: 1rem;
   }
-  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-logo { font-family: var(--fd); font-size: 1.4rem; color: var(--ink); flex-shrink: 0; }
+  .nav-links-wrap {
+    flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; display: flex; align-items: center;
+  }
+  .nav-links-wrap::-webkit-scrollbar { display: none; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; flex-wrap: nowrap; }
   .nav-links a {
     color: var(--muted); font-size: .9rem; letter-spacing: .05em;
     text-transform: uppercase; transition: color .3s;
-    position: relative;
+    position: relative; white-space: nowrap;
   }
   .nav-links a::after {
     content: ""; position: absolute; left:0; bottom:-2px;
@@ -59,6 +65,29 @@
   }
   .nav-links a:hover { color: var(--ink); }
   .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* Language switcher */
+  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-btn {
+    background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
+    color: var(--muted); transition: all .2s;
+  }
+  .lang-btn:hover { color: var(--ink); border-color: var(--accent); }
+  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    nav { flex-wrap: wrap; padding: .8rem 5vw 0; gap: 0; }
+    .nav-logo { padding-bottom: .6rem; }
+    .lang-switcher { margin-left: auto; margin-bottom: .6rem; }
+    .nav-links-wrap {
+      width: 100%; flex: none;
+      border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+      padding: .45rem 0 .65rem;
+    }
+    .nav-links { gap: 1.6rem; }
+  }
 
   /* Hero */
   .hero {
@@ -130,15 +159,6 @@
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
   @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; gap: 2rem; } }
 
-  /* Cards */
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1.5rem; margin-top: 3rem; }
-  .card {
-    background: var(--soft); border-radius: 16px; padding: 2rem;
-    transition: transform .5s var(--ease), box-shadow .5s var(--ease);
-  }
-  .card:hover { transform: translateY(-8px); box-shadow: 0 24px 48px -24px rgba(0,0,0,.25); }
-  .card-icon { font-size: 2rem; margin-bottom: 1rem; }
-
   /* Gallery */
   .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1rem; margin-top: 3rem; }
   .gallery-item {
@@ -174,39 +194,6 @@
   }
   .lightbox-close:hover { opacity: 1; }
 
-  /* Contact block */
-  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2rem; margin-top: 3rem; }
-  .contact-card {
-    background: var(--soft); border-radius: 16px; padding: 2rem;
-    display: flex; flex-direction: column; gap: .5rem;
-  }
-  .contact-card .label { font-size:.75rem; letter-spacing:.15em; text-transform:uppercase; color:var(--accent); }
-  .contact-card .value { font-size:1.05rem; font-weight:600; color: var(--ink); }
-
-  /* Booking form */
-  .booking-form { max-width: 640px; margin-top: 2.5rem; }
-  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1.2rem; margin-bottom: 1.2rem; }
-  .booking-form label {
-    display: flex; flex-direction: column; gap: .4rem;
-    font-size: .8rem; letter-spacing: .04em; color: var(--muted);
-  }
-  .booking-form input {
-    font-family: var(--fb); font-size: 1rem; color: var(--ink);
-    background: var(--bg); border: 1.5px solid color-mix(in srgb, var(--ink) 15%, transparent);
-    border-radius: 10px; padding: .7em .9em; outline: none;
-    transition: border-color .25s, box-shadow .25s;
-  }
-  .booking-form input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
-  }
-  .booking-form button { border: none; cursor: pointer; font-family: var(--fb); }
-  .reservation-status {
-    margin-top: 1rem; font-size: .9rem; font-weight: 600; display: none;
-  }
-  .reservation-status.ok { display: block; color: var(--accent); }
-  .reservation-status.err { display: block; color: #c0392b; }
-
   /* Divider */
   .divider { border:none; border-top: 1px solid color-mix(in srgb,var(--ink) 10%,transparent); margin: 0; }
 
@@ -239,16 +226,24 @@
 
 <nav>
   <a class="nav-logo" href="index.html">Chez Denise</a>
-  <ul class="nav-links"><li><a href="index.html" >Accueil</a></li>
-<li><a href="services.html" >Services</a></li>
-<li><a href="gallery.html" style="color:var(--ink)">Galerie</a></li>
-<li><a href="contact.html" >Contact</a></li></ul>
+  <div class="nav-links-wrap">
+    <ul class="nav-links">
+      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Services" data-en="Menu">Services</a></li>
+      <li><a href="gallery.html" style="color:var(--ink)" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+    </ul>
+  </div>
+  <div class="lang-switcher">
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+  </div>
 </nav>
 
 <section style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal">Nos photos</span>
-    <h2 class="reveal d1">Galerie</h2>
+    <span class="section-label reveal" data-fr="Nos photos" data-en="Our photos">Nos photos</span>
+    <h2 class="reveal d1" data-fr="Galerie" data-en="Gallery">Galerie</h2>
     <div class="gallery"><div class="gallery-item reveal d1"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-scaled.jpeg" alt="Photo 1" loading="lazy"></div>
 <div class="gallery-item reveal d2"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="Photo 2" loading="lazy"></div>
 <div class="gallery-item reveal d3"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-scaled.jpeg" alt="Photo 3" loading="lazy"></div>
@@ -273,9 +268,21 @@
   </div>
 </section>
 
-<footer>© Chez Denise · Paris · Tous droits réservés</footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-fr]').forEach(function(el) {
+    var t = el.getAttribute('data-' + lang);
+    if (t !== null) el.textContent = t;
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.id === 'btn-' + lang);
+  });
+}
+
 (function(){
   if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
     document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
@@ -288,7 +295,6 @@
     document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
   }
 
-  // Gallery: fade images in as they load, open a lightbox on click.
   document.querySelectorAll('.gallery-item img').forEach(function(img){
     function reveal(){ img.classList.add('loaded'); }
     if(img.complete){ reveal(); } else { img.addEventListener('load', reveal); }
@@ -318,31 +324,7 @@
     if(e.key === 'Escape') closeLightbox();
   });
 
-  // Reservation form: submit to Netlify Forms via fetch, no page reload.
-  var form = document.getElementById('reservation-form');
-  if(form){
-    var status = document.getElementById('reservation-status');
-    var dateInput = form.querySelector('input[name="date"]');
-    if(dateInput) dateInput.min = new Date().toISOString().split('T')[0];
-
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var data = new URLSearchParams(new FormData(form)).toString();
-      fetch(form.getAttribute('action') || '/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: data
-      }).then(function(res){
-        if(!res.ok) throw new Error('network');
-        form.reset();
-        status.textContent = 'Merci ! Votre demande de réservation a bien été envoyée.';
-        status.className = 'reservation-status ok';
-      }).catch(function(){
-        status.textContent = 'Une erreur est survenue — merci de nous appeler directement.';
-        status.className = 'reservation-status err';
-      });
-    });
-  }
+  setLang(localStorage.getItem('lang') || 'fr');
 })();
 </script>
 </body>
