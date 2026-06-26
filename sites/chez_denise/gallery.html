@@ -87,6 +87,9 @@
       padding: .45rem 0 .65rem;
     }
     .nav-links { gap: 1.6rem; }
+    /* Taller two-row nav on mobile — push the first section down so the
+       heading isn't hidden behind the fixed bar. */
+    section.page-top { padding-top: 11rem !important; }
   }
 
   /* Sections */
@@ -128,21 +131,31 @@
     background: rgba(0,0,0,.45); padding: .25em .75em; border-radius: 999px;
     backdrop-filter: blur(4px);
   }
-  .carousel-dots {
-    display: flex; flex-wrap: wrap; gap: .55rem; justify-content: center;
-    margin-top: 1.5rem;
-  }
-  .carousel-dot {
-    width: 9px; height: 9px; border-radius: 50%; border: none; padding: 0;
-    background: color-mix(in srgb, var(--ink) 22%, transparent); cursor: pointer;
-    transition: background .25s, transform .25s;
-  }
-  .carousel-dot:hover { background: var(--accent2); }
-  .carousel-dot.active { background: var(--accent); transform: scale(1.35); }
   @media (max-width: 600px) {
     .carousel-btn { width: 40px; height: 40px; font-size: 1.3rem; }
     .carousel-btn.prev { left: .6rem; }
     .carousel-btn.next { right: .6rem; }
+  }
+
+  /* Thumbnail strip (all photos, smaller, below the carousel) */
+  .thumbs {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: .6rem; margin-top: 1.6rem;
+  }
+  .thumb {
+    border: none; padding: 0; cursor: pointer; border-radius: 9px;
+    overflow: hidden; aspect-ratio: 1/1; background: var(--soft);
+    opacity: .6; outline: 2px solid transparent; outline-offset: 2px;
+    transition: opacity .3s var(--ease), transform .3s var(--ease), outline-color .3s, box-shadow .3s;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb:hover { opacity: 1; transform: translateY(-2px); }
+  .thumb.active {
+    opacity: 1; outline-color: var(--accent);
+    box-shadow: 0 8px 18px -10px rgba(0,0,0,.5);
+  }
+  @media (max-width: 600px) {
+    .thumbs { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: .45rem; }
   }
 
   /* Lightbox */
@@ -210,7 +223,7 @@
   </div>
 </nav>
 
-<section style="padding-top:8rem;">
+<section class="page-top" style="padding-top:8rem;">
   <div class="container">
     <span class="section-label reveal" data-fr="Nos photos" data-en="Our photos">Nos photos</span>
     <h2 class="reveal d1" data-fr="Galerie" data-en="Gallery">Galerie</h2>
@@ -218,33 +231,33 @@
     <div class="carousel reveal d2">
       <div class="carousel-stage">
         <div class="carousel-track" id="carousel-track">
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/55/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/94/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/51/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5914-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/59/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5937-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/50/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5950-scaled.jpeg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/93/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/54/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/92/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/58/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4f/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/53/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4e/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/52/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/57/caption.jpg" alt="Chez Denise" loading="lazy"></div>
-          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/56/caption.jpg" alt="Chez Denise" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5899-scaled.jpeg" alt="Façade de Chez Denise" loading="eager"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/51/caption.jpg" alt="Côte de bœuf et os à moelle" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/53/caption.jpg" alt="Foie gras maison" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/94/caption.jpg" alt="Salade" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/59/caption.jpg" alt="Carte du jour" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5937-scaled.jpeg" alt="Daube de bœuf" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/52/caption.jpg" alt="Os à moelle et pain grillé" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/93/caption.jpg" alt="Salle et collection d'art" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/50/caption.jpg" alt="Poulet rôti fermier" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5903-scaled.jpeg" alt="Terrine du chef" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4e/caption.jpg" alt="Dessert" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/a8/67/92/caption.jpg" alt="Salle du restaurant" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/57/caption.jpg" alt="Plat mijoté en cuivre" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/ae/cc/4f/caption.jpg" alt="Jarret de porc" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/58/caption.jpg" alt="L'équipe de Chez Denise" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5914-scaled.jpeg" alt="Rognons sauce moutarde" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/54/caption.jpg" alt="Terrine et frisée" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5950-scaled.jpeg" alt="Dessert maison" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="En salle Chez Denise" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/56/caption.jpg" alt="Fricassée aux champignons" loading="lazy"></div>
+          <div class="carousel-slide"><img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/6b/1e/55/caption.jpg" alt="Gratinée" loading="lazy"></div>
         </div>
         <button class="carousel-btn prev" id="car-prev" aria-label="Précédent">&#8249;</button>
         <button class="carousel-btn next" id="car-next" aria-label="Suivant">&#8250;</button>
         <span class="carousel-counter" id="car-counter">1 / 21</span>
       </div>
-      <div class="carousel-dots" id="carousel-dots"></div>
+      <div class="thumbs" id="thumbs"></div>
     </div>
   </div>
 </section>
@@ -290,42 +303,43 @@ function setLang(lang) {
   function closeLightbox(){ lightbox.classList.remove('open'); }
   lightbox.addEventListener('click', closeLightbox);
 
-  // Carousel: shuffle the slides on load, then drive a fade carousel.
+  // Carousel + thumbnail navigation. Photo order is curated (food shots
+  // separated by décor/ambiance shots), so it is kept fixed — no shuffle.
   var track = document.getElementById('carousel-track');
   if (track) {
     var slides = Array.prototype.slice.call(track.children);
-
-    // Fisher-Yates shuffle so photos appear in a random order each visit.
-    for (var i = slides.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = slides[i]; slides[i] = slides[j]; slides[j] = tmp;
-    }
-    slides.forEach(function(s){ track.appendChild(s); });
-
     var total = slides.length;
     var index = 0;
     var counter = document.getElementById('car-counter');
-    var dotsWrap = document.getElementById('carousel-dots');
-    var dots = [];
+    var thumbsWrap = document.getElementById('thumbs');
+    var thumbs = [];
 
     slides.forEach(function(slide, i){
-      var d = document.createElement('button');
-      d.className = 'carousel-dot';
-      d.setAttribute('aria-label', 'Photo ' + (i + 1));
-      d.addEventListener('click', function(){ go(i); restart(); });
-      dotsWrap.appendChild(d);
-      dots.push(d);
+      var img = slide.querySelector('img');
 
-      slide.addEventListener('click', function(){
-        var img = slide.querySelector('img');
-        if (img) openLightbox(img.src, img.alt);
-      });
+      // Build the matching thumbnail.
+      var t = document.createElement('button');
+      t.className = 'thumb';
+      t.setAttribute('aria-label', 'Photo ' + (i + 1));
+      var ti = document.createElement('img');
+      ti.src = img.getAttribute('src');
+      ti.alt = img.getAttribute('alt') || '';
+      ti.loading = 'lazy';
+      t.appendChild(ti);
+      t.addEventListener('click', function(){ go(i); restart(); });
+      thumbsWrap.appendChild(t);
+      thumbs.push(t);
+
+      // Click the big image to open it full-size.
+      slide.addEventListener('click', function(){ openLightbox(img.src, img.alt); });
     });
 
     function render(){
       slides.forEach(function(s, i){ s.classList.toggle('active', i === index); });
-      dots.forEach(function(d, i){ d.classList.toggle('active', i === index); });
+      thumbs.forEach(function(t, i){ t.classList.toggle('active', i === index); });
       counter.textContent = (index + 1) + ' / ' + total;
+      var at = thumbs[index];
+      if (at && at.scrollIntoView) at.scrollIntoView({block:'nearest', inline:'nearest'});
     }
     function go(i){ index = (i + total) % total; render(); }
     render();
