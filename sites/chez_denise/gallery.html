@@ -68,10 +68,10 @@
   .nav-links a:hover::after { transform: scaleX(1); }
 
   /* Language switcher */
-  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-switcher { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .lang-btn {
     background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    border-radius: 6px; padding: .2em .5em; font-size: .72rem;
     font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
     color: var(--muted); transition: all .2s;
   }
@@ -210,23 +210,26 @@
   <a class="nav-logo" href="index.html">Chez Denise</a>
   <div class="nav-links-wrap">
     <ul class="nav-links">
-      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
-      <li><a href="services.html" data-fr="Menu" data-en="Menu">Menu</a></li>
-      <li><a href="gallery.html" style="color:var(--ink)" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
-      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
-      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+      <li><a href="index.html" data-fr="Accueil" data-en="Home" data-es="Inicio" data-de="Startseite" data-it="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Menu" data-en="Menu" data-es="Menú" data-de="Menü" data-it="Menu">Menu</a></li>
+      <li><a href="gallery.html" style="color:var(--ink)" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</a></li>
+      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact" data-es="Contacto" data-de="Kontakt" data-it="Contatti">Contact</a></li>
     </ul>
   </div>
   <div class="lang-switcher">
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
   </div>
 </nav>
 
 <section class="page-top" style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal" data-fr="Nos photos" data-en="Our photos">Nos photos</span>
-    <h2 class="reveal d1" data-fr="Galerie" data-en="Gallery">Galerie</h2>
+    <span class="section-label reveal" data-fr="Nos photos" data-en="Our photos" data-es="Nuestras fotos" data-de="Unsere Fotos" data-it="Le nostre foto">Nos photos</span>
+    <h2 class="reveal d1" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</h2>
 
     <div class="carousel reveal d2">
       <div class="carousel-stage">
@@ -262,7 +265,7 @@
   </div>
 </section>
 
-<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved" data-es="© Chez Denise · París · Todos los derechos reservados" data-de="© Chez Denise · Paris · Alle Rechte vorbehalten" data-it="© Chez Denise · Parigi · Tutti i diritti riservati">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
 function setLang(lang) {

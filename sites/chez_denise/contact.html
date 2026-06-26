@@ -67,10 +67,10 @@
   .nav-links a:hover::after { transform: scaleX(1); }
 
   /* Language switcher */
-  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-switcher { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .lang-btn {
     background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    border-radius: 6px; padding: .2em .5em; font-size: .72rem;
     font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
     color: var(--muted); transition: all .2s;
   }
@@ -227,39 +227,42 @@
   <a class="nav-logo" href="index.html">Chez Denise</a>
   <div class="nav-links-wrap">
     <ul class="nav-links">
-      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
-      <li><a href="services.html" data-fr="Menu" data-en="Menu">Menu</a></li>
-      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
-      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
-      <li><a href="contact.html" style="color:var(--ink)" data-fr="Contact" data-en="Contact">Contact</a></li>
+      <li><a href="index.html" data-fr="Accueil" data-en="Home" data-es="Inicio" data-de="Startseite" data-it="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Menu" data-en="Menu" data-es="Menú" data-de="Menü" data-it="Menu">Menu</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</a></li>
+      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</a></li>
+      <li><a href="contact.html" style="color:var(--ink)" data-fr="Contact" data-en="Contact" data-es="Contacto" data-de="Kontakt" data-it="Contatti">Contact</a></li>
     </ul>
   </div>
   <div class="lang-switcher">
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
   </div>
 </nav>
 
 <section class="page-top" style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal" data-fr="Venez nous voir" data-en="Come visit us">Venez nous voir</span>
-    <h2 class="reveal d1" data-fr="Nous contacter" data-en="Contact us">Nous contacter</h2>
-    <p class="reveal d2" data-fr="Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement." data-en="We are at your disposal. Come visit us or call us directly.">Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement.</p>
+    <span class="section-label reveal" data-fr="Venez nous voir" data-en="Come visit us" data-es="Venga a vernos" data-de="Besuchen Sie uns" data-it="Venite a trovarci">Venez nous voir</span>
+    <h2 class="reveal d1" data-fr="Nous contacter" data-en="Contact us" data-es="Contáctenos" data-de="Kontakt" data-it="Contattaci">Nous contacter</h2>
+    <p class="reveal d2" data-fr="Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement." data-en="We are at your disposal. Come visit us or call us directly." data-es="Estamos a su disposición. Venga a vernos o llámenos directamente." data-de="Wir stehen Ihnen zur Verfügung. Besuchen Sie uns oder rufen Sie uns direkt an." data-it="Siamo a vostra disposizione. Venite a trovarci o chiamateci direttamente.">Nous sommes à votre disposition. Passez nous voir ou appelez-nous directement.</p>
 
     <div class="contact-grid">
       <div class="contact-card reveal d1">
-        <span class="label" data-fr="📍 Adresse" data-en="📍 Address">📍 Adresse</span>
+        <span class="label" data-fr="📍 Adresse" data-en="📍 Address" data-es="📍 Dirección" data-de="📍 Adresse" data-it="📍 Indirizzo">📍 Adresse</span>
         <span class="value">5 Rue des Prouvaires, Paris</span>
-        <a href="https://www.google.com/maps/search/?api=1&query=5+Rue+des+Prouvaires,+Paris" target="_blank" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Voir sur la carte →" data-en="View on map →">Voir sur la carte →</a>
+        <a href="https://www.google.com/maps/search/?api=1&query=5+Rue+des+Prouvaires,+Paris" target="_blank" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Voir sur la carte →" data-en="View on map →" data-es="Ver en el mapa →" data-de="Auf der Karte ansehen →" data-it="Vedi sulla mappa →">Voir sur la carte →</a>
       </div>
       <div class="contact-card reveal d2">
-        <span class="label" data-fr="📞 Téléphone" data-en="📞 Phone">📞 Téléphone</span>
+        <span class="label" data-fr="📞 Téléphone" data-en="📞 Phone" data-es="📞 Teléfono" data-de="📞 Telefon" data-it="📞 Telefono">📞 Téléphone</span>
         <span class="value">+33 1 42 36 21 82</span>
-        <a href="tel:+33142362182" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Appeler →" data-en="Call →">Appeler →</a>
+        <a href="tel:+33142362182" style="font-size:.85rem;color:var(--accent);margin-top:.5rem;" data-fr="Appeler →" data-en="Call →" data-es="Llamar →" data-de="Anrufen →" data-it="Chiamare →">Appeler →</a>
       </div>
       <div class="contact-card reveal d3">
-        <span class="label" data-fr="🕐 Horaires" data-en="🕐 Hours">🕐 Horaires</span>
-        <span class="value" style="font-size:.95rem;white-space:pre-line;line-height:1.5;" data-fr="Tous les jours&#10;12h00 – 00h45" data-en="Every day&#10;12:00 – 00:45">Tous les jours
+        <span class="label" data-fr="🕐 Horaires" data-en="🕐 Hours" data-es="🕐 Horario" data-de="🕐 Öffnungszeiten" data-it="🕐 Orari">🕐 Horaires</span>
+        <span class="value" style="font-size:.95rem;white-space:pre-line;line-height:1.5;" data-fr="Tous les jours&#10;12h00 – 00h45" data-en="Every day&#10;12:00 – 00:45" data-es="Todos los días&#10;12:00 – 00:45" data-de="Täglich&#10;12:00 – 00:45 Uhr" data-it="Tutti i giorni&#10;12:00 – 00:45">Tous les jours
 12h00 – 00h45</span>
       </div>
     </div>
@@ -268,35 +271,35 @@
 
 <section style="background:var(--soft);">
   <div class="container">
-    <span class="section-label reveal" data-fr="Réservation" data-en="Reservation">Réservation</span>
-    <h2 class="reveal d1" data-fr="Demander une table" data-en="Request a table">Demander une table</h2>
-    <p class="reveal d2" data-fr="Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation." data-en="Fill in this form and we will contact you to confirm your reservation.">Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation.</p>
+    <span class="section-label reveal" data-fr="Réservation" data-en="Reservation" data-es="Reserva" data-de="Reservierung" data-it="Prenotazione">Réservation</span>
+    <h2 class="reveal d1" data-fr="Demander une table" data-en="Request a table" data-es="Reservar una mesa" data-de="Einen Tisch anfragen" data-it="Richiedi un tavolo">Demander une table</h2>
+    <p class="reveal d2" data-fr="Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation." data-en="Fill in this form and we will contact you to confirm your reservation." data-es="Rellene este formulario y nos pondremos en contacto para confirmar su reserva." data-de="Füllen Sie dieses Formular aus und wir melden uns, um Ihre Reservierung zu bestätigen." data-it="Compilate questo modulo e vi ricontatteremo per confermare la prenotazione.">Remplissez ce formulaire et nous vous recontacterons pour confirmer votre réservation.</p>
 
     <form name="reservation" id="reservation-form" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="reveal d3 booking-form">
       <input type="hidden" name="form-name" value="reservation">
       <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
 
       <div class="form-row">
-        <label><span data-fr="Nom complet" data-en="Full name">Nom complet</span>
+        <label><span data-fr="Nom complet" data-en="Full name" data-es="Nombre completo" data-de="Vollständiger Name" data-it="Nome completo">Nom complet</span>
           <input type="text" name="name" required>
         </label>
-        <label><span data-fr="Téléphone" data-en="Phone">Téléphone</span>
+        <label><span data-fr="Téléphone" data-en="Phone" data-es="Teléfono" data-de="Telefon" data-it="Telefono">Téléphone</span>
           <input type="tel" name="phone" required>
         </label>
       </div>
       <div class="form-row">
-        <label><span data-fr="Date" data-en="Date">Date</span>
+        <label><span data-fr="Date" data-en="Date" data-es="Fecha" data-de="Datum" data-it="Data">Date</span>
           <input type="date" name="date" required>
         </label>
-        <label><span data-fr="Heure" data-en="Time">Heure</span>
+        <label><span data-fr="Heure" data-en="Time" data-es="Hora" data-de="Uhrzeit" data-it="Ora">Heure</span>
           <input type="time" name="time" required>
         </label>
-        <label><span data-fr="Nombre de personnes" data-en="Number of guests">Nombre de personnes</span>
+        <label><span data-fr="Nombre de personnes" data-en="Number of guests" data-es="Número de personas" data-de="Anzahl der Personen" data-it="Numero di persone">Nombre de personnes</span>
           <input type="number" name="guests" min="1" max="30" value="2" required>
         </label>
       </div>
 
-      <button type="submit" class="hero-cta" data-fr="Envoyer la demande →" data-en="Send request →">Envoyer la demande →</button>
+      <button type="submit" class="hero-cta" data-fr="Envoyer la demande →" data-en="Send request →" data-es="Enviar la solicitud →" data-de="Anfrage senden →" data-it="Invia la richiesta →">Envoyer la demande →</button>
       <p id="reservation-status" class="reservation-status"></p>
     </form>
   </div>
@@ -305,14 +308,14 @@
 <section>
   <div class="container" style="text-align:center;">
     <div class="reveal">
-      <h2 data-fr="Une question ?" data-en="A question?">Une question ?</h2>
-      <p style="margin:.8rem auto 2rem;" data-fr="N'hésitez pas à nous appeler ou à passer directement au restaurant." data-en="Don't hesitate to call us or come in directly.">N'hésitez pas à nous appeler ou à passer directement au restaurant.</p>
-      <a class="hero-cta" href="tel:+33142362182" data-fr="Appeler maintenant" data-en="Call now">Appeler maintenant</a>
+      <h2 data-fr="Une question ?" data-en="A question?" data-es="¿Una pregunta?" data-de="Eine Frage?" data-it="Una domanda?">Une question ?</h2>
+      <p style="margin:.8rem auto 2rem;" data-fr="N'hésitez pas à nous appeler ou à passer directement au restaurant." data-en="Don't hesitate to call us or come in directly." data-es="No dude en llamarnos o pasar directamente por el restaurante." data-de="Zögern Sie nicht, uns anzurufen oder direkt im Restaurant vorbeizukommen." data-it="Non esitate a chiamarci o a passare direttamente al ristorante.">N'hésitez pas à nous appeler ou à passer directement au restaurant.</p>
+      <a class="hero-cta" href="tel:+33142362182" data-fr="Appeler maintenant" data-en="Call now" data-es="Llamar ahora" data-de="Jetzt anrufen" data-it="Chiama ora">Appeler maintenant</a>
     </div>
   </div>
 </section>
 
-<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved" data-es="© Chez Denise · París · Todos los derechos reservados" data-de="© Chez Denise · Paris · Alle Rechte vorbehalten" data-it="© Chez Denise · Parigi · Tutti i diritti riservati">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
 function setLang(lang) {
@@ -355,16 +358,12 @@ function setLang(lang) {
       }).then(function(res){
         if(!res.ok) throw new Error('network');
         form.reset();
-        var lang = localStorage.getItem('lang') || 'fr';
-        status.textContent = lang === 'en'
-          ? 'Thank you! Your reservation request has been sent.'
-          : 'Merci ! Votre demande de réservation a bien été envoyée.';
+        var L = localStorage.getItem('lang') || 'fr';
+        status.textContent = ({fr:'Merci ! Votre demande de réservation a bien été envoyée.',en:'Thank you! Your reservation request has been sent.',es:'¡Gracias! Su solicitud de reserva ha sido enviada.',de:'Danke! Ihre Reservierungsanfrage wurde gesendet.',it:'Grazie! La vostra richiesta di prenotazione è stata inviata.'})[L] || 'Merci ! Votre demande de réservation a bien été envoyée.';
         status.className = 'reservation-status ok';
       }).catch(function(){
-        var lang = localStorage.getItem('lang') || 'fr';
-        status.textContent = lang === 'en'
-          ? 'An error occurred — please call us directly.'
-          : 'Une erreur est survenue — merci de nous appeler directement.';
+        var L = localStorage.getItem('lang') || 'fr';
+        status.textContent = ({fr:'Une erreur est survenue — merci de nous appeler directement.',en:'An error occurred — please call us directly.',es:'Se ha producido un error — llámenos directamente.',de:'Ein Fehler ist aufgetreten — bitte rufen Sie uns direkt an.',it:'Si è verificato un errore — chiamateci direttamente.'})[L] || 'Une erreur est survenue — merci de nous appeler directement.';
         status.className = 'reservation-status err';
       });
     });

@@ -67,10 +67,10 @@
   .nav-links a:hover::after { transform: scaleX(1); }
 
   /* Language switcher */
-  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-switcher { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .lang-btn {
     background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    border-radius: 6px; padding: .2em .5em; font-size: .72rem;
     font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
     color: var(--muted); transition: all .2s;
   }
@@ -271,55 +271,58 @@
   <a class="nav-logo" href="index.html">Chez Denise</a>
   <div class="nav-links-wrap">
     <ul class="nav-links">
-      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
-      <li><a href="services.html" style="color:var(--ink)" data-fr="Menu" data-en="Menu">Menu</a></li>
-      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
-      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
-      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+      <li><a href="index.html" data-fr="Accueil" data-en="Home" data-es="Inicio" data-de="Startseite" data-it="Home">Accueil</a></li>
+      <li><a href="services.html" style="color:var(--ink)" data-fr="Menu" data-en="Menu" data-es="Menú" data-de="Menü" data-it="Menu">Menu</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</a></li>
+      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact" data-es="Contacto" data-de="Kontakt" data-it="Contatti">Contact</a></li>
     </ul>
   </div>
   <div class="lang-switcher">
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
   </div>
 </nav>
 
 <section class="page-top" style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal" data-fr="Ce que nous proposons" data-en="What we offer">Ce que nous proposons</span>
-    <h2 class="reveal d1" data-fr="Notre carte" data-en="Our Menu">Notre carte</h2>
-    <p class="reveal d2" data-fr="La carte change au gré du marché — voici les plats que vous pourrez retrouver Chez Denise." data-en="The menu changes with the market — here are dishes you'll find at Chez Denise.">La carte change au gré du marché — voici les plats que vous pourrez retrouver Chez Denise.</p>
+    <span class="section-label reveal" data-fr="Ce que nous proposons" data-en="What we offer" data-es="Lo que ofrecemos" data-de="Was wir bieten" data-it="Cosa proponiamo">Ce que nous proposons</span>
+    <h2 class="reveal d1" data-fr="Notre carte" data-en="Our Menu" data-es="Nuestra carta" data-de="Unsere Karte" data-it="Il nostro menu">Notre carte</h2>
+    <p class="reveal d2" data-fr="La carte change au gré du marché — voici les plats que vous pourrez retrouver Chez Denise." data-en="The menu changes with the market — here are dishes you'll find at Chez Denise." data-es="La carta cambia según el mercado — estos son los platos que encontrará en Chez Denise." data-de="Die Karte wechselt je nach Markt — das sind die Gerichte, die Sie bei Chez Denise finden." data-it="Il menu cambia secondo il mercato — ecco i piatti che troverete da Chez Denise.">La carte change au gré du marché — voici les plats que vous pourrez retrouver Chez Denise.</p>
     <div style="max-width:700px; margin-top:3rem;">
     <div class="reveal d1" style="margin-bottom:2.5rem;">
-      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Entrées" data-en="Starters">Entrées</h3>
+      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Entrées" data-en="Starters" data-es="Entrantes" data-de="Vorspeisen" data-it="Antipasti">Entrées</h3>
       <ul style="list-style:none;"><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Escargots (les 6)</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">12€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Gâteau de foie de volaille</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">15€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Terrine du chef</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">15€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Saumon cru mariné</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">22€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Foie gras de canard maison</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">22€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Terrine de poissons</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">15€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Frisée aux croûtons</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">10€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Terrine de queue de bœuf</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">16€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Couteaux en persillade</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Asperges vinaigrette</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">16€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Queue de bœuf en gelée</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">15€</span></li></ul>
     </div>
 
     <div class="reveal d2" style="margin-bottom:2.5rem;">
-      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Poissons" data-en="Fish">Poissons</h3>
+      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Poissons" data-en="Fish" data-es="Pescados" data-de="Fisch" data-it="Pesce">Poissons</h3>
       <ul style="list-style:none;"><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Haddock au beurre blanc</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Saumon braisé sauce moutarde</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Morue à l'auvergnate</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Panaché de poissons au basilic</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">26€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Colin froid sauce verte</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Raie aux câpres</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li></ul>
     </div>
 
     <div class="reveal d3" style="margin-bottom:2.5rem;">
-      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Plats du jour" data-en="Daily Specials">Plats du jour</h3>
+      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Plats du jour" data-en="Daily Specials" data-es="Platos del día" data-de="Tagesgerichte" data-it="Piatti del giorno">Plats du jour</h3>
       <ul style="list-style:none;"><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Lapin à la moutarde</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Gigot d'agneau flageolets</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Tête de veau sauce ravigote</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Daube de joue de bœuf</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">22€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Sauté de veau au paprika</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Bœuf gros sel</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Choux farcis</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">20€</span></li></ul>
     </div>
 
     <div class="reveal d4" style="margin-bottom:2.5rem;">
-      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Carte permanente (grillades & abats)" data-en="Permanent Menu (grills & offal)">Carte permanente (grillades & abats)</h3>
+      <h3 style="color:var(--accent); margin-bottom:1rem;" data-fr="Carte permanente (grillades & abats)" data-en="Permanent Menu (grills & offal)" data-es="Carta permanente (parrilla y casquería)" data-de="Ständige Karte (Grillgerichte & Innereien)" data-it="Menu fisso (grigliate e frattaglie)">Carte permanente (grillades & abats)</h3>
       <ul style="list-style:none;"><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Steak tartare</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Haricot de mouton</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Rognon de veau sauce moutarde</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">25€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Foie de veau à l'anglaise</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">25€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Tripes au calvados</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">22€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Côtes d'agneau grillées</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">26€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Cervelles d'agneau meunière</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">20€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Brochette d'onglet de bœuf grillé</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Côte de bœuf grillée (pour 2, à la moelle)</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">60€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Onglet de bœuf grillé</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">24€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Andouillette grillée</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">20€</span></li><li style="display:flex; justify-content:space-between; gap:1rem; padding:.4rem 0; border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);"><span>Pied de porc</span><span style="color:var(--accent); font-weight:600; white-space:nowrap;">20€</span></li></ul>
     </div></div></div>
 </section>
 
 <section style="background:var(--soft); text-align:center;">
   <div class="container reveal">
-    <h2 data-fr="Prêt à nous rendre visite ?" data-en="Ready to visit us?">Prêt à nous rendre visite ?</h2>
+    <h2 data-fr="Prêt à nous rendre visite ?" data-en="Ready to visit us?" data-es="¿Listo para visitarnos?" data-de="Bereit für einen Besuch?" data-it="Pronti a farci visita?">Prêt à nous rendre visite ?</h2>
     <br>
-    <a class="hero-cta" href="contact.html" data-fr="Nous trouver →" data-en="Find us →">Nous trouver →</a>
+    <a class="hero-cta" href="contact.html" data-fr="Nous trouver →" data-en="Find us →" data-es="Cómo llegar →" data-de="So finden Sie uns →" data-it="Come trovarci →">Nous trouver →</a>
   </div>
 </section>
 
-<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved" data-es="© Chez Denise · París · Todos los derechos reservados" data-de="© Chez Denise · Paris · Alle Rechte vorbehalten" data-it="© Chez Denise · Parigi · Tutti i diritti riservati">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
 function setLang(lang) {

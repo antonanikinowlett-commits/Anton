@@ -67,10 +67,10 @@
   .nav-links a:hover::after { transform: scaleX(1); }
 
   /* Language switcher */
-  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-switcher { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .lang-btn {
     background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    border-radius: 6px; padding: .2em .5em; font-size: .72rem;
     font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
     color: var(--muted); transition: all .2s;
   }
@@ -156,24 +156,27 @@
   <a class="nav-logo" href="index.html">Chez Denise</a>
   <div class="nav-links-wrap">
     <ul class="nav-links">
-      <li><a href="index.html" data-fr="Accueil" data-en="Home">Accueil</a></li>
-      <li><a href="services.html" data-fr="Menu" data-en="Menu">Menu</a></li>
-      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
-      <li><a href="social.html" style="color:var(--ink)" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
-      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+      <li><a href="index.html" data-fr="Accueil" data-en="Home" data-es="Inicio" data-de="Startseite" data-it="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Menu" data-en="Menu" data-es="Menú" data-de="Menü" data-it="Menu">Menu</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</a></li>
+      <li><a href="social.html" style="color:var(--ink)" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact" data-es="Contacto" data-de="Kontakt" data-it="Contatti">Contact</a></li>
     </ul>
   </div>
   <div class="lang-switcher">
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
   </div>
 </nav>
 
 <section class="page-top" style="padding-top:8rem;">
   <div class="container">
-    <span class="section-label reveal" data-fr="Restons en contact" data-en="Let's stay in touch">Restons en contact</span>
-    <h2 class="reveal d1" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</h2>
-    <p class="reveal d2" data-fr="Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients." data-en="Find Chez Denise on social media and read what our guests have to say.">Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients.</p>
+    <span class="section-label reveal" data-fr="Restons en contact" data-en="Let's stay in touch" data-es="Mantengámonos en contacto" data-de="Bleiben wir in Kontakt" data-it="Restiamo in contatto">Restons en contact</span>
+    <h2 class="reveal d1" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</h2>
+    <p class="reveal d2" data-fr="Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients." data-en="Find Chez Denise on social media and read what our guests have to say." data-es="Encuentre a Chez Denise en las redes sociales y lea las opiniones de nuestros clientes." data-de="Finden Sie Chez Denise in den sozialen Medien und lesen Sie die Bewertungen unserer Gäste." data-it="Trovate Chez Denise sui social e leggete le recensioni dei nostri clienti.">Retrouvez Chez Denise sur les réseaux sociaux et consultez les avis de nos clients.</p>
 
     <div class="social-grid">
       <a class="social-card reveal d1" href="https://www.instagram.com/chezdenise_/" target="_blank" rel="noopener">
@@ -183,7 +186,7 @@
         <span class="social-meta">
           <span class="name">Instagram</span>
           <span class="handle">@chezdenise_</span>
-          <span class="go" data-fr="Voir le profil →" data-en="View profile →">Voir le profil →</span>
+          <span class="go" data-fr="Voir le profil →" data-en="View profile →" data-es="Ver el perfil →" data-de="Profil ansehen →" data-it="Vedi il profilo →">Voir le profil →</span>
         </span>
       </a>
 
@@ -194,7 +197,7 @@
         <span class="social-meta">
           <span class="name">Facebook</span>
           <span class="handle">Chez Denise - La Tour de Montlhéry</span>
-          <span class="go" data-fr="Voir la page →" data-en="View page →">Voir la page →</span>
+          <span class="go" data-fr="Voir la page →" data-en="View page →" data-es="Ver la página →" data-de="Seite ansehen →" data-it="Vedi la pagina →">Voir la page →</span>
         </span>
       </a>
 
@@ -204,15 +207,15 @@
         </span>
         <span class="social-meta">
           <span class="name">Tripadvisor</span>
-          <span class="handle" data-fr="Avis & photos" data-en="Reviews & photos">Avis & photos</span>
-          <span class="go" data-fr="Lire les avis →" data-en="Read reviews →">Lire les avis →</span>
+          <span class="handle" data-fr="Avis & photos" data-en="Reviews & photos" data-es="Opiniones y fotos" data-de="Bewertungen & Fotos" data-it="Recensioni e foto">Avis & photos</span>
+          <span class="go" data-fr="Lire les avis →" data-en="Read reviews →" data-es="Leer las opiniones →" data-de="Bewertungen lesen →" data-it="Leggi le recensioni →">Lire les avis →</span>
         </span>
       </a>
     </div>
   </div>
 </section>
 
-<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved" data-es="© Chez Denise · París · Todos los derechos reservados" data-de="© Chez Denise · Paris · Alle Rechte vorbehalten" data-it="© Chez Denise · Parigi · Tutti i diritti riservati">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
 function setLang(lang) {

@@ -67,10 +67,10 @@
   .nav-links a:hover::after { transform: scaleX(1); }
 
   /* Language switcher */
-  .lang-switcher { display: flex; gap: .35rem; flex-shrink: 0; }
+  .lang-switcher { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .lang-btn {
     background: none; border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
-    border-radius: 6px; padding: .22em .6em; font-size: .75rem;
+    border-radius: 6px; padding: .2em .5em; font-size: .72rem;
     font-family: var(--fb); letter-spacing: .06em; cursor: pointer;
     color: var(--muted); transition: all .2s;
   }
@@ -270,16 +270,19 @@
   <a class="nav-logo" href="index.html">Chez Denise</a>
   <div class="nav-links-wrap">
     <ul class="nav-links">
-      <li><a href="index.html" style="color:var(--ink)" data-fr="Accueil" data-en="Home">Accueil</a></li>
-      <li><a href="services.html" data-fr="Menu" data-en="Menu">Menu</a></li>
-      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery">Galerie</a></li>
-      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us">Suivez-nous</a></li>
-      <li><a href="contact.html" data-fr="Contact" data-en="Contact">Contact</a></li>
+      <li><a href="index.html" style="color:var(--ink)" data-fr="Accueil" data-en="Home" data-es="Inicio" data-de="Startseite" data-it="Home">Accueil</a></li>
+      <li><a href="services.html" data-fr="Menu" data-en="Menu" data-es="Menú" data-de="Menü" data-it="Menu">Menu</a></li>
+      <li><a href="gallery.html" data-fr="Galerie" data-en="Gallery" data-es="Galería" data-de="Galerie" data-it="Galleria">Galerie</a></li>
+      <li><a href="social.html" data-fr="Suivez-nous" data-en="Follow us" data-es="Síguenos" data-de="Folgen Sie uns" data-it="Seguici">Suivez-nous</a></li>
+      <li><a href="contact.html" data-fr="Contact" data-en="Contact" data-es="Contacto" data-de="Kontakt" data-it="Contatti">Contact</a></li>
     </ul>
   </div>
   <div class="lang-switcher">
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
   </div>
 </nav>
 
@@ -289,26 +292,26 @@
   <div class="hero-content">
     <span class="hero-eyebrow">Restaurant · Paris</span>
     <h1>Chez Denise</h1>
-    <p data-fr="Une adresse parisienne authentique, où chaque détail compte." data-en="An authentic Parisian address, where every detail matters.">Une adresse parisienne authentique, où chaque détail compte.</p>
-    <a class="hero-cta" href="contact.html" data-fr="Nous contacter →" data-en="Contact us →">Nous contacter →</a>
+    <p data-fr="Une adresse parisienne authentique, où chaque détail compte." data-en="An authentic Parisian address, where every detail matters." data-es="Una auténtica dirección parisina, donde cada detalle cuenta." data-de="Eine authentische Pariser Adresse, wo jedes Detail zählt." data-it="Un autentico indirizzo parigino, dove ogni dettaglio conta.">Une adresse parisienne authentique, où chaque détail compte.</p>
+    <a class="hero-cta" href="contact.html" data-fr="Nous contacter →" data-en="Contact us →" data-es="Contáctenos →" data-de="Kontakt aufnehmen →" data-it="Contattaci →">Nous contacter →</a>
   </div>
 </section>
 
 <section style="background:var(--soft);">
   <div class="container two-col">
     <div class="reveal">
-      <span class="section-label" data-fr="Notre histoire" data-en="Our story">Notre histoire</span>
-      <h2 data-fr="À propos" data-en="About">À propos</h2>
-      <p data-fr="À la Tour de Montlhéry — Chez Denise est une institution parisienne près des Halles, réputée pour ses portions généreuses de cuisine traditionnelle française, son décor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidèle à l'esprit bistrot d'antan." data-en="At La Tour de Montlhéry, Chez Denise is a Parisian institution near Les Halles, renowned for its generous portions of traditional French cuisine, its authentic zinc décor and its late hours. Taken over by the Bertrand Group in 2020, the establishment remains true to the old bistro spirit.">À la Tour de Montlhéry — Chez Denise est une institution parisienne près des Halles, réputée pour ses portions généreuses de cuisine traditionnelle française, son décor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidèle à l'esprit bistrot d'antan.</p>
+      <span class="section-label" data-fr="Notre histoire" data-en="Our story" data-es="Nuestra historia" data-de="Unsere Geschichte" data-it="La nostra storia">Notre histoire</span>
+      <h2 data-fr="À propos" data-en="About" data-es="Quiénes somos" data-de="Über uns" data-it="Chi siamo">À propos</h2>
+      <p data-fr="À la Tour de Montlhéry — Chez Denise est une institution parisienne près des Halles, réputée pour ses portions généreuses de cuisine traditionnelle française, son décor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidèle à l'esprit bistrot d'antan." data-en="At La Tour de Montlhéry, Chez Denise is a Parisian institution near Les Halles, renowned for its generous portions of traditional French cuisine, its authentic zinc décor and its late hours. Taken over by the Bertrand Group in 2020, the establishment remains true to the old bistro spirit." data-es="En La Tour de Montlhéry, Chez Denise es una institución parisina cerca de Les Halles, reconocida por sus generosas raciones de cocina tradicional francesa, su auténtica decoración de zinc y sus horarios nocturnos. Adquirida por el Grupo Bertrand en 2020, la casa permanece fiel al espíritu de los bistrós de antaño." data-de="Im La Tour de Montlhéry ist Chez Denise eine Pariser Institution nahe Les Halles, bekannt für seine großzügigen Portionen traditioneller französischer Küche, sein authentisches Zink-Dekor und seine späten Öffnungszeiten. 2020 von der Groupe Bertrand übernommen, bleibt das Haus dem Bistro-Geist von einst treu." data-it="Alla Tour de Montlhéry, Chez Denise è un'istituzione parigina vicino a Les Halles, rinomata per le sue generose porzioni di cucina tradizionale francese, il suo autentico arredo in zinco e i suoi orari notturni. Rilevata dal Gruppo Bertrand nel 2020, la casa resta fedele allo spirito bistrot di un tempo.">À la Tour de Montlhéry — Chez Denise est une institution parisienne près des Halles, réputée pour ses portions généreuses de cuisine traditionnelle française, son décor de zinc authentique et ses horaires tardifs. Reprise par le Groupe Bertrand en 2020, la maison reste fidèle à l'esprit bistrot d'antan.</p>
       <br>
-      <a href="services.html" style="font-weight:600;color:var(--accent);" data-fr="Voir notre menu →" data-en="See our menu →">Voir notre menu →</a>
+      <a href="services.html" style="font-weight:600;color:var(--accent);" data-fr="Voir notre menu →" data-en="See our menu →" data-es="Ver nuestro menú →" data-de="Unser Menü ansehen →" data-it="Vedi il nostro menu →">Voir notre menu →</a>
     </div>
     <div class="reveal d1"><img src="https://www.gillespudlowski.com/wp-content/uploads/2023/12/img_5909-scaled.jpeg" alt="À propos" style="width:100%;border-radius:16px;display:block;"></div>
   </div>
 </section>
 
 <hr class="divider">
-<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved">© Chez Denise · Paris · Tous droits réservés</span></footer>
+<footer><span data-fr="© Chez Denise · Paris · Tous droits réservés" data-en="© Chez Denise · Paris · All rights reserved" data-es="© Chez Denise · París · Todos los derechos reservados" data-de="© Chez Denise · Paris · Alle Rechte vorbehalten" data-it="© Chez Denise · Parigi · Tutti i diritti riservati">© Chez Denise · Paris · Tous droits réservés</span></footer>
 
 <script>
 function setLang(lang) {
@@ -380,16 +383,12 @@ function setLang(lang) {
       }).then(function(res){
         if(!res.ok) throw new Error('network');
         form.reset();
-        var lang = localStorage.getItem('lang') || 'fr';
-        status.textContent = lang === 'en'
-          ? 'Thank you! Your reservation request has been sent.'
-          : 'Merci ! Votre demande de réservation a bien été envoyée.';
+        var L = localStorage.getItem('lang') || 'fr';
+        status.textContent = ({fr:'Merci ! Votre demande de réservation a bien été envoyée.',en:'Thank you! Your reservation request has been sent.',es:'¡Gracias! Su solicitud de reserva ha sido enviada.',de:'Danke! Ihre Reservierungsanfrage wurde gesendet.',it:'Grazie! La vostra richiesta di prenotazione è stata inviata.'})[L] || 'Merci ! Votre demande de réservation a bien été envoyée.';
         status.className = 'reservation-status ok';
       }).catch(function(){
-        var lang = localStorage.getItem('lang') || 'fr';
-        status.textContent = lang === 'en'
-          ? 'An error occurred — please call us directly.'
-          : 'Une erreur est survenue — merci de nous appeler directement.';
+        var L = localStorage.getItem('lang') || 'fr';
+        status.textContent = ({fr:'Une erreur est survenue — merci de nous appeler directement.',en:'An error occurred — please call us directly.',es:'Se ha producido un error — llámenos directamente.',de:'Ein Fehler ist aufgetreten — bitte rufen Sie uns direkt an.',it:'Si è verificato un errore — chiamateci direttamente.'})[L] || 'Une erreur est survenue — merci de nous appeler directement.';
         status.className = 'reservation-status err';
       });
     });
