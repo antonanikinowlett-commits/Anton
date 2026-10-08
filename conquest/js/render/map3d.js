@@ -8,7 +8,7 @@ import { BIOME } from '../world/mapgen.js';
 import { UNITS } from '../data/units.js';
 import { hexToRgb, clamp, hash2, mulberry32, fmt } from '../util.js';
 
-export const HS = 0.0016; // metres → world units (vertical exaggeration)
+export const HS = 0.0028; // metres → world units (vertical exaggeration)
 const MAXP = 4096;
 const D_MIN = 14, D_MAX = 1150;
 
@@ -33,10 +33,12 @@ void main(){
   base *= mix(1.0, 0.93 + 0.14*dn, uNear) * (0.97 + 0.06*dn2);
   vec3 N = normalize(vN);
   float lam = clamp(dot(N, normalize(uSun)), 0.0, 1.0);
-  vec3 lit = base * (0.72 + 0.42*lam);
+  vec3 lit = base * (0.5 + 0.68*lam);
   // seasonal snow in the north and on heights
-  float snow = uSnow * smoothstep(0.42, 0.18, vUv.y) * smoothstep(0.35, 0.6, dn*0.6+dn2*0.6) ;
-  lit = mix(lit, vec3(0.93,0.95,0.98)*(0.8+0.25*lam), clamp(snow,0.0,0.85));
+  float north = smoothstep(0.40, 0.16, vUv.y);
+  float alt = smoothstep(4.5, 7.5, vW.y);
+  float snow = clamp(uSnow * (north * smoothstep(0.42, 0.55, dn*0.5 + dn2*0.5 + north*0.3) + alt * 0.8), 0.0, 0.8);
+  lit = mix(lit, vec3(0.93,0.95,0.98)*(0.78+0.3*lam), snow);
   if (id < 0.5 || pc.b > 0.5) { gl_FragColor = vec4(lit, 1.0); return; }
   vec4 c0 = colFor(id,0.0); vec4 c1 = colFor(id,1.0); vec4 c2 = colFor(id,2.0);
   float own = dec(c2);
@@ -62,7 +64,7 @@ void main(){
   // flags: 1 selected, 2 hovered, 4 highlighted target, 8 claimed
   float f = floor(c2.b*255.0+0.5);
   float sel = mod(f,2.0), hov = mod(floor(f/2.0),2.0), tgt = mod(floor(f/4.0),2.0), clm = mod(floor(f/8.0),2.0);
-  if (clm > 0.5) { float st = step(0.82, fract((vW.x + vW.z)*0.3)); col = mix(col, vec3(0.95,0.85,0.4), st*0.35); }
+  if (clm > 0.5) { float st = step(0.88, fract((vW.x + vW.z)*0.55)); col = mix(col, vec3(1.0,0.92,0.55), st*0.22); }
   if (hov > 0.5) col = mix(col, vec3(1.0,0.97,0.85), 0.16);
   if (tgt > 0.5) col = mix(col, vec3(0.95,0.25,0.15), 0.22 + 0.1*sin(uTime*5.0));
   if (sel > 0.5) { col = mix(col, vec3(1.0,0.9,0.55), 0.22 + 0.06*sin(uTime*3.0)); col = mix(col, vec3(1.0,0.85,0.3), pb); }
@@ -249,19 +251,20 @@ export class MapView {
       if (land[i] !== 1) continue;
       const b = biome[i];
       let pr = 0;
-      if (b === BIOME.FOREST) pr = 0.42; else if (b === BIOME.TAIGA) pr = 0.4; else if (b === BIOME.HILLS) pr = 0.06;
+      if (b === BIOME.FOREST) pr = 0.6; else if (b === BIOME.TAIGA) pr = 0.55; else if (b === BIOME.HILLS) pr = 0.06;
       else if (b === BIOME.PLAINS) pr = 0.025; else if (b === BIOME.FARM) pr = 0.012; else if (b === BIOME.MARSH) pr = 0.08;
       else if (b === BIOME.MOUNT && height[i] < 2000) pr = 0.07; else if (b === BIOME.DESERT && this.map.river[i]) pr = 0.25;
       if (rng() > pr) continue;
       const p = provinces[pid[i]];
       if (p && Math.hypot(p.x - x, p.y - y) < 2.6) continue;
       const tx = x + rng(), tz = y + rng();
-      const ent = [tx, tz, 0.55 + rng() * 0.5, rng()];
+      const ent = [tx, tz, 0.9 + rng() * 0.7, rng()];
       if (b === BIOME.DESERT || (b === BIOME.STEPPE && this.map.lat[y] < 34)) palm.push(ent);
       else if (b === BIOME.TAIGA || b === BIOME.MOUNT || (b === BIOME.FOREST && (this.map.lat[y] > 55 || rng() < 0.25))) pine.push(ent);
       else decid.push(ent);
     }
     const mk = (geo, list, colors, cap) => {
+      for (let i = list.length - 1; i > 0 && list.length > cap; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
       list = list.slice(0, cap);
       const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }), list.length);
       const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
@@ -278,8 +281,8 @@ export class MapView {
       return m;
     };
     this.trees = [
-      mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 60000),
-      mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 60000),
+      mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 90000),
+      mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 90000),
       mk(MODELS.palm(), palm, ['#5d8a3a', '#6e9a40'], 8000),
     ];
   }
@@ -755,7 +758,7 @@ export class MapView {
   applyCamera() {
     const c = this.cam;
     const t = clamp((c.d - D_MIN) / (D_MAX - D_MIN), 0, 1);
-    const pitch = (48 + Math.pow(t, 0.6) * 34) * Math.PI / 180;
+    const pitch = (38 + Math.pow(t, 0.55) * 44) * Math.PI / 180;
     const gy = this.groundY(c.x, c.z);
     this.camera.position.set(c.x, gy + c.d * Math.sin(pitch), c.z + c.d * Math.cos(pitch));
     this.camera.lookAt(c.x, gy, c.z);
@@ -907,7 +910,7 @@ export class MapView {
     const near = clamp((260 - c.d) / 200, 0, 1);
     this.uniforms.uTime.value = t;
     this.uniforms.uNear.value = near;
-    this.uniforms.uPolAlpha.value = 0.3 + 0.52 * (1 - near);
+    this.uniforms.uPolAlpha.value = 0.2 + 0.62 * (1 - near);
     this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
     const showDetail = c.d < 300;
     for (const m of this.trees) m.visible = c.d < 330;

@@ -22,7 +22,23 @@ export const AIMixin = {
 
   aiStrategic(n) {
     const s = this.s;
-    if (n.ai.horde) { n.gold += 25; n.manpower = Math.min(n.maxManpower = 80000, n.manpower + 3000); }
+    if (n.ai.horde) {
+      n.gold += 25; n.manpower = Math.min(n.maxManpower = 80000, n.manpower + 3000);
+      if (!this.armiesOf(n.id).length && !this.ownedProvinces(n.id).length) {
+        n.alive = false;
+        for (const w of this.warsOf(n.id)) this.leaveWar(w, n.id);
+        this.log('Broken by the princes of the West, the Mongol horde rides back to the steppe.', { nation: n.id, type: 'war', important: true });
+        this.emit('nationGone', n.id);
+        return;
+      }
+      // the horde rides on: a new campaign half a year after each peace
+      if (!this.atWar(n.id) && this.s.day - n.ai.lastWar > 180) {
+        const near = new Set(this.neighbours(n.id));
+        for (const a of this.armiesOf(n.id)) for (const e of this.map.provinces[a.loc].adj) if (e.id < this.L && this.s.prov[e.id].owner >= 0) near.add(this.s.prov[e.id].owner);
+        const tgt = [...near].filter((t) => t !== n.id && (n.truces[t] || 0) < this.s.day).sort((x, y) => this.power(x) - this.power(y))[0];
+        if (tgt !== undefined) this.declareWar(n.id, tgt, { kind: 'conquest' }, true);
+      }
+    }
     // council
     for (const role of COUNCIL_ROLES) {
       if (n.council[role]) continue;
@@ -72,9 +88,16 @@ export const AIMixin = {
   },
   aiBuild(n) {
     const B = this.budget(n.id);
+    if (n.gold > 200) for (const k of ['timber', 'iron', 'horses']) if (n[k] < 25) this.buyResource(n.id, k, 15);
+    const own = this.ownedProvinces(n.id);
+    for (let k = 0; k < 6 && n.gold > 260 + B.armyUpkeep * 4 && own.length; k++) {
+      const p = own[Math.floor(this.rng() * own.length)];
+      if (this.developProvince(n.id, p)) break;
+    }
     let tries = n.gold > 400 ? 8 : n.gold > 150 ? 4 : 2;
     while (tries-- > 0 && n.gold > 50 + B.armyUpkeep * 3) {
       const ps = this.ownedProvinces(n.id);
+      if (!ps.length) break;
       let best = null, bs = 0;
       for (let k = 0; k < 14; k++) {
         const p = ps[Math.floor(this.rng() * ps.length)];
@@ -106,6 +129,7 @@ export const AIMixin = {
 
   aiRecruit(n) {
     const war = this.atWar(n.id);
+    if (n.manpower < n.maxManpower * (war ? 0.15 : 0.35)) return;
     const regs = this.armiesOf(n.id).reduce((t, a) => t + a.regs.length, 0) + this.s.recruit.filter((r) => r.nation === n.id).reduce((t, r) => t + Object.values(r.template.regs).reduce((x, y) => x + y, 0), 0);
     const B = this.budget(n.id);
     const want = Math.min(n.maxManpower / 1000 * (war ? 0.8 : 0.4), Math.max(3, B.income * (war ? 1.3 : 0.9) / 0.22));
@@ -226,7 +250,7 @@ export const AIMixin = {
       return;
     }
     // exhausted armies fall back to recover
-    if (men < max * 0.45 || this.armyMorale(a) < 0.35) {
+    if (!n.ai.horde && (men < max * 0.45 || this.armyMorale(a) < 0.35)) {
       if (a.loc < this.L && s.prov[a.loc].controller === a.nation && !this.armiesAt(a.loc).some((b) => this.hostileArmies(a, b))) { a.path = []; return; }
       const t = this.retreatTarget(a);
       if (t >= 0) this.orderMove(a.id, t);

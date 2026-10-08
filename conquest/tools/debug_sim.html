@@ -16,6 +16,7 @@ for (let d = 0; d < days; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eve
 out.push(`ticked ${days} days in ${(performance.now()-t0)|0}ms`);
 out.push('wars: ' + Object.values(g.s.wars).map(w=>w.name+' '+w.score).join(' | '));
 out.push('battles fought: ' + g.s.nations.reduce((t,n)=>t+n.stats.won,0));
+out.push('MON: ' + JSON.stringify((()=>{const m=g.nationByTag('MON'); return m? [m.alive, g.ownedProvinces(m.id).length, g.armiesOf(m.id).length]:null})()));
 out.push('alive: ' + g.s.nations.filter(n=>n.alive).length + ' armies ' + Object.keys(g.s.armies).length);
 const top = g.s.nations.filter(n=>n.alive).map(n=>[n.tag, g.ownedProvinces(n.id).length, Math.round(n.gold), Math.round(n.manpower), n.focus.done.length]).sort((a,b)=>b[1]-a[1]).slice(0,15);
 out.push(JSON.stringify(top));

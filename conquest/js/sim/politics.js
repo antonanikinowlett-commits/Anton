@@ -99,7 +99,7 @@ export const PoliticsMixin = {
     for (const e of ESTATES) this.estateDelta(n, e, (o.stance?.[e] || 0) * 6);
     if (o.convert) this.convertNation(nid);
     this.recalcMods(nid);
-    this.log(`${n.name} adopts ${o.name}.`, { nation: nid, type: 'law', important: nid === this.s.player });
+    if (nid === this.s.player) this.log(`${n.name} adopts ${o.name}.`, { nation: nid, type: 'law', important: true });
     this.emit('law');
   },
   dailyPolitics() {

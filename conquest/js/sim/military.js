@@ -373,8 +373,9 @@ export const MilitaryMixin = {
       const pr = s.prov[a.loc];
       if (pr.owner !== a.nation) pr.devast = Math.min(100, pr.devast + 0.15 * a.regs.length / 5);
     }
+    if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
-    const own = !sp.sea && (s.prov[a.loc].controller === a.nation);
+    const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
       r.morale = Math.min(1, r.morale + (own ? 0.05 : 0.025) * (n && n.food < 0 ? 0.3 : 1));
@@ -534,21 +535,21 @@ export const MilitaryMixin = {
       laws: { succession: 'gavelkind', authority: 'medium', military: 'warbands', taxation: 'tribute', justice: 'blood_price', church: 'old_gods', peasantry: 'free_tribesmen', trade: 'staple', nobility: 'privileges' },
       lawVote: null, estates: { nobles: { loyalty: 90, influence: 50 }, clergy: { loyalty: 70, influence: 20 }, burghers: { loyalty: 50, influence: 5 }, peasants: { loyalty: 70, influence: 25 } },
       council: {}, ruler: null, heir: null, focus: { cur: null, prog: 0, done: [] }, opinion: {}, allies: [], naps: [], marriages: [], truces: {}, overlord: -1, cbs: [], ae: {},
-      templates: [], unlocks: ['horse_archers'], mods: [{ src: 'horde', mods: { discipline: 0.2, armyMorale: 0.15, cavAtk: 0.15 } }], ideas: {}, stats: { won: 0, lost: 0, killed: 0, lostMen: 0 }, ai: { aggro: 1, lastWar: -9999, horde: true } };
+      templates: [], unlocks: ['horse_archers'], mods: [{ src: 'horde', mods: { discipline: 0.4, armyMorale: 0.3, cavAtk: 0.25, rangedAtk: 0.25, siege: 1.0 } }], ideas: {}, stats: { won: 0, lost: 0, killed: 0, lostMen: 0 }, ai: { aggro: 1, lastWar: -9999, horde: true } };
     s.nations.push(n);
     this._owned = null;
     for (const o of s.nations) { o.opinion[id] = -100; n.opinion[o.id] = -100; }
     this.initCourt(n, { ruler: ['Batu', 'Borjigin', 30, ['ambitious', 'horse_lord']], famous: [['Subutai', 'Uriankhai', 'general', 62, ['cavalry_commander', 'inspiring']], ['Berke', 'Borjigin', 'general', 28, ['aggressive', 'horse_lord']]] }, this.rng);
-    n.templates = [{ id: this.newId(), name: 'Tumen', regs: { horse_archers: 10, light_cav: 4, knights: 2 }, doctrine: 'maneuver' }];
+    n.templates = [{ id: this.newId(), name: 'Tumen', regs: { horse_archers: 12, light_cav: 4, knights: 3, trebuchet: 2 }, doctrine: 'maneuver' }];
     // the horde crosses the Volga
     const P = this.map.provinces;
     const east = [];
     for (let p = 0; p < this.L; p++) if (P[p].lon > 45.5 && P[p].lat > 50 && P[p].lat < 56.5) east.push(p);
     east.sort((a, b) => P[b].lon - P[a].lon);
     const gens = this.charsOf(id, 'general').concat([this.s.chars[n.ruler]]);
-    for (let i = 0; i < 4 && i < east.length; i++) {
+    for (let i = 0; i < 8 && i < east.length; i++) {
       const regs = this.regsFromTemplate(n.templates[0]);
-      const a = this.createArmy(id, east[i * 2] ?? east[0], regs, `Tumen of ${['Batu', 'Subutai', 'Berke', 'Möngke'][i]}`, { doctrine: 'maneuver' });
+      const a = this.createArmy(id, east[i * 2] ?? east[0], regs, `Tumen of ${['Batu', 'Subutai', 'Berke', 'Möngke', 'Orda', 'Güyük', 'Kadan', 'Büri'][i]}`, { doctrine: 'maneuver' });
       if (gens[i]) this.assignGeneral(a.id, gens[i].id);
     }
     // war on everyone in the east

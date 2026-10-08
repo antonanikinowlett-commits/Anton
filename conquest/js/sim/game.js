@@ -292,7 +292,7 @@ export class Game {
     let mp = 0;
     for (const p of this.ownedProvinces(nid)) {
       const pr = this.s.prov[p];
-      mp += pr.dev * 75 * (pr.controller === nid ? 1 : 0.3) * (1 + 0.25 * (pr.buildings.barracks || 0));
+      mp += pr.dev * 120 * (pr.controller === nid ? 1 : 0.3) * (1 + 0.25 * (pr.buildings.barracks || 0));
     }
     return Math.round(mp * (1 + this.mod(nid, 'manpowerMult')));
   }
@@ -315,7 +315,7 @@ export class Game {
 
   budget(nid) {
     const n = this.s.nations[nid];
-    const B = { tax: 0, trade: 0, mines: 0, food: 0, iron: 0, timber: 0, horses: 0, armyUpkeep: 0, armyFood: 0, court: 0, interest: 0, tribute: 0 };
+    const B = { tax: 0, trade: 0, mines: 0, food: 0, iron: 0, timber: 0, horses: 0, armyUpkeep: 0, armyFood: 0, court: 0, admin: 0, interest: 0, tribute: 0 };
     for (const p of this.ownedProvinces(nid)) {
       const i = this.provinceIncome(p, nid);
       B.tax += i.tax; B.trade += i.trade; B.mines += i.goldMine; B.food += i.food; B.iron += i.iron; B.timber += i.timber; B.horses += i.horses;
@@ -330,13 +330,15 @@ export class Game {
       B.armyUpkeep += up.gold; B.armyFood += up.food;
     }
     B.armyUpkeep *= 1 + this.mod(nid, 'upkeepMult');
+    const owned = this.ownedProvinces(nid);
+    B.admin = owned.length * 0.06 + owned.reduce((t, p) => t + this.s.prov[p].dev, 0) * 0.006;
     B.court = 0.4 * COUNCIL_ROLES.filter((r) => n.council[r]).length + 0.3 * this.charsOf(nid, 'general').length;
     if (n.gold < 0) B.interest = -n.gold * 0.02;
     // vassal tribute
     for (const v of this.s.nations) if (v.alive && v.overlord === nid) B.tribute += 1 + this.ownedProvinces(v.id).length * 0.08;
     if (n.overlord >= 0) B.tribute -= 1 + this.ownedProvinces(nid).length * 0.08;
     B.income = B.tax + B.trade + B.mines + Math.max(0, B.tribute);
-    B.expense = B.armyUpkeep + B.court + B.interest + Math.max(0, -B.tribute);
+    B.expense = B.armyUpkeep + B.court + B.admin + B.interest + Math.max(0, -B.tribute);
     B.net = B.income - B.expense;
     B.foodNet = B.food - B.armyFood;
     return B;
@@ -501,6 +503,26 @@ export class Game {
     if (n.id === s.player) this.notify({ title: 'Succession', icon: '👑', text: `${t} ${this.charName(heir)} has succeeded to the throne.` });
   }
 
+  // invest in a province: settlers, clearings, new villages
+  developCost(p) { return Math.round(30 + this.s.prov[p].dev * 7); }
+  developProvince(nid, p) {
+    const pr = this.s.prov[p], n = this.s.nations[nid];
+    if (pr.owner !== nid || pr.controller !== nid) return 'Must own and control the province';
+    if (pr.dev >= 30) return 'Fully developed';
+    const c = this.developCost(p);
+    if (n.gold < c) return `Need ${c} gold`;
+    n.gold -= c; pr.dev++;
+    this.emit('province', p);
+    return null;
+  }
+  // buy strategic goods from foreign merchants
+  resourcePrice(nid, k) { return { iron: 2.2, timber: 1.6, horses: 3.2, food: 0.9 }[k] * (1 - this.mod(nid, 'tradeMult') * 0.3); }
+  buyResource(nid, k, qty = 10) {
+    const n = this.s.nations[nid], cost = Math.round(this.resourcePrice(nid, k) * qty);
+    if (n.gold < cost) return `Need ${cost} gold`;
+    n.gold -= cost; n[k] += qty;
+    return null;
+  }
   countBuildings(nid, type) { let c = 0; for (const p of this.ownedProvinces(nid)) c += this.s.prov[p].buildings[type] || 0; return c; }
   maxUnrest(nid) { let m = 0; for (const p of this.ownedProvinces(nid)) m = Math.max(m, this.s.prov[p].unrest); return m; }
 

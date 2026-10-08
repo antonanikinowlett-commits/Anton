@@ -116,7 +116,7 @@ export class UI {
     const L = (a, b, cls = '') => `<div class="tt-line"><span>${a}</span><span class="${cls}">${b}</span></div>`;
     const sg = (v) => `<span class="${v < 0 ? 'neg' : 'pos'}">${signed(v, 1)}</span>`;
     switch (k) {
-      case 'gold': return `<div class="tt-title">Treasury: ${fmt(n.gold, 1)} gold</div>${L('Taxes', sg(B.tax))}${L('Trade', sg(B.trade))}${L('Mines', sg(B.mines))}${B.tribute ? L('Tribute', sg(B.tribute)) : ''}<hr>${L('Army upkeep', sg(-B.armyUpkeep))}${L('Court & generals', sg(-B.court))}${B.interest ? L('Debt interest', sg(-B.interest)) : ''}<hr>${L('<b>Monthly balance</b>', sg(B.net))}<div class="muted small">Negative gold reduces stability and angers the nobles.</div>`;
+      case 'gold': return `<div class="tt-title">Treasury: ${fmt(n.gold, 1)} gold</div>${L('Taxes', sg(B.tax))}${L('Trade', sg(B.trade))}${L('Mines', sg(B.mines))}${B.tribute ? L('Tribute', sg(B.tribute)) : ''}<hr>${L('Army upkeep', sg(-B.armyUpkeep))}${L('Court & generals', sg(-B.court))}${L('Administration', sg(-B.admin))}${B.interest ? L('Debt interest', sg(-B.interest)) : ''}<hr>${L('<b>Monthly balance</b>', sg(B.net))}<div class="muted small">Negative gold reduces stability and angers the nobles.</div>`;
       case 'food': return `<div class="tt-title">Food stores: ${fmt(n.food)}</div>${L('Harvests (net of towns)', sg(B.food))}${L('Armies in the field', sg(-B.armyFood))}<hr>${L('<b>Monthly balance</b>', sg(B.foodNet))}<div class="muted small">Starvation: army attrition, morale loss, unrest and slower manpower. Build farms, keep armies in friendly land.</div>`;
       case 'manpower': return `<div class="tt-title">Manpower: ${fmt(n.manpower)} / ${fmt(n.maxManpower)}</div>Men available to raise new regiments and reinforce depleted ones.<br>Recovers ~${fmt(n.maxManpower / 60)} per month.<br><span class="muted small">From development, barracks and military laws (${g.mod(n.id, 'manpowerMult') >= 0 ? '+' : ''}${Math.round(g.mod(n.id, 'manpowerMult') * 100)}%).</span>`;
       case 'iron': return `<div class="tt-title">Iron: ${fmt(n.iron)}</div>${L('Monthly', sg(B.iron))}<span class="muted small">Needed for armoured troops, siege engines and castles. Build mines in hills and mountains.</span>`;
@@ -471,6 +471,10 @@ export class UI {
       } }, '⚔ Recruit');
       rb._tip = () => { const t = this.P.templates.find((x) => x.id === +sel.value); if (!t) return ''; const c = g.templateCost(pl, t); return `<b>${t.name}</b><br>${Object.entries(c).filter(([k, v]) => v && k !== 'days').map(([k, v]) => `${fmt(v)} ${k}`).join(', ')}<br>${c.days} days (barracks speed this up)`; };
       act.append(sel, rb);
+    }
+    if (isMine && pr.controller === pl) {
+      const dc = g.developCost(p);
+      act.append(el('div', { class: 'btn small', onclick: () => { const r = g.developProvince(pl, p); if (r) this.toast('Develop', r, '🚫'); this.renderProvince(); this.updateTopbar(); }, 'data-tip': `Invest ${dc} gold: settle colonists, clear land and found villages. +1 development (taxes, manpower, supply).` }, `🏘 Develop (${dc}g)`));
     }
     if (!isMine && own) {
       const near = sp.adj.some((e) => e.id < g.L && s.prov[e.id].owner === pl);

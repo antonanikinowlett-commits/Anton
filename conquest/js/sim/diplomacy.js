@@ -388,6 +388,7 @@ export const DiplomacyMixin = {
     if (ratio < 0.3) will += 15;
     if (ratio > 1.5) will -= 15;
     if (!demands.length) will += 10;
+    if (leader?.ai.horde && months < 120) will -= 1000; // the horde does not sue for peace
     return { cost, will: Math.round(will) };
   },
   makePeace(w, side, demands) {
