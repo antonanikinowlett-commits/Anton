@@ -1,0 +1,28 @@
+<!doctype html><meta charset="utf-8"><pre id="o"></pre>
+<script type="module">
+import { generateMap } from '../js/world/mapgen.js';
+import { Game } from '../js/sim/game.js';
+const o = document.getElementById('o');
+try {
+const m = await generateMap(()=>{});
+const g = new Game(m);
+let t0 = performance.now();
+g.newGame(new URLSearchParams(location.search).get('tag') || 'FRA');
+const out = [`init ${(performance.now()-t0)|0}ms armies=${Object.keys(g.s.armies).length} chars=${Object.keys(g.s.chars).length}`];
+g.s.player = -1; // all AI
+const days = +(new URLSearchParams(location.search).get('days') || 730);
+t0 = performance.now();
+for (let d = 0; d < days; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; }
+out.push(`ticked ${days} days in ${(performance.now()-t0)|0}ms`);
+out.push('wars: ' + Object.values(g.s.wars).map(w=>w.name+' '+w.score).join(' | '));
+out.push('battles fought: ' + g.s.nations.reduce((t,n)=>t+n.stats.won,0));
+out.push('alive: ' + g.s.nations.filter(n=>n.alive).length + ' armies ' + Object.keys(g.s.armies).length);
+const top = g.s.nations.filter(n=>n.alive).map(n=>[n.tag, g.ownedProvinces(n.id).length, Math.round(n.gold), Math.round(n.manpower), n.focus.done.length]).sort((a,b)=>b[1]-a[1]).slice(0,15);
+out.push(JSON.stringify(top));
+const A = Object.values(g.s.armies); out.push('moving ' + A.filter(a=>a.path.length).length + ' weak ' + A.filter(a=>g.armyMen(a)<g.armyMax(a)*0.45).length + ' lowmorale ' + A.filter(a=>g.armyMorale(a)<0.35).length + ' fails ' + A.reduce((t,a)=>t+(a.ai.fail||0),0) + ' sieges ' + g.s.prov.filter(p=>p.siege).length + ' occupied ' + g.s.prov.filter(p=>p.controller!==p.owner).length);
+out.push(A.slice(0,8).map(a=>`${a.name}/${a.nation} men ${Math.round(g.armyMen(a))}/${g.armyMax(a)} mor ${g.armyMorale(a).toFixed(2)} path ${a.path.length} loc ${a.loc} hostile ${g.hostileToProvince(a,a.loc)} atwar ${g.atWar(a.nation)}`).join('\n'));
+out.push(g.s.log.slice(0,40).map(l=>l.text).join('\n'));
+o.textContent = out.join('\n');
+} catch (e) { o.textContent = 'ERR ' + e.stack; }
+window.done = true;
+</script>

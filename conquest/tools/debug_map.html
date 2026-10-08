@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>Map debug</title><body style="margin:0;background:#222">
+<canvas id="c"></canvas><pre id="o" style="color:#ddd"></pre>
+<script type="module">
+import { generateMap } from '../js/world/mapgen.js';
+import { NATIONS } from '../js/data/nations.js';
+const mode = new URLSearchParams(location.search).get('mode') || 'political';
+const t0 = performance.now();
+const m = await generateMap((s, p) => document.getElementById('o').textContent = s + ' ' + p);
+const c = document.getElementById('c'); c.width = m.W; c.height = m.H;
+const ctx = c.getContext('2d'); const im = ctx.createImageData(m.W, m.H);
+const BC = ['#2b4a6b','#3a6a8a','#b8b860','#9fb070','#3f6f3a','#2f5a40','#8a8a5a','#777','#5a6a4a','#c8b878','#e0c890'];
+const hex = (h) => [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const pc = m.provinces.map((p,i) => { const o = m.owner[i]; return o >= 0 ? hex(NATIONS[o].color) : [40,70,110]; });
+for (let i = 0; i < m.W*m.H; i++) {
+  const p = m.pid[i]; let col;
+  if (mode === 'biome') col = hex(BC[m.biome[i]]);
+  else if (p < 0) col = [60,90,140];
+  else { col = pc[p].slice(); if (m.provinces[p].sea) col = [30 + (p*37)%40, 60, 110]; }
+  const x = i % m.W;
+  if (mode !== 'biome' && p >= 0 && x < m.W-1 && m.pid[i+1] !== p) col = col.map(v => v*0.6);
+  if (mode !== 'biome' && p >= 0 && i + m.W < m.W*m.H && m.pid[i+m.W] !== p) col = col.map(v => v*0.6);
+  if (m.river[i]) col = [70,110,200];
+  im.data.set([...col,255], i*4);
+}
+ctx.putImageData(im,0,0);
+ctx.font = '9px sans-serif'; ctx.fillStyle = '#000';
+if (mode !== 'biome') for (const p of m.provinces) if (!p.sea && p.imp >= 3) ctx.fillText(p.name, p.x, p.y);
+const terr = {}; m.provinces.forEach(p => terr[p.terrain] = (terr[p.terrain]||0)+1);
+document.getElementById('o').textContent = `L=${m.L} S=${m.S} t=${(performance.now()-t0|0)}ms ` + JSON.stringify(terr) + ' unowned=' + m.provinces.filter((p,i)=>!p.sea&&m.owner[i]<0).length;
+window.done = true;
+</script>
