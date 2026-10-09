@@ -4,13 +4,11 @@ A grand-strategy game of conquest, diplomacy and statecraft in medieval Europe, 
 
 ## Running
 
-ES modules need to be served over HTTP:
+**Easiest:** double-click `CrownAndConquest.html`. It is a single self-contained file that runs in any modern browser (Chrome, Edge, Firefox, Safari) without a server.
 
-```
-cd conquest
-python3 -m http.server 8000
-# open http://localhost:8000
-```
+**Via localhost:** run `start-windows.bat` (Windows) or `start-mac-linux.sh` (macOS/Linux). Both need Python installed; they start a server and open http://localhost:8000.
+
+After changing the source, rebuild the single file with `node tools/build_single.mjs path/to/esbuild`.
 
 ## What's in it
 

@@ -3,6 +3,7 @@
 // raster, classifies biomes, then grows provinces from historical settlements with a
 // terrain-aware multi-source Dijkstra so borders settle on rivers and ridgelines.
 import { GEO } from '../../data/geo.js';
+import { HEIGHT } from '../../data/height.js';
 import { W, H, toXY, toLonLat, kmPerPx } from './proj.js';
 import { CITIES } from '../data/cities.js';
 import { NATIONS } from '../data/nations.js';
@@ -84,8 +85,8 @@ export async function generateMap(progress = () => {}) {
 
   // ── 2. elevation
   progress('Raising mountains', 0.08);
-  const himg = await loadImage(new URL('../../data/height.png', import.meta.url).href);
-  const hmeta = await (await fetch(new URL('../../data/height.json', import.meta.url).href)).json();
+  const himg = await loadImage(HEIGHT.src);
+  const hmeta = HEIGHT.meta;
   const hc = canvas(hmeta.w, hmeta.h).getContext('2d', { willReadFrequently: true });
   hc.drawImage(himg, 0, 0);
   const hd = hc.getImageData(0, 0, hmeta.w, hmeta.h).data;
