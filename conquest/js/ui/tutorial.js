@@ -1,12 +1,12 @@
 // Dynamic tutorial: steps advance when the player actually does the thing, adapt their
 // text to the chosen realm, skip what the player already did, and contextual hints pop
 // up the first time a new situation (battle, siege, debt, revolt…) arises.
-import { el } from '../util.js';
+import { el, store } from '../util.js';
 
 export class Tutorial {
   constructor(ui) {
     this.ui = ui; this.g = ui.g; this.v = ui.v;
-    this.i = 0; this.active = false; this.seen = new Set(JSON.parse(localStorage.getItem('cc_hints') || '[]'));
+    this.i = 0; this.active = false; this.seen = new Set(JSON.parse(store.get('cc_hints') || '[]'));
   }
   ctx() {
     const g = this.g, n = g.player;
@@ -96,7 +96,7 @@ export class Tutorial {
     if (this.ui.settings && this.ui.settings.tutorial === false) return;
     if (this.seen.has(id)) return;
     this.seen.add(id);
-    localStorage.setItem('cc_hints', JSON.stringify([...this.seen]));
+    store.set('cc_hints', JSON.stringify([...this.seen]));
     const h = el('div', { class: 'tut-hint frame' }, el('div', { class: 'tt' }, '💡 ' + title), el('div', { class: 'small', html: text }), el('div', { class: 'btn small', style: { marginTop: '6px' }, onclick: () => h.remove() }, 'Understood'));
     document.body.append(h);
     setTimeout(() => h.remove(), 25000);

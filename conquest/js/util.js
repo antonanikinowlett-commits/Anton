@@ -131,3 +131,10 @@ export function el(tag, attrs = {}, ...kids) {
   for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
   return e;
 }
+
+// Browser storage can be unavailable (private windows, sandboxed frames); never let it throw.
+export const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
+};

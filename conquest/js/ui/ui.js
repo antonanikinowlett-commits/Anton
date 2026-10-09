@@ -1,6 +1,6 @@
 // UI shell: top bar, tab bar and side panel, province & army panels, tooltips, toasts,
 // alerts, modals and the minimap. Panel contents live in ./panels/*.js.
-import { el, fmt, signed, dateStr, clamp, pct } from '../util.js';
+import { el, fmt, signed, dateStr, clamp, pct, store } from '../util.js';
 import { coaSVG, rebelCoa } from './heraldry.js';
 import { portraitSVG } from './portrait.js';
 import { BUILDINGS, BUILDING_ORDER, CHURCH_NAMES, CASTLE_NAMES } from '../data/buildings.js';
@@ -646,7 +646,7 @@ export class UI {
     this.modal((m, close) => {
       m.append(el('div', { class: 'mh' }, el('div', { class: 'frame-title' }, 'Game Menu')));
       const mb = el('div', { class: 'mb col' });
-      const saves = JSON.parse(localStorage.getItem('cc_saves') || '[]');
+      const saves = JSON.parse(store.get('cc_saves') || '[]');
       mb.append(el('div', { class: 'btn primary', onclick: () => { this.emit('save'); close(); } }, '💾 Save game'));
       for (const sv of saves.slice(-5).reverse()) mb.append(el('div', { class: 'btn', onclick: () => { close(); this.emit('load', sv.key); } }, `📂 Load: ${sv.name}`));
       const set = this.settings ||= { pauseOnWar: true, autoBattle: false, tutorial: true };

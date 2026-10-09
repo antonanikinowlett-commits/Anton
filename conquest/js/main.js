@@ -5,7 +5,7 @@ import { MapView } from './render/map3d.js';
 import { UI, SPEEDS } from './ui/ui.js';
 import { StartScreen } from './ui/start.js';
 import { Tutorial } from './ui/tutorial.js';
-import { dateStr } from './util.js';
+import { dateStr, store } from './util.js';
 
 const loadEl = document.getElementById('loading');
 const progress = (msg, f) => {
@@ -43,16 +43,16 @@ async function boot() {
     try {
       const key = 'cc_save_' + Date.now();
       const n = game.player;
-      localStorage.setItem(key, game.serialize());
-      let saves = JSON.parse(localStorage.getItem('cc_saves') || '[]');
+      if (!store.set(key, game.serialize())) throw new Error('Browser storage is unavailable or full');
+      let saves = JSON.parse(store.get('cc_saves') || '[]');
       saves.push({ key, name: `${n.name}, ${dateStr(game.s.day)}` });
-      while (saves.length > 3) { const old = saves.shift(); localStorage.removeItem(old.key); }
-      localStorage.setItem('cc_saves', JSON.stringify(saves));
+      while (saves.length > 3) { const old = saves.shift(); store.del(old.key); }
+      store.set('cc_saves', JSON.stringify(saves));
       ui.toast('Game saved', `${n.name}, ${dateStr(game.s.day)}`, '💾');
     } catch (e) { ui.toast('Save failed', String(e.message || e), '🚫'); }
   });
   ui.on('load', (key) => {
-    const json = localStorage.getItem(key);
+    const json = store.get(key);
     if (!json) { ui.toast('Load failed', 'Save not found', '🚫'); return; }
     game.load(json);
     ui.build();

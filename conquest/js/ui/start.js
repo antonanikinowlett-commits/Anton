@@ -1,5 +1,5 @@
 // Main menu & realm selection, shown over the live map.
-import { el, fmt } from '../util.js';
+import { el, fmt, store } from '../util.js';
 import { coaSVG } from './heraldry.js';
 import { portraitSVG } from './portrait.js';
 import { GOVS } from '../data/government.js';
@@ -40,7 +40,7 @@ export class StartScreen {
     this.root = el('div', { id: 'start' });
     const left = el('div', { class: 'start-left frame' });
     left.append(el('div', { class: 'start-title' }, el('div', { class: 't1' }, 'Crown & Conquest'), el('div', { class: 't2' }, 'EUROPE · ANNO DOMINI MCC')));
-    const save = localStorage.getItem('cc_saves');
+    const save = store.get('cc_saves');
     if (save && JSON.parse(save).length) {
       const last = JSON.parse(save).slice(-1)[0];
       left.append(el('div', { class: 'row', style: { padding: '0 10px 8px' } }, el('div', { class: 'btn primary grow', style: { justifyContent: 'center' }, onclick: () => { this.close(); this.ui.emit('load', last.key); } }, `▶ Continue: ${last.name}`)));
