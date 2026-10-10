@@ -525,9 +525,15 @@ export class UI {
         r.innerHTML = `<span class="grow">${a.name}</span><span>${fmt(g.armyMen(a))} men</span><span class="muted">${this.v.map.provinces[a.loc].name}</span>`;
         pb.append(r);
       }
-      const same = armies.every((a) => a.loc === armies[0].loc && a.nation === s.player);
+      const mineAll = armies.every((a) => a.nation === s.player);
+      const same = armies.every((a) => a.loc === armies[0].loc);
+      const main = armies.find((a) => !a.path.length && !a.battle) || armies[0];
       pb.append(el('div', { class: 'row', style: { marginTop: '8px' } },
-        el('div', { class: 'btn small' + (same ? '' : ' disabled'), onclick: () => { if (same) { g.merge(armies.map((a) => a.id)); this.selectArmies([armies[0].id]); } }, 'data-tip': 'Merge armies in the same province' }, '⧉ Merge'),
+        mineAll ? el('div', { class: 'btn primary', onclick: () => {
+          const r = g.mergeOrder(armies.map((a) => a.id));
+          if (r) this.toast('Merge', r, '⧉');
+          this.selectArmies([main.id].filter((i) => s.armies[i]));
+        }, 'data-tip': same ? 'Combine these armies into one' : `Combine into one army: the others march to ${main.name} at ${this.v.map.provinces[main.loc].name} and join it on arrival` }, same ? `⧉ Merge ${armies.length} armies` : `⧉ Merge at ${this.v.map.provinces[main.loc].name}`) : null,
         el('div', { class: 'btn small', onclick: () => { for (const a of armies) g.stop(a.id); this.renderArmy(); } }, '■ Stop all')));
       if (armies.every((a) => a.nation === s.player)) pb.append(this.frontTools(armies));
       E.append(pb);
@@ -614,7 +620,7 @@ export class UI {
       o.append(el('div', { class: 'btn small danger', onclick: () => this.confirm('Disband army', `Disband ${a.name}? 60% of the men return to the manpower pool.`, () => { g.disband(a.id); this.selectArmies([]); }) }, '✖ Disband'));
       pb.append(o);
       pb.append(this.frontTools([a]));
-      pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Click regiments to pick them for a new division. Right-click a province to march. Right-click across the sea from a coast to sail. Shift-drag on the map to select several armies.'));
+      pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Shift+click other army counters to select them, then Merge. Click regiments to pick them for a new division. Right-click a province to march. Right-click across the sea from a coast to sail. Shift-drag on the map to select several armies.'));
     }
   }
 

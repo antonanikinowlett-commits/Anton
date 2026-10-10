@@ -180,6 +180,26 @@ export const MilitaryMixin = {
     }
     this.emit('army', main.id);
   },
+  // Merge armies wherever they are: the others march to the first army and join it on arrival.
+  mergeOrder(ids) {
+    const as = ids.map((i) => this.s.armies[i]).filter((a) => a && !a.retreating);
+    if (as.length < 2) return 'Select at least two armies';
+    if (as.some((a) => a.nation !== as[0].nation)) return 'Only armies of the same realm can merge';
+    const main = as.find((a) => !a.path.length && !a.battle) || as[0];
+    const here = as.filter((a) => a.loc === main.loc && !a.battle);
+    for (const a of as) this.leaveFront?.(a.id);
+    if (here.length > 1) this.merge([main.id, ...here.filter((a) => a !== main).map((a) => a.id)]);
+    let marching = 0;
+    for (const a of as) {
+      if (a === main || !this.s.armies[a.id]) continue;
+      a.mergeInto = main.id;
+      if (!a.battle && this.orderMove(a.id, main.loc)) { a.mergeInto = null; continue; }
+      marching++;
+    }
+    main.path = []; main.prog = 0;
+    this.emit('army', main.id);
+    return marching ? `${marching} march to join ${main.name}` : null;
+  },
   split(aid) {
     const a = this.s.armies[aid];
     if (!a || a.battle || a.regs.length < 2) return null;
@@ -304,6 +324,19 @@ export const MilitaryMixin = {
       this.checkContact(a);
     }
     for (const a of Object.values(s.armies)) if (s.armies[a.id] && !a.battle) this.supplyAndRecovery(a);
+    // armies ordered to merge join their target once they share a province
+    for (const a of Object.values(s.armies)) {
+      if (!a.mergeInto || !s.armies[a.id]) continue;
+      const t = s.armies[a.mergeInto];
+      if (!t) { a.mergeInto = null; continue; }
+      if (a.loc === t.loc && !a.battle && !t.battle && !a.path.length) {
+        a.mergeInto = null;
+        this.merge([t.id, a.id]);
+        if (t.nation === s.player) this.log(`${a.name} has joined ${t.name}.`, { nation: t.nation, type: 'mil', prov: t.loc });
+      } else if (!a.path.length && !a.battle && !a.retreating && a.loc !== t.loc) {
+        if (this.orderMove(a.id, t.loc)) a.mergeInto = null; // the target moved: follow it
+      }
+    }
   },
   advance(a) {
     const P = this.map.provinces;
