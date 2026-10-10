@@ -699,6 +699,26 @@ export class MapView {
     this.dirty = true;
     for (const c of [...this.pathGroup.children]) { c.geometry.dispose(); c.material.dispose(); this.pathGroup.remove(c); }
     const s = this.game.s, P = this.map.provinces;
+    for (const f of this.game.frontsOf(s.player)) {
+      const line = f.line || [];
+      if (!line.length) continue;
+      const foes = this.game.frontFoes(f);
+      // trace the border: halfway between each front province and the enemy land it touches
+      const pts = line.map((p) => {
+        const en = P[p].adj.filter((e) => e.id < this.map.L && foes.has(s.prov[e.id].controller));
+        let x = 0, z = 0;
+        for (const e of en) { x += P[e.id].x; z += P[e.id].y; }
+        return en.length ? [(P[p].x + x / en.length) / 2, (P[p].y + z / en.length) / 2] : [P[p].x, P[p].y];
+      });
+      // break the line where consecutive points are far apart (separate stretches of border)
+      let seg = [pts[0]];
+      const flush = () => { if (seg.length > 1) this.pathGroup.add(this.ribbon(seg, 0.55, f.mode === 'advance' ? 0xe04030 : 0xf0c040, 0.85, true)); };
+      for (let i = 1; i < pts.length; i++) {
+        if (Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) > 40) { flush(); seg = []; }
+        seg.push(pts[i]);
+      }
+      flush();
+    }
     const show = Object.values(s.armies).filter((a) => a.path.length && (this.sel.armies.includes(a.id) || (a.nation === s.player)));
     for (const a of show) {
       const pts = [];
@@ -712,7 +732,7 @@ export class MapView {
       this.pathGroup.add(this.ribbon(pts, sel ? 0.42 : 0.26, color, sel ? 0.95 : 0.55));
     }
   }
-  ribbon(pts, w, color, alpha) {
+  ribbon(pts, w, color, alpha, flat = false) {
     // densify and lay on the terrain
     const dense = [];
     for (let i = 0; i < pts.length - 1; i++) {
@@ -727,7 +747,7 @@ export class MapView {
       const [xn, zn] = dense[Math.min(i + 1, dense.length - 1)], [xp, zp] = dense[Math.max(i - 1, 0)];
       let dx = xn - xp, dz = zn - zp; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
       const y = Math.max(0.15, this.heightAt(x, z)) + 0.25;
-      const ww = i === dense.length - 1 ? 0 : i > dense.length - 4 ? w * 2.2 * (dense.length - 1 - i) / 3 : w;
+      const ww = flat ? w : i === dense.length - 1 ? 0 : i > dense.length - 4 ? w * 2.2 * (dense.length - 1 - i) / 3 : w;
       pos.push(x - dz * ww, y, z + dx * ww, x + dz * ww, y, z - dx * ww);
       if (i < dense.length - 1) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
     }
@@ -908,6 +928,7 @@ export class MapView {
     g.on('armyMoved', () => this.refreshPaths());
     g.on('army', () => this.refreshPaths());
     g.on('armyGone', () => this.refreshPaths());
+    g.on('fronts', () => this.refreshPaths());
     g.on('reset', () => { this.refreshColors(); this.refreshLabels(); this.refreshBuildings(); this.refreshPaths(); });
   }
 
@@ -953,7 +974,7 @@ export class MapView {
     this.updateArmies(t);
     this.updateMarkers();
     this.updateProvLabels(rect);
-    if (this.pathGroup.children.length && this._lastPathRefresh !== this.game.s.day) { this._lastPathRefresh = this.game.s.day; this.refreshPaths(); }
+    if ((this.pathGroup.children.length || this.game.frontsOf(this.game.s.player).length) && this._lastPathRefresh !== this.game.s.day) { this._lastPathRefresh = this.game.s.day; this.refreshPaths(); }
     this.renderer.render(this.scene, this.camera);
   }
 }

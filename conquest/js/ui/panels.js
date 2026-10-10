@@ -314,7 +314,7 @@ export const PANELS = {
   // ─────────────────────────────── MILITARY
   military: { render(ui, pb) {
     const g = ui.g, n = ui.P, s = g.s;
-    const [tabs, cur] = subtabs(ui, 'mil', [['armies', 'Armies'], ['templates', 'Army Templates'], ['recruit', 'Mustering'], ['units', 'Unit Codex']]);
+    const [tabs, cur] = subtabs(ui, 'mil', [['armies', 'Armies'], ['fronts', 'Fronts'], ['templates', 'Army Templates'], ['recruit', 'Mustering'], ['units', 'Unit Codex']]);
     pb.append(tabs);
     if (cur === 'armies') {
       const as = g.armiesOf(n.id);
@@ -332,7 +332,8 @@ export const PANELS = {
       pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Click an army to select it, then right-click a province to march. Armies reinforce from manpower when in friendly land.'));
       pb.append(el('div', { class: 'section' }, 'Military Record'));
       pb.append(H(`<div class="small">Battles won ${n.stats.won}, lost ${n.stats.lost} · enemies slain ${fmt(n.stats.killed)} · our dead ${fmt(n.stats.lostMen)}</div>`));
-    } else if (cur === 'templates') templateEditor(ui, pb);
+    } else if (cur === 'fronts') frontsPanel(ui, pb);
+    else if (cur === 'templates') templateEditor(ui, pb);
     else if (cur === 'recruit') {
       const q = s.recruit.filter((r) => r.nation === n.id);
       if (!q.length) pb.append(el('div', { class: 'muted small' }, 'No regiments are being mustered. Recruit from a province panel or the template designer.'));
@@ -571,6 +572,30 @@ function templateEditor(ui, pb) {
     if (r) ui.toast('Cannot recruit', r, '🚫'); else { ui.toast('Mustering', `${t.name} assembling at ${ui.v.map.provinces[+loc.value].name}`, '⚔'); ui.emit('recruited'); }
     ui.updateTopbar();
   } }, '⚔ Recruit')));
+}
+
+function frontsPanel(ui, pb) {
+  const g = ui.g, n = ui.P, s = g.s;
+  pb.append(el('div', { class: 'small muted' }, 'A front spreads its divisions evenly along the border with an enemy. Holding keeps them on the line; advancing sends every division across the border at once, province by province, so the line moves forward together. Divide armies first (✂ ÷2, ÷3, Split & cover front) to cover a long border.'));
+  const fronts = g.frontsOf(n.id);
+  if (!fronts.length) pb.append(el('div', { class: 'card', style: { marginTop: '8px' } }, 'No fronts yet. Select an army, choose a realm under "Front line" in the army panel, then Assign to front or Split & cover front.'));
+  for (const f of fronts) {
+    const e = s.nations[f.enemy];
+    const line = f.line || g.frontProvinces(f);
+    const armies = f.armies.map((id) => s.armies[id]).filter(Boolean);
+    const men = armies.reduce((t, a) => t + g.armyMen(a), 0);
+    const war = g.atWar(n.id, f.enemy);
+    const d = el('div', { class: 'card' + (f.mode === 'advance' ? ' hl' : ''), style: { marginTop: '8px' } });
+    d.append(H(`<div class="row">${coaSVG(e.coa, 22)}<b class="grow">Front against the ${e.name}</b><span class="chip ${f.mode === 'advance' ? 'bad' : ''}">${f.mode === 'advance' ? '➜ Advancing' : '🛡 Holding'}</span></div>
+      <div class="small muted">${armies.length} divisions · ${fmt(men)} men · ${line.length} border provinces${armies.length < line.length ? ` <span class="neg">(thin: ${line.length - armies.length} provinces uncovered)</span>` : ''}</div>`));
+    const row = el('div', { class: 'row wrap', style: { marginTop: '6px' } });
+    row.append(el('div', { class: 'btn small' + (f.mode === 'hold' ? ' primary' : ''), onclick: () => { g.setFrontMode(f.id, 'hold'); ui.renderPanel(true); }, 'data-tip': 'Stand on the border and defend it' }, '🛡 Hold the line'));
+    row.append(el('div', { class: 'btn small danger' + (war ? '' : ' disabled'), onclick: () => { const r = g.setFrontMode(f.id, 'advance'); if (r) ui.toast('Front', r, '🚫'); ui.renderPanel(true); }, 'data-tip': war ? 'All divisions cross the border together, besieging and occupying as the line moves forward' : 'Only possible at war' }, '➜ Advance'));
+    row.append(el('div', { class: 'btn small', onclick: () => { ui.selectArmies(f.armies); if (armies[0]) ui.v.flyToProvince(armies[0].loc, 300); } }, '👁 Select divisions'));
+    row.append(el('div', { class: 'btn small', onclick: () => { g.deleteFront(f.id); ui.renderPanel(true); }, 'data-tip': 'Disband the front. The armies stay where they are.' }, '✖ Disband front'));
+    d.append(row);
+    pb.append(d);
+  }
 }
 
 function describeDemand(g, d) {

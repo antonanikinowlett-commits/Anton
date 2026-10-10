@@ -10,6 +10,7 @@ import { BattleMixin } from './battle.js';
 import { DiplomacyMixin } from './diplomacy.js';
 import { PoliticsMixin } from './politics.js';
 import { AIMixin } from './ai.js';
+import { FrontsMixin } from './fronts.js';
 import { kmPerPx } from '../world/proj.js';
 
 const TERRAIN_ECON = {
@@ -48,7 +49,7 @@ export class Game {
   newGame(playerTag) {
     const m = this.map, rng = mulberry32(1200);
     this._owned = null; this._ft = null; this._wp = null;
-    const s = this.s = { day: 0, player: -1, nextId: 1, nations: [], prov: [], armies: {}, battles: {}, wars: {}, chars: {}, log: [], notifications: [], eventQueue: [], firedHistory: [], recruit: [] };
+    const s = this.s = { day: 0, player: -1, nextId: 1, nations: [], prov: [], armies: {}, battles: {}, wars: {}, chars: {}, log: [], notifications: [], eventQueue: [], firedHistory: [], recruit: [], fronts: {} };
     NATIONS.forEach((def, i) => {
       const n = {
         id: i, tag: def.tag, name: def.name, adj: def.adj, color: def.color, culture: def.culture, group: groupOf(def.culture), religion: def.religion, gov: def.gov,
@@ -349,6 +350,7 @@ export class Game {
     const s = this.s;
     s.day++;
     this.dailyArmies();
+    this.dailyFronts();
     this.dailyBattles();
     this.dailySieges();
     this.dailyConstruction();
@@ -595,4 +597,4 @@ export class Game {
   }
 }
 
-for (const mixin of [MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

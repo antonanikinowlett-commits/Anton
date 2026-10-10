@@ -371,7 +371,7 @@ export class UI {
     const mine = this.selArmies.map((i) => this.s.armies[i]).filter((a) => a && a.nation === this.s.player);
     if (!mine.length) return;
     let ok = 0, why = null;
-    for (const a of mine) { const r = this.g.orderMove(a.id, p); if (r) why = r; else ok++; }
+    for (const a of mine) { this.g.leaveFront(a.id); const r = this.g.orderMove(a.id, p); if (r) why = r; else ok++; }
     if (!ok && why) this.toast('Cannot move there', why, '🚫');
     else this.emit('ordered', p);
     this.renderArmy();
@@ -516,6 +516,7 @@ export class UI {
       pb.append(el('div', { class: 'row', style: { marginTop: '8px' } },
         el('div', { class: 'btn small' + (same ? '' : ' disabled'), onclick: () => { if (same) { g.merge(armies.map((a) => a.id)); this.selectArmies([armies[0].id]); } }, 'data-tip': 'Merge armies in the same province' }, '⧉ Merge'),
         el('div', { class: 'btn small', onclick: () => { for (const a of armies) g.stop(a.id); this.renderArmy(); } }, '■ Stop all')));
+      if (armies.every((a) => a.nation === s.player)) pb.append(this.frontTools(armies));
       E.append(pb);
       return;
     }
@@ -573,9 +574,13 @@ export class UI {
     const regs = el('div', { class: 'regs' });
     const order = ['inf', 'rng', 'cav', 'siege'];
     const sorted = [...a.regs].sort((x, y) => order.indexOf(UNITS[x.type].cls) - order.indexOf(UNITS[y.type].cls));
+    this.state.regSel ||= new Set();
+    if (this.state.regSelArmy !== a.id) { this.state.regSel = new Set(); this.state.regSelArmy = a.id; }
+    const regSel = this.state.regSel;
     for (const r of sorted) {
       const u = UNITS[r.type];
-      const d = el('div', { class: 'reg' });
+      const ri = a.regs.indexOf(r);
+      const d = el('div', { class: 'reg' + (regSel.has(ri) ? ' picked' : ''), onclick: () => { if (!mine) return; regSel.has(ri) ? regSel.delete(ri) : regSel.add(ri); this.renderArmy(); } });
       d.innerHTML = `<div class="row"><span class="ri">${u.icon}</span><span class="grow">${u.name}</span></div><div class="row between"><span>${fmt(r.men)}</span><span class="gold">${'★'.repeat(Math.floor((r.xp || 0) * 3))}</span></div><div class="bar green"><i style="width:${r.morale * 100}%"></i></div>`;
       d._tip = () => unitTip(r.type) + `<hr>Men ${Math.round(r.men)}/${r.max} · morale ${pct(r.morale)} · experience ${pct(r.xp || 0)}`;
       regs.append(d);
@@ -585,7 +590,9 @@ export class UI {
     if (mine) {
       const o = el('div', { class: 'row wrap', style: { marginTop: '8px' } });
       o.append(el('div', { class: 'btn small', onclick: () => { g.stop(a.id); this.renderArmy(); } }, '■ Stop'));
-      o.append(el('div', { class: 'btn small', onclick: () => { const b = g.split(a.id); if (b) this.selectArmies([a.id, b.id]); }, 'data-tip': 'Split the army in two' }, '✂ Split'));
+      if (regSel.size && regSel.size < a.regs.length) o.append(el('div', { class: 'btn small primary', onclick: () => { const b = g.detach(a.id, [...regSel]); regSel.clear(); if (b) this.selectArmies([a.id, b.id]); }, 'data-tip': 'Form a new division from the regiments you picked' }, `✂ Detach ${regSel.size} picked`));
+      for (const n of [2, 3, 4]) if (a.regs.length >= n) o.append(el('div', { class: 'btn small', onclick: () => { const ds = g.splitInto(a.id, n); this.selectArmies(ds.map((d) => d.id)); }, 'data-tip': `Divide into ${n} divisions, each with the same mix of troops` }, `✂ ÷${n}`));
+      if (new Set(a.regs.map((r) => UNITS[r.type].cls)).size > 1) o.append(el('div', { class: 'btn small', onclick: () => { const ds = g.splitByType(a.id); this.selectArmies(ds.map((d) => d.id)); }, 'data-tip': 'Separate foot, archers, horse and siege engines into their own divisions' }, '✂ By arm'));
       const others = g.armiesAt(a.loc).filter((b) => b !== a && b.nation === a.nation && !b.battle);
       if (others.length) o.append(el('div', { class: 'btn small', onclick: () => { g.merge([a.id, ...others.map((b) => b.id)]); this.renderArmy(); } }, '⧉ Merge here'));
       const pr = s.prov[a.loc];
@@ -593,8 +600,31 @@ export class UI {
       if (a.battle) o.append(el('div', { class: 'btn small primary', onclick: () => this.battleViewer.open(a.battle) }, '👁 Watch battle'));
       o.append(el('div', { class: 'btn small danger', onclick: () => this.confirm('Disband army', `Disband ${a.name}? 60% of the men return to the manpower pool.`, () => { g.disband(a.id); this.selectArmies([]); }) }, '✖ Disband'));
       pb.append(o);
-      pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Right-click a province to march. Right-click across the sea from a coast to sail. Shift-drag on the map to select several armies.'));
+      pb.append(this.frontTools([a]));
+      pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Click regiments to pick them for a new division. Right-click a province to march. Right-click across the sea from a coast to sail. Shift-drag on the map to select several armies.'));
     }
+  }
+
+  // Assign divisions to a front line against an enemy realm.
+  frontTools(armies) {
+    const g = this.g, s = this.s, pl = s.player;
+    const box = el('div', { class: 'card', style: { marginTop: '8px' } });
+    const f = armies.length === 1 ? g.frontOfArmy(armies[0].id) : null;
+    if (f) {
+      box.append(el('div', { class: 'row' }, el('span', { class: 'grow small' }, `⚑ On the front against the ${s.nations[f.enemy].name} · ${f.mode === 'advance' ? 'advancing' : 'holding the line'}`),
+        el('div', { class: 'btn small', onclick: () => { g.leaveFront(armies[0].id); this.renderArmy(); } }, 'Leave front')));
+      return box;
+    }
+    const enemies = g.enemiesOf(pl);
+    const cands = [...new Set([...enemies, ...g.neighbours(pl)])].filter((x) => s.nations[x]?.alive);
+    if (!cands.length) return el('span');
+    const sel = el('select', {});
+    for (const x of cands) sel.append(el('option', { value: x }, `${s.nations[x].name}${enemies.includes(x) ? ' ⚔' : ''}`));
+    const msg = (r, ok) => { if (r) this.toast('Front', r, '🚫'); else this.toast('Front', ok, '⚑'); this.renderArmy(); this.renderPanel(); };
+    box.append(el('div', { class: 'tag' }, 'Front line'), el('div', { class: 'row wrap', style: { marginTop: '4px' } }, sel,
+      el('div', { class: 'btn small', onclick: () => msg(g.createFront(pl, +sel.value, armies.map((a) => a.id)), 'Divisions are spreading out along the border.'), 'data-tip': 'These armies spread out evenly along the border with this realm and hold it. Order them to advance from the Military tab or the front list.' }, '⚑ Assign to front'),
+      armies.length === 1 ? el('div', { class: 'btn small primary', onclick: () => { const r = g.coverFront(armies[0].id, +sel.value); msg(r, 'Army divided into divisions covering the whole border.'); if (!r) { const fr = g.frontOfArmy(armies[0].id); if (fr) this.selectArmies(fr.armies); } }, 'data-tip': 'Divide this army into as many divisions as the border needs (at least 2 regiments each) and spread them along it.' }, '✂⚑ Split & cover front') : null));
+    return box;
   }
 
   // ── wiring
