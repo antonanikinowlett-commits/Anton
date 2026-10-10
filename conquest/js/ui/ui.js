@@ -632,7 +632,7 @@ export class UI {
     const now = performance.now();
     if (now - (this._lastTop || 0) > 250) { this._lastTop = now; this.updateTopbar(); this.updateAlerts(); }
     if (now - (this._lastMM || 0) > 400) { this._lastMM = now; this.drawMinimap(); }
-    if (this._dirtyDay !== this.s.day && now - (this._lastPanel || 0) > 700) {
+    if (this._dirtyDay !== this.s.day && now - (this._lastPanel || 0) > 1500) {
       this._dirtyDay = this.s.day; this._lastPanel = now;
       if (this.tab && !PANELS[this.tab].static) this.renderPanel();
       if (this.selProv >= 0) this.renderProvince();

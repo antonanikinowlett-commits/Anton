@@ -47,16 +47,16 @@ void main(){
   float a = uPolAlpha * c0.a * (1.0 - uTerrainMode);
   vec3 col = mix(lit, pol*(0.78+0.3*lam), a);
   // borders: compare neighbours a screen-size-aware distance away
-  vec2 fw = fwidth(vUv);
-  vec2 o1 = fw*1.1;
-  vec2 o2 = max(fw*2.6, vec2(0.6)/provSize);
+  vec2 o1 = fwidth(vUv)*1.5;
   float pb = 0.0, cb = 0.0;
-  vec2 dirs[4]; dirs[0]=vec2(1.0,0.0); dirs[1]=vec2(-1.0,0.0); dirs[2]=vec2(0.0,1.0); dirs[3]=vec2(0.0,-1.0);
-  for (int k=0;k<4;k++){
-    float nid = dec(texture2D(tProv, vUv + dirs[k]*o1));
-    if (abs(nid-id)>0.5) { pb = 1.0; if (abs(ownerOf(nid)-own)>0.5) cb = 1.0; }
-    float nid2 = dec(texture2D(tProv, vUv + dirs[k]*o2));
-    if (abs(nid2-id)>0.5 && abs(ownerOf(nid2)-own)>0.5) cb = max(cb, 0.55);
+  float n0 = dec(texture2D(tProv, vUv + vec2(o1.x, 0.0)));
+  float n1 = dec(texture2D(tProv, vUv - vec2(o1.x, 0.0)));
+  float n2 = dec(texture2D(tProv, vUv + vec2(0.0, o1.y)));
+  float n3 = dec(texture2D(tProv, vUv - vec2(0.0, o1.y)));
+  if (abs(n0-id)>0.5 || abs(n1-id)>0.5 || abs(n2-id)>0.5 || abs(n3-id)>0.5) {
+    pb = 1.0;
+    if ((abs(n0-id)>0.5 && abs(ownerOf(n0)-own)>0.5) || (abs(n1-id)>0.5 && abs(ownerOf(n1)-own)>0.5) ||
+        (abs(n2-id)>0.5 && abs(ownerOf(n2)-own)>0.5) || (abs(n3-id)>0.5 && abs(ownerOf(n3)-own)>0.5)) cb = 1.0;
   }
   col = mix(col, col*0.35, pb*uBorderAlpha);
   vec3 bc = mix(pol*0.35, vec3(0.06,0.05,0.04), 0.5);
@@ -124,7 +124,9 @@ export class MapView {
   async init(progress = () => {}) {
     const { map } = this;
     const R = this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.dpr = Math.min(this.maxDpr, 1.25);
+    R.setPixelRatio(this.dpr);
     R.setClearColor(0x0d1a24);
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.Fog(0x162a36, 1400, 2600);
@@ -263,26 +265,35 @@ export class MapView {
       else if (b === BIOME.TAIGA || b === BIOME.MOUNT || (b === BIOME.FOREST && (this.map.lat[y] > 55 || rng() < 0.25))) pine.push(ent);
       else decid.push(ent);
     }
+    const CH = 160;
     const mk = (geo, list, colors, cap) => {
       for (let i = list.length - 1; i > 0 && list.length > cap; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
       list = list.slice(0, cap);
-      const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }), list.length);
-      const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
-      list.forEach(([x, z, s, r], i) => {
-        q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), r * 6.28);
-        M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.03, z), q, new THREE.Vector3(s, s * (0.9 + r * 0.3), s));
-        m.setMatrixAt(i, M);
-        c.set(colors[Math.floor(r * colors.length)]);
-        m.setColorAt(i, c);
-      });
-      m.instanceMatrix.needsUpdate = true;
-      m.frustumCulled = false;
-      this.scene.add(m);
-      return m;
+      const chunks = new Map();
+      for (const e of list) { const k = Math.floor(e[0] / CH) + ',' + Math.floor(e[1] / CH); if (!chunks.has(k)) chunks.set(k, []); chunks.get(k).push(e); }
+      const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+      const group = new THREE.Group();
+      const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), up = new THREE.Vector3(0, 1, 0);
+      for (const part of chunks.values()) {
+        const m = new THREE.InstancedMesh(geo, mat, part.length);
+        part.forEach(([x, z, sc, r], i) => {
+          q.setFromAxisAngle(up, r * 6.28);
+          M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.03, z), q, new THREE.Vector3(sc, sc * (0.9 + r * 0.3), sc));
+          m.setMatrixAt(i, M);
+          c.set(colors[Math.floor(r * colors.length)]);
+          m.setColorAt(i, c);
+        });
+        m.instanceMatrix.needsUpdate = true;
+        m.computeBoundingSphere();
+        group.add(m);
+      }
+      group.material = mat;
+      this.scene.add(group);
+      return group;
     };
     this.trees = [
-      mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 90000),
-      mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 90000),
+      mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 60000),
+      mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 60000),
       mk(MODELS.palm(), palm, ['#5d8a3a', '#6e9a40'], 8000),
     ];
   }
@@ -346,6 +357,7 @@ export class MapView {
     }
   }
   refreshBuildings() {
+    this.dirty = true;
     const g = this.game, s = g.s, L = this.map.L, P = this.map.provinces;
     const M = new THREE.Matrix4(), q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
     for (const m of Object.values(this.bmesh)) m.count = 0;
@@ -424,7 +436,7 @@ export class MapView {
     const byLoc = new Map();
     for (const a of Object.values(s.armies)) { const k = a.loc; byLoc.set(k, (byLoc.get(k) || 0) + 1); }
     const idxAt = new Map();
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.rect || (this.rect = this.canvas.getBoundingClientRect());
     for (const a of Object.values(s.armies)) {
       const pos = this.armyPos(a);
       const k = idxAt.get(a.loc) || 0; idxAt.set(a.loc, k + 1);
@@ -517,7 +529,7 @@ export class MapView {
 
   // ── battle & siege markers
   updateMarkers() {
-    const s = this.game.s, rect = this.canvas.getBoundingClientRect();
+    const s = this.game.s, rect = this.rect || (this.rect = this.canvas.getBoundingClientRect());
     this.markerEls ||= new Map();
     const seen = new Set();
     const place = (key, p, cls, html, onclick) => {
@@ -584,6 +596,7 @@ export class MapView {
     }
   }
   refreshColors() {
+    this.dirty = true;
     const g = this.game, s = g.s, D = this.colData, L = this.map.L, T = this.map.provinces.length;
     const pl = s.player;
     for (let p = 0; p < T; p++) {
@@ -622,6 +635,7 @@ export class MapView {
     if (p < this.map.L && pl >= 0 && this.game.s.prov[p].claims.includes(pl) && this.game.s.prov[p].owner !== pl && this.mode !== 'terrain') f |= 8;
     this.colData[k] = f;
     this.tCol.needsUpdate = true;
+    this.dirty = true;
   }
   selectProvince(p) {
     if (this.sel.prov >= 0) this.setFlag(this.sel.prov, 1, false);
@@ -637,6 +651,7 @@ export class MapView {
 
   // ── labels
   refreshLabels() {
+    this.dirty = true;
     const g = this.game, s = g.s, P = this.map.provinces;
     for (const c of [...this.labelGroup.children]) { c.geometry.dispose(); c.material.map.dispose(); c.material.dispose(); this.labelGroup.remove(c); }
     for (const n of s.nations) {
@@ -681,6 +696,7 @@ export class MapView {
 
   // ── movement paths
   refreshPaths() {
+    this.dirty = true;
     for (const c of [...this.pathGroup.children]) { c.geometry.dispose(); c.material.dispose(); this.pathGroup.remove(c); }
     const s = this.game.s, P = this.map.provinces;
     const show = Object.values(s.armies).filter((a) => a.path.length && (this.sel.armies.includes(a.id) || (a.nation === s.player)));
@@ -750,6 +766,8 @@ export class MapView {
 
   // ── camera & input
   resize() {
+    this.dirty = true;
+    this.rect = null;
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / Math.max(1, h);
@@ -798,6 +816,7 @@ export class MapView {
       if (drag.box) { this.boxEl = document.createElement('div'); this.boxEl.className = 'select-box'; this.overlay.appendChild(this.boxEl); }
     });
     cv.addEventListener('pointermove', (e) => {
+      this.dirty = true;
       if (drag) {
         if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 5) drag.moved = true;
         if (drag.moved && drag.box) {
@@ -850,6 +869,7 @@ export class MapView {
     });
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
+      this.dirty = true;
       const before = this.pickWorld(e.clientX, e.clientY);
       const f = Math.exp(e.deltaY * 0.0012 * (e.deltaMode === 1 ? 30 : 1));
       this.cam.td = clamp(this.cam.td * f, D_MIN, D_MAX);
@@ -891,7 +911,8 @@ export class MapView {
     g.on('reset', () => { this.refreshColors(); this.refreshLabels(); this.refreshBuildings(); this.refreshPaths(); });
   }
 
-  frame() {
+  invalidate() { this.dirty = true; }
+  frame(active = false) {
     const dt = Math.min(0.05, this.clock.getDelta());
     const t = this.clock.elapsedTime;
     const c = this.cam;
@@ -905,7 +926,15 @@ export class MapView {
     if (this.keys.e || this.keys['=']) c.td = Math.max(D_MIN, c.td * (1 - dt * 1.8));
     c.tx = clamp(c.tx, 0, this.map.W); c.tz = clamp(c.tz, 0, this.map.H);
     const k = 1 - Math.exp(-dt * 9);
+    const camMoving = Math.abs(c.tx - c.x) + Math.abs(c.tz - c.z) > 0.02 || Math.abs(c.td - c.d) > 0.02 * c.d / 100;
     c.x += (c.tx - c.x) * k; c.z += (c.tz - c.z) * k; c.d += (c.td - c.d) * k;
+    // Idle (paused, camera still, nothing changed): redraw only a few times a second for the water.
+    const idleWait = t - (this._lastRender || 0) < 0.25;
+    if (!camMoving && !active && !this.dirty && idleWait) return;
+    this.dirty = false;
+    const frameGap = t - (this._lastRender || t);
+    this._lastRender = t;
+    if (camMoving || active) this.adaptResolution(frameGap);
     this.applyCamera();
     const near = clamp((260 - c.d) / 200, 0, 1);
     this.uniforms.uTime.value = t;
@@ -913,14 +942,14 @@ export class MapView {
     this.uniforms.uPolAlpha.value = 0.2 + 0.62 * (1 - near);
     this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
     const showDetail = c.d < 300;
-    for (const m of this.trees) m.visible = c.d < 330;
+    for (const m of this.trees) m.visible = c.d < 240;
     for (const m of Object.values(this.bmesh)) m.visible = showDetail;
     for (const l of this.labelGroup.children) {
       const op = clamp((c.d - 110) / 160, 0, 1) * clamp((l.userData.size * 34 - c.d) / 200 + 0.6, 0.15, 1);
       l.material.opacity = op;
       l.visible = op > 0.02;
     }
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.rect || (this.rect = this.canvas.getBoundingClientRect());
     this.updateArmies(t);
     this.updateMarkers();
     this.updateProvLabels(rect);
@@ -928,6 +957,18 @@ export class MapView {
     this.renderer.render(this.scene, this.camera);
   }
 }
+
+MapView.prototype.adaptResolution = function (gap) {
+  // Keep the frame rate smooth: lower the render resolution when frames take too long.
+  if (gap <= 0 || gap > 0.5) return;
+  this._ft = this._ft ? this._ft * 0.92 + gap * 0.08 : gap;
+  const now = performance.now();
+  if (now - (this._dprChange || 0) < 1500) return;
+  let next = this.dpr;
+  if (this._ft > 1 / 40 && this.dpr > 0.6) next = Math.max(0.6, this.dpr - 0.15);
+  else if (this._ft < 1 / 57 && this.dpr < this.maxDpr) next = Math.min(this.maxDpr, this.dpr + 0.1);
+  if (next !== this.dpr) { this.dpr = next; this._dprChange = now; this.renderer.setPixelRatio(next); this.resize(); }
+};
 
 function tick() { return new Promise((r) => setTimeout(r, 0)); }
 

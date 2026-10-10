@@ -164,7 +164,7 @@ input[type=text], select { font-family: var(--serif); font-size: 14px; backgroun
 
 /* ── markers on the map */
 .army-counter { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 3px; padding: 2px 5px 3px 2px; border-radius: 3px; cursor: pointer; transform-origin: 50% 100%;
-  background: linear-gradient(180deg, #3a3126, #1d1812); border: 1px solid #6a5a3a; box-shadow: 0 2px 6px rgba(0,0,0,.6); font-size: 12px; white-space: nowrap; will-change: transform; }
+  background: linear-gradient(180deg, #3a3126, #1d1812); border: 1px solid #6a5a3a; box-shadow: 0 2px 6px rgba(0,0,0,.6); font-size: 12px; white-space: nowrap; }
 .army-counter .ac-flag { width: 14px; height: 18px; border: 1px solid rgba(0,0,0,.6); border-radius: 1px; }
 .army-counter .ac-num { font-weight: 700; color: #f0e6cc; min-width: 22px; }
 .army-counter .ac-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #000; }

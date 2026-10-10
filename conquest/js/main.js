@@ -81,7 +81,7 @@ async function boot() {
       game.dayFrac = ui.speed ? acc : 0;
       ui.update();
     }
-    view.frame();
+    view.frame(started && ui.speed > 0 && !document.querySelector('.modal-back') && !ui.battleViewer.isOpen);
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
