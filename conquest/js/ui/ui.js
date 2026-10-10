@@ -10,6 +10,7 @@ import { TRAITS } from '../data/traits.js';
 import { GOVS } from '../data/government.js';
 import { PANELS, describeDemand } from './panels.js';
 import { BattleViewer } from './battleview.js';
+import { ci } from '../render/map3d.js';
 
 export const TABS = [
   { id: 'realm', icon: '👑', name: 'Realm', key: 'r' },
@@ -200,8 +201,9 @@ export class UI {
         const sx = Math.floor(x / cv.width * W), sy = Math.floor(y / cv.height * H), i = sy * W + sx, p = pid[i];
         const o = (y * cv.width + x) * 4;
         if (p < 0 || p >= L || land[i] !== 1) { img.data[o] = 22; img.data[o + 1] = 52; img.data[o + 2] = 74; img.data[o + 3] = 255; continue; }
-        img.data[o] = D[p * 4]; img.data[o + 1] = D[p * 4 + 1]; img.data[o + 2] = D[p * 4 + 2]; img.data[o + 3] = 255;
-        if (D[4096 * 4 + p * 4 + 3] && (x + y) % 3 === 0) { img.data[o] = D[4096 * 4 + p * 4]; img.data[o + 1] = D[4096 * 4 + p * 4 + 1]; img.data[o + 2] = D[4096 * 4 + p * 4 + 2]; }
+        const c0 = ci(p, 0), c1 = ci(p, 1);
+        img.data[o] = D[c0]; img.data[o + 1] = D[c0 + 1]; img.data[o + 2] = D[c0 + 2]; img.data[o + 3] = 255;
+        if (D[c1 + 3] && (x + y) % 3 === 0) { img.data[o] = D[c1]; img.data[o + 1] = D[c1 + 1]; img.data[o + 2] = D[c1 + 2]; }
       }
       this.mmImg = img;
     }

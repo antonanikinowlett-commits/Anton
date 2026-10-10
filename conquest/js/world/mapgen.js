@@ -10,6 +10,8 @@ import { NATIONS } from '../data/nations.js';
 import { mulberry32, fbm, ridged, clamp, Heap } from '../util.js';
 import { placeName } from '../data/names.js';
 
+// Province spacing relative to the original design: 0.6 gives ~2.5x as many provinces.
+const PROV_SCALE = 0.6;
 export const BIOME = { SEA: 0, LAKE: 1, FARM: 2, PLAINS: 3, FOREST: 4, TAIGA: 5, HILLS: 6, MOUNT: 7, MARSH: 8, STEPPE: 9, DESERT: 10 };
 export const TERRAIN_NAMES = ['sea', 'lake', 'farmland', 'plains', 'forest', 'taiga', 'hills', 'mountains', 'marsh', 'steppe', 'desert'];
 
@@ -242,7 +244,7 @@ export async function generateMap(progress = () => {}) {
     const y = (i / W) | 0;
     const f = Math.sqrt(k45 / kmPerPx(y));
     const r = [0, 0, 10.5, 12, 13.5, 19, 13, 16, 15, 20, 30][biome[i]];
-    return r * f;
+    return r * f * PROV_SCALE;
   };
   const order = [];
   for (let y = 2; y < H - 2; y += 3) for (let x = 2; x < W - 2; x += 3) order.push([x + Math.floor(rng() * 3), y + Math.floor(rng() * 3)]);
@@ -310,7 +312,7 @@ export async function generateMap(progress = () => {}) {
   for (let i = 0; i < N; i++) if (pid[i] >= 0) area[pid[i]]++;
   for (let pass = 0; pass < 2; pass++) {
     const small = new Set();
-    for (let k = 0; k < seeds.length; k++) if (area[k] > 0 && area[k] < 26) small.add(k);
+    for (let k = 0; k < seeds.length; k++) if (area[k] > 0 && area[k] < 12) small.add(k);
     if (!small.size) break;
     const share = new Map();
     for (let i = 0; i < N; i++) {

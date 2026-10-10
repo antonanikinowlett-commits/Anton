@@ -89,7 +89,12 @@ export function placeName(rng, culture, used) {
     if (n.endsWith('-')) n = n.slice(0, -1);
     if (!used.has(n)) { used.add(n); return n; }
   }
-  const n = pick(rng, a) + pick(rng, b) + ' ' + (used.size % 7 + 2);
+  const Q = ['Upper', 'Lower', 'Great', 'Little', 'North', 'South', 'East', 'West', 'Old', 'New', 'High', 'Far'];
+  for (let i = 0; i < 40; i++) {
+    const n = pick(rng, Q) + ' ' + pick(rng, a) + pick(rng, b);
+    if (!used.has(n)) { used.add(n); return n.replace(/- /g, ' ').replace(/ -/g, ' '); }
+  }
+  const n = pick(rng, a) + pick(rng, b) + ' ' + (used.size % 97 + 2);
   used.add(n);
   return n;
 }

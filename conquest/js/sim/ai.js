@@ -279,7 +279,10 @@ export const AIMixin = {
     }
     // 2. otherwise besiege enemy-held land, preferring claims, capitals and our own occupied provinces
     if (target === null) {
-      for (let p = 0; p < this.L; p++) {
+      // only enemy land and our own occupied provinces can be targets
+      const cands = [...this.ownedProvinces(a.nation)];
+      for (const e of enemies) cands.push(...this.ownedProvinces(e));
+      for (const p of cands) {
         const pr = s.prov[p];
         if (!this.hostileToProvince(a, p)) continue;
         const d = dist(p);

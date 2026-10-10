@@ -9,7 +9,11 @@ import { UNITS } from '../data/units.js';
 import { hexToRgb, clamp, hash2, mulberry32, fmt } from '../util.js';
 
 export const HS = 0.0028; // metres → world units (vertical exaggeration)
-const MAXP = 4096;
+const TW = 4096;      // colour table width; provinces wrap onto further 4-row bands
+const BANDS = 4;      // up to 16 384 provinces
+const MAXP = TW * BANDS;
+// byte offset of province p's entry in colour-table row r (0 colour, 1 occupier, 2 owner+flags)
+export const ci = (p, r) => ((Math.floor(p / TW) * 4 + r) * TW + (p % TW)) * 4;
 const D_MIN = 14, D_MAX = 1150;
 
 const LAND_VS = `
@@ -23,7 +27,7 @@ uniform vec2 provSize; uniform float uPolAlpha, uBorderAlpha, uTime, uNear, uSno
 uniform vec3 uSun;
 varying vec2 vUv; varying vec3 vN; varying vec3 vW;
 float dec(vec4 c){ return floor(c.r*255.0+0.5) + floor(c.g*255.0+0.5)*256.0; }
-vec4 colFor(float id, float row){ return texture2D(tCol, vec2((id-1.0+0.5)/4096.0, (row+0.5)/4.0)); }
+vec4 colFor(float id, float row){ float i = id - 1.0; float band = floor(i / 4096.0); return texture2D(tCol, vec2((i - band*4096.0 + 0.5)/4096.0, (band*4.0 + row + 0.5)/16.0)); }
 float ownerOf(float id){ if(id<0.5) return -1.0; vec4 c = colFor(id,2.0); return dec(c); }
 void main(){
   vec4 pc = texture2D(tProv, vUv);
@@ -79,7 +83,7 @@ precision highp float;
 uniform sampler2D tDepth, tNoise, tProv, tCol; uniform float uTime, uNear; uniform vec3 uSun; uniform vec2 provSize;
 varying vec2 vUv; varying vec3 vN; varying vec3 vW;
 float dec(vec4 c){ return floor(c.r*255.0+0.5) + floor(c.g*255.0+0.5)*256.0; }
-vec4 colFor(float id, float row){ return texture2D(tCol, vec2((id-1.0+0.5)/4096.0, (row+0.5)/4.0)); }
+vec4 colFor(float id, float row){ float i = id - 1.0; float band = floor(i / 4096.0); return texture2D(tCol, vec2((i - band*4096.0 + 0.5)/4096.0, (band*4.0 + row + 0.5)/16.0)); }
 void main(){
   float d = texture2D(tDepth, vUv).r;
   vec3 deep = vec3(0.075,0.19,0.30), shallow = vec3(0.22,0.44,0.50);
@@ -151,8 +155,8 @@ export class MapView {
     tTerrain.generateMipmaps = true; tTerrain.minFilter = THREE.LinearMipmapLinearFilter;
     const tProv = new THREE.DataTexture(up.tex, up.W2, up.H2, THREE.RGBAFormat);
     tProv.magFilter = tProv.minFilter = THREE.NearestFilter; tProv.needsUpdate = true;
-    this.colData = new Uint8Array(MAXP * 4 * 4);
-    const tCol = this.tCol = new THREE.DataTexture(this.colData, MAXP, 4, THREE.RGBAFormat);
+    this.colData = new Uint8Array(TW * BANDS * 4 * 4);
+    const tCol = this.tCol = new THREE.DataTexture(this.colData, TW, BANDS * 4, THREE.RGBAFormat);
     tCol.magFilter = tCol.minFilter = THREE.NearestFilter; tCol.needsUpdate = true;
     const nz = noiseTexture(256);
     const tNoise = new THREE.DataTexture(nz, 256, 256, THREE.RGBAFormat);
@@ -332,7 +336,7 @@ export class MapView {
       for (let k = 0; k < 9; k++) {
         let placed = null;
         for (let tries = 0; tries < 8 && !placed; tries++) {
-          const ang = base + k * 2.3 + tries * 0.7, r = 1.6 + (k % 3) * 0.9 + tries * 0.25;
+          const ang = base + k * 2.3 + tries * 0.7, r = 1.1 + (k % 3) * 0.7 + tries * 0.2;
           const x = pr.x + Math.cos(ang) * r, z = pr.y + Math.sin(ang) * r;
           const i = Math.floor(z) * W + Math.floor(x);
           if (pid[i] === p && this.map.land[i] === 1) placed = [x, z, ang];
@@ -603,21 +607,19 @@ export class MapView {
     const g = this.game, s = g.s, D = this.colData, L = this.map.L, T = this.map.provinces.length;
     const pl = s.player;
     for (let p = 0; p < T; p++) {
-      const i = p * 4;
+      const i = ci(p, 0), j = ci(p, 1), k = ci(p, 2);
       if (p >= L) {
         D[i] = D[i + 1] = D[i + 2] = 0; D[i + 3] = 0;
-        D[2 * MAXP * 4 + i] = 0; D[2 * MAXP * 4 + i + 1] = 0; D[2 * MAXP * 4 + i + 2] = this.flags[p];
+        D[k] = 0; D[k + 1] = 0; D[k + 2] = this.flags[p];
         continue;
       }
       const pr = s.prov[p];
       const c = this.provColor(p);
       D[i] = c[0]; D[i + 1] = c[1]; D[i + 2] = c[2]; D[i + 3] = 255;
-      const j = MAXP * 4 + i;
       if (pr.controller !== pr.owner) {
         const cc = pr.controller >= 0 ? hexToRgb(s.nations[pr.controller].color) : [20, 20, 20];
         D[j] = cc[0]; D[j + 1] = cc[1]; D[j + 2] = cc[2]; D[j + 3] = 255;
       } else D[j + 3] = 0;
-      const k = 2 * MAXP * 4 + i;
       const o = pr.owner + 1;
       D[k] = o & 255; D[k + 1] = (o >> 8) & 255;
       let f = this.flags[p];
@@ -632,7 +634,7 @@ export class MapView {
   setFlag(p, bit, on) {
     if (p < 0) return;
     if (on) this.flags[p] |= bit; else this.flags[p] &= ~bit;
-    const k = 2 * MAXP * 4 + p * 4 + 2;
+    const k = ci(p, 2) + 2;
     let f = this.flags[p];
     const pl = this.game.s.player;
     if (p < this.map.L && pl >= 0 && this.game.s.prov[p].claims.includes(pl) && this.game.s.prov[p].owner !== pl && this.mode !== 'terrain') f |= 8;
