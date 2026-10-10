@@ -165,37 +165,68 @@ export const FrontsMixin = {
     f.line = line;
     if (!line.length) return;
     const foes = this.frontFoes(f);
+    const onLine = new Set(line);
     const armies = f.armies.map((id) => s.armies[id]).filter((a) => a && !a.battle && !a.retreating);
-    // keep the order of divisions along the line stable: sort them by where they stand
-    const idx = new Map(line.map((p, i) => [p, i]));
-    const proj = (a) => {
-      if (idx.has(a.loc)) return idx.get(a.loc);
-      let best = 0, bd = 1e9;
-      line.forEach((p, i) => { const d = (P[p].x - P[a.loc].x) ** 2 + (P[p].y - P[a.loc].y) ** 2; if (d < bd) { bd = d; best = i; } });
-      return best;
-    };
-    armies.sort((a, b) => proj(a) - proj(b));
+    const dist2 = (p, q) => (P[p].x - P[q].x) ** 2 + (P[p].y - P[q].y) ** 2;
+    // ── stable posts: each division keeps its post until the line or the number of divisions changes
+    f.assign ||= {};
+    for (const id of Object.keys(f.assign)) if (!s.armies[id] || !f.armies.includes(+id)) delete f.assign[id];
     const k = armies.length, m = line.length;
-    armies.forEach((a, i) => {
-      const slot = line[Math.min(m - 1, Math.round((i + 0.5) * m / k - 0.5))];
-      // an advancing division that is already in enemy land keeps besieging/occupying
-      if (f.mode === 'advance' && a.loc < this.L && this.hostileToProvince(a, a.loc)) return;
-      if (f.mode === 'advance' && (a.loc === slot || idx.has(a.loc))) {
-        const here = idx.has(a.loc) ? a.loc : slot;
-        const targets = P[here].adj.filter((e) => e.id < this.L && !e.strait && foes.has(s.prov[e.id].controller));
-        if (!targets.length) return;
-        const myPow = this.armyPower(a);
-        let best = null, bs = -1e9;
-        for (const e of targets) {
-          const enemyPow = this.armiesAt(e.id).filter((b) => this.hostileArmies(a, b)).reduce((t, b) => t + this.armyPower(b), 0);
-          if (enemyPow > myPow * 1.3) continue;
-          const sc = s.prov[e.id].dev - this.fortLevel(e.id) * 4 - enemyPow * 0.5 - (e.river ? 3 : 0) + (s.prov[e.id].claims.includes(f.nation) ? 3 : 0);
-          if (sc > bs) { bs = sc; best = e.id; }
-        }
-        if (best !== null && a.path[a.path.length - 1] !== best) this.orderMove(a.id, best);
-        return;
+    const slots = [];
+    for (let i = 0; i < k; i++) slots.push(line[Math.min(m - 1, Math.round((i + 0.5) * m / k - 0.5))]);
+    const key = slots.join(',');
+    if (f.slotKey !== key) {
+      // re-post everyone, nearest division to nearest post first, so nobody crosses the whole line
+      f.slotKey = key;
+      f.assign = {};
+      const free = [...slots];
+      const pairs = [];
+      for (const a of armies) for (let j = 0; j < free.length; j++) pairs.push([dist2(a.loc, free[j]), a.id, j]);
+      pairs.sort((x, y) => x[0] - y[0]);
+      const usedA = new Set(), usedS = new Set();
+      for (const [, id, j] of pairs) {
+        if (usedA.has(id) || usedS.has(j)) continue;
+        usedA.add(id); usedS.add(j); f.assign[id] = free[j];
       }
-      if (a.loc !== slot && a.path[a.path.length - 1] !== slot) this.orderMove(a.id, slot);
-    });
+    }
+    // ── advance: every division strikes across the border from its own post, one target each
+    const taken = new Map();
+    if (f.mode === 'advance') for (const a of armies) if (a.loc < this.L && this.hostileToProvince(a, a.loc)) taken.set(a.loc, (taken.get(a.loc) || 0) + 1);
+    // divisions nearest the enemy choose first
+    const order = [...armies].sort((x, y) => (onLine.has(y.loc) ? 1 : 0) - (onLine.has(x.loc) ? 1 : 0));
+    for (const a of order) {
+      const post = f.assign[a.id] ?? line[0];
+      if (f.mode !== 'advance') {
+        if (a.loc !== post && a.path[a.path.length - 1] !== post) this.orderMove(a.id, post);
+        continue;
+      }
+      if (a.loc < this.L && this.hostileToProvince(a, a.loc)) continue; // busy besieging or occupying
+      if (a.path.length && taken.has(a.path[a.path.length - 1]) === false && foes.has(s.prov[a.path[a.path.length - 1]]?.controller)) {
+        taken.set(a.path[a.path.length - 1], 1); // already marching on a target: keep going
+        continue;
+      }
+      const base = onLine.has(a.loc) ? a.loc : post;
+      const men = this.armyMen(a), myPow = this.armyPower(a);
+      let best = null, bs = -1e9;
+      for (const e of P[base].adj) {
+        const q = e.id;
+        if (q >= this.L || e.strait || !foes.has(s.prov[q].controller)) continue;
+        const fort = this.fortLevel(q);
+        const garrison = fort * 1000 * s.prov[q].garrison;
+        const already = taken.get(q) || 0;
+        // a castle may take two divisions together; open land only needs one
+        if (already >= (fort ? 2 : 1)) continue;
+        const helpers = this.armiesAt(q).filter((b) => b.nation === a.nation).reduce((t, b) => t + this.armyMen(b), 0);
+        if (fort && men + helpers < garrison * 1.6 && already === 0 && men < garrison * 1.6) continue;
+        const enemyPow = this.armiesAt(q).filter((b) => this.hostileArmies(a, b)).reduce((t, b) => t + this.armyPower(b), 0);
+        if (enemyPow > myPow * 1.3) continue;
+        const sc = s.prov[q].dev - fort * 3 - enemyPow * 0.5 - (e.river ? 3 : 0) + (s.prov[q].claims.includes(f.nation) ? 3 : 0) - Math.sqrt(dist2(base, q)) * 0.05 + (already ? 4 : 0);
+        if (sc > bs) { bs = sc; best = q; }
+      }
+      if (best !== null) {
+        taken.set(best, (taken.get(best) || 0) + 1);
+        if (a.path[a.path.length - 1] !== best) this.orderMove(a.id, best);
+      } else if (a.loc !== post && !onLine.has(a.loc) && a.path[a.path.length - 1] !== post) this.orderMove(a.id, post);
+    }
   },
 };

@@ -67,6 +67,9 @@ void main(){
   if (clm > 0.5) { float st = step(0.88, fract((vW.x + vW.z)*0.55)); col = mix(col, vec3(1.0,0.92,0.55), st*0.22); }
   if (hov > 0.5) col = mix(col, vec3(1.0,0.97,0.85), 0.16);
   if (tgt > 0.5) col = mix(col, vec3(0.95,0.25,0.15), 0.22 + 0.1*sin(uTime*5.0));
+  float neg = mod(floor(f/16.0),2.0);
+  if (neg > 0.5 && tgt < 0.5) { col = mix(col, vec3(1.0,0.95,0.8), 0.12); col = mix(col, vec3(0.95,0.8,0.4), pb*0.6); }
+  if (neg > 0.5 && tgt > 0.5) col = mix(col, vec3(1.0,0.85,0.3), pb);
   if (sel > 0.5) { col = mix(col, vec3(1.0,0.9,0.55), 0.22 + 0.06*sin(uTime*3.0)); col = mix(col, vec3(1.0,0.85,0.3), pb); }
   gl_FragColor = vec4(col, 1.0);
 }`;

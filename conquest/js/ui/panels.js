@@ -598,7 +598,7 @@ function frontsPanel(ui, pb) {
   }
 }
 
-function describeDemand(g, d) {
+export function describeDemand(g, d) {
   if (d.type === 'province') return g.provName(d.p);
   if (d.type === 'gold') return `${d.v} gold`;
   if (d.type === 'vassal') return `vassalage of ${g.s.nations[d.target].name}`;
@@ -618,74 +618,9 @@ function warCard(ui, w, mine) {
   if (mine) {
     const leader = side === 'att' ? w.attLeader : w.defLeader;
     const row = el('div', { class: 'row', style: { marginTop: '5px' } });
-    if (leader === n.id) row.append(el('div', { class: 'btn primary small', onclick: () => peaceModal(ui, w, side) }, '🕊 Negotiate peace'));
+    if (leader === n.id) row.append(el('div', { class: 'btn primary small', onclick: () => ui.startPeace(w, side) }, '🕊 Negotiate peace on the map'));
     else row.append(el('div', { class: 'btn small', onclick: () => { g.leaveWar(w, n.id); ui.renderPanel(true); }, 'data-tip': 'Make a separate peace and leave the war (−prestige)' }, 'Leave war'));
     d.append(row);
   }
   return d;
-}
-
-function peaceModal(ui, w, side) {
-  const g = ui.g, s = g.s, n = ui.P;
-  const enemies = side === 'att' ? w.def : w.att;
-  const demands = [];
-  ui.modal((m, close) => {
-    m.style.width = 'min(720px, 96vw)';
-    m.append(el('div', { class: 'mh' }, el('div', { class: 'frame-title grow' }, `Peace: ${w.name}`), el('span', { class: 'x', onclick: close }, '✕')));
-    const mb = el('div', { class: 'mb' });
-    const sum = el('div', { class: 'card hl' });
-    const upd = () => {
-      const acc = g.peaceAcceptance(w, side, demands);
-      const score = side === 'att' ? w.score : -w.score;
-      sum.innerHTML = `<div class="row between"><span>War score <b class="${score >= 0 ? 'pos' : 'neg'}">${signed(score)}</b></span><span>Demands cost <b>${acc.cost}</b></span><span>Their willingness <b class="${acc.will >= 0 ? 'pos' : 'neg'}">${signed(acc.will)}</b></span></div>
-        <div class="small muted">${acc.will >= 0 ? 'They will accept these terms.' : 'They will refuse. Occupy more land, win battles, or ask for less.'}</div>`;
-    };
-    mb.append(sum);
-    mb.append(el('div', { class: 'section' }, 'Provinces (occupied first)'));
-    const plist = el('div', { class: 'scroll', style: { maxHeight: '38vh' } });
-    const provs = [];
-    for (const e of enemies) for (const p of g.ownedProvinces(e)) provs.push(p);
-    const ours = (side === 'att' ? w.att : w.def);
-    provs.sort((a, b) => (ours.includes(s.prov[b].controller) - ours.includes(s.prov[a].controller)) || (s.prov[b].claims.includes(n.id) - s.prov[a].claims.includes(n.id)) || s.prov[b].dev - s.prov[a].dev);
-    for (const p of provs.slice(0, 120)) {
-      const d0 = { type: 'province', p, to: n.id };
-      const cost = g.demandCost(w, side, d0);
-      const occ = ours.includes(s.prov[p].controller);
-      const cb = el('input', { type: 'checkbox', onchange: (e) => { if (e.target.checked) demands.push(d0); else demands.splice(demands.indexOf(d0), 1); upd(); } });
-      const r = el('label', { class: 'row small', style: { padding: '2px 0' } }, cb, el('span', { class: 'grow' }, `${g.provName(p)} (${s.nations[s.prov[p].owner].adj}, dev ${s.prov[p].dev})`), occ ? el('span', { class: 'chip good' }, 'occupied') : null, s.prov[p].claims.includes(n.id) ? el('span', { class: 'chip' }, 'claim') : null, el('span', { style: { width: '40px', textAlign: 'right' } }, cost));
-      plist.append(r);
-    }
-    mb.append(plist);
-    mb.append(el('div', { class: 'section' }, 'Other demands'));
-    const other = el('div', { class: 'row wrap' });
-    const goldD = { type: 'gold', v: 0 };
-    const goldIn = el('input', { type: 'range', min: 0, max: 400, step: 25, value: 0, oninput: (e) => { goldD.v = +e.target.value; gl.textContent = goldD.v + ' gold'; if (goldD.v && !demands.includes(goldD)) demands.push(goldD); if (!goldD.v && demands.includes(goldD)) demands.splice(demands.indexOf(goldD), 1); upd(); } });
-    const gl = el('span', { class: 'small' }, '0 gold');
-    other.append(el('span', { class: 'small' }, '🪙 Reparations:'), goldIn, gl);
-    const leaderE = side === 'att' ? w.defLeader : w.attLeader;
-    const vd = { type: 'vassal', target: leaderE };
-    other.append(el('label', { class: 'row small' }, el('input', { type: 'checkbox', onchange: (e) => { if (e.target.checked) demands.push(vd); else demands.splice(demands.indexOf(vd), 1); upd(); } }), `Vassalise ${s.nations[leaderE].name}`));
-    const hd = { type: 'humiliate' };
-    other.append(el('label', { class: 'row small' }, el('input', { type: 'checkbox', onchange: (e) => { if (e.target.checked) demands.push(hd); else demands.splice(demands.indexOf(hd), 1); upd(); } }), 'Humiliate (+30 prestige)'));
-    mb.append(other);
-    upd();
-    m.append(mb);
-    m.append(el('div', { class: 'mf' }, el('div', { class: 'row' },
-      el('div', { class: 'btn primary', onclick: () => {
-        const acc = g.peaceAcceptance(w, side, demands);
-        if (acc.will < 0) { ui.toast('Peace refused', 'They reject our terms.', '🚫'); return; }
-        g.makePeace(w, side, [...demands]); close(); ui.renderPanel(true);
-      } }, '🕊 Send peace offer'),
-      el('div', { class: 'btn', onclick: () => {
-        // accept their terms: compute what the AI would demand of us
-        const theirSide = side === 'att' ? 'def' : 'att';
-        const leader = s.nations[side === 'att' ? w.defLeader : w.attLeader];
-        const score = theirSide === 'att' ? w.score : -w.score;
-        const D = [];
-        let budget = Math.max(0, score);
-        for (const p of g.ownedProvinces(n.id)) if ((theirSide === 'att' ? w.att : w.def).includes(s.prov[p].controller)) { const d1 = { type: 'province', p, to: leader.id }; const c = g.demandCost(w, theirSide, d1); if (c <= budget) { D.push(d1); budget -= c; } }
-        ui.confirm('Accept their terms', `${leader.name} would make peace for: ${D.length ? D.map((x) => describeDemand(g, x)).join(', ') : 'a white peace'}.`, () => { g.makePeace(w, theirSide, D); close(); ui.renderPanel(true); });
-      } }, 'Ask their terms'),
-      el('div', { class: 'btn', onclick: close }, 'Close'))));
-  });
 }
