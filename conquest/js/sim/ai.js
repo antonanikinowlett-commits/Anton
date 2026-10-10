@@ -18,6 +18,7 @@ export const AIMixin = {
       if ((day + a.id) % 3 === 0) this.aiArmy(a);
     }
     if (day % 10 === 0) this.aiPeace();
+    this.aiBattles();
   },
 
   aiStrategic(n) {
@@ -71,6 +72,9 @@ export const AIMixin = {
       opts.sort((a, b) => this.aiLawScore(n, cat, b) - this.aiLawScore(n, cat, a));
       if (opts.length) this.proposeLaw(n.id, cat, opts[0]);
     }
+    this.aiCourt(n);
+    this.aiTemplates(n);
+    this.aiFronts(n);
     // economy
     this.aiBuild(n);
     this.aiRecruit(n);
@@ -197,6 +201,7 @@ export const AIMixin = {
         const n = s.nations[leader];
         if (!n || !n.alive) continue;
         const score = side === 'att' ? w.score : -w.score;
+        if (score <= -30 && other === s.player && !s.peaceOffers?.some((o) => o.war === w.id)) this.aiConcede(w, side, n);
         if (score < 15 && !(months > 30 && Math.abs(w.score) < 10)) continue;
         // build a demand list worth at most our war score
         const demands = [];
@@ -234,12 +239,14 @@ export const AIMixin = {
     if (a.nation < 0) return this.aiRebel(a);
     const n = s.nations[a.nation];
     if (!n || !n.alive) return;
+    this.aiAssault(a);
+    if (this.frontOfArmy(a.id)) return;
     const P = this.map.provinces;
     const enemies = this.enemiesOf(a.nation);
     const men = this.armyMen(a), max = this.armyMax(a);
     const myPow = this.armyPower(a);
     // merge with friendly armies here
-    const friends = this.armiesAt(a.loc).filter((b) => b !== a && b.nation === a.nation && !b.battle && !b.path.length && !b.retreating);
+    const friends = this.armiesAt(a.loc).filter((b) => b !== a && b.nation === a.nation && !b.battle && !b.path.length && !b.retreating && !this.frontOfArmy(b.id));
     if (friends.length && a.regs.length + friends[0].regs.length <= 30) { this.merge([a.id, friends[0].id]); return; }
     if (!enemies.length) {
       if (a.path.length) return;
@@ -317,5 +324,178 @@ export const AIMixin = {
       if (d < bd) { bd = d; best = e.id; }
     }
     if (best !== null) this.orderMove(a.id, best);
+  },
+
+  // ── when losing to the player, offer land the player already holds to end the war
+  aiConcede(w, side, n) {
+    const s = this.s;
+    const winSide = side === 'att' ? 'def' : 'att';
+    const winners = winSide === 'att' ? w.att : w.def;
+    const demands = [];
+    let budget = (winSide === 'att' ? w.score : -w.score) * 0.8;
+    for (const p of this.ownedProvinces(n.id)) {
+      if (!winners.includes(s.prov[p].controller) || p === n.capital) continue;
+      const d = { type: 'province', p, to: s.player };
+      const c = this.demandCost(w, winSide, d);
+      if (c <= budget) { demands.push(d); budget -= c; }
+    }
+    if (!demands.length) return;
+    (s.peaceOffers ||= []).push({ war: w.id, side: winSide, demands, from: n.id, day: s.day, concession: true });
+    this.notify({ title: 'Peace Offer', icon: '🕊', text: `${n.name} sues for peace and offers land.`, peace: w.id });
+  },
+
+  // ── fronts: hold the border with divisions, advance when stronger, keep a strike army free
+  aiFronts(n) {
+    const s = this.s;
+    if (n.ai.horde) return;
+    const mine = this.frontsOf(n.id);
+    const war = this.atWar(n.id);
+    if (!war) {
+      // peace: dissolve fronts and gather the divisions back into one host at the capital
+      for (const f of mine) this.deleteFront(f.id);
+      const field = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating);
+      if (field.length > 2 && n.capital >= 0) for (const a of field) if (a.loc !== n.capital && !a.path.length) this.orderMove(a.id, n.capital);
+      return;
+    }
+    // pick the enemy we share the longest land border with
+    const share = new Map();
+    for (const e of this.enemiesOf(n.id)) share.set(e, 0);
+    for (const p of this.ownedProvinces(n.id)) for (const e of this.map.provinces[p].adj) {
+      if (e.id >= this.L || e.strait) continue;
+      const c = s.prov[e.id].controller;
+      if (share.has(c)) share.set(c, share.get(c) + 1);
+    }
+    let enemy = -1, best = 0;
+    for (const [e, v] of share) if (v > best) { best = v; enemy = e; }
+    for (const f of mine) if (f.enemy !== enemy) this.deleteFront(f.id);
+    if (enemy < 0 || best < 3) return;
+    let f = this.frontsOf(n.id)[0];
+    const armies = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating && !a.atSea);
+    const free = armies.filter((a) => !this.frontOfArmy(a.id));
+    if (armies.reduce((t, a) => t + a.regs.length, 0) < 6) return;
+    // keep the largest free army as a strike force for battles and sieges; the rest man the line
+    free.sort((a, b) => this.armyPower(b) - this.armyPower(a));
+    const strike = free.shift();
+    const probe = f || { nation: n.id, enemy, armies: [] };
+    const line = this.frontProvinces(probe);
+    if (!line.length) return;
+    const onFront = f ? f.armies.length : 0;
+    const want = Math.min(line.length, Math.max(2, Math.ceil(line.length / 2)));
+    const toAdd = free.filter((a) => a.regs.length >= 2).map((a) => a.id);
+    if (onFront + toAdd.length < want && strike && strike.regs.length >= 8) {
+      // divide the strike army: half of it becomes divisions for the line
+      const parts = this.splitInto(strike.id, Math.min(want - onFront - toAdd.length + 1, Math.floor(strike.regs.length / 3)));
+      for (const d of parts.slice(1)) toAdd.push(d.id);
+      const gens = this.charsOf(n.id, 'general').filter((c) => !c.army);
+      for (const d of parts) if (!d.general && gens.length) this.assignGeneral(d.id, gens.shift().id);
+    }
+    if (toAdd.length) this.createFront(n.id, enemy, toAdd, 'hold');
+    f = this.frontsOf(n.id)[0];
+    if (!f) return;
+    // advance when the line is stronger than the enemy forces near it
+    const frontPow = f.armies.reduce((t, id) => t + (s.armies[id] ? this.armyPower(s.armies[id]) : 0), 0) + (strike ? this.armyPower(strike) * 0.5 : 0);
+    const P = this.map.provinces;
+    const lineSet = new Set(f.line || line);
+    let enemyPow = 0;
+    const foes = this.frontFoes(f);
+    for (const b of Object.values(s.armies)) {
+      if (!foes.has(b.nation)) continue;
+      if ([...lineSet].some((p) => Math.hypot(P[p].x - P[b.loc].x, P[p].y - P[b.loc].y) < 60)) enemyPow += this.armyPower(b);
+    }
+    const mode = frontPow > enemyPow * 1.25 ? 'advance' : 'hold';
+    if (mode !== f.mode) this.setFrontMode(f.id, mode);
+  },
+
+  // ── storm a castle when the siege is far along and we have overwhelming numbers
+  aiAssault(a) {
+    const pr = this.s.prov[a.loc];
+    if (!pr || !pr.siege || pr.siege.by !== a.nation || a.battle) return;
+    const garrison = this.fortLevel(a.loc) * 1000 * pr.garrison;
+    const men = this.armiesAt(a.loc).filter((b) => b.nation === a.nation).reduce((t, b) => t + this.armyMen(b), 0);
+    const war = this.warsOf(a.nation)[0];
+    const hurry = war && (this.s.day - war.start) > 365;
+    if (pr.siege.prog > (hurry ? 45 : 65) && men > garrison * 5 && this.rng() < 0.15) this.assault(a.loc);
+  },
+
+  // ── withdraw from hopeless battles to save the army from the pursuit
+  aiBattles() {
+    const s = this.s;
+    for (const b of Object.values(s.battles)) {
+      if (b.over || b.phase !== 'melee') continue;
+      for (const side of ['att', 'def']) {
+        const nid = side === 'att' ? b.attN : b.defN;
+        if (nid < 0 || nid === s.player) continue;
+        const mine = this.sideMorale(b, side), theirs = this.sideMorale(b, side === 'att' ? 'def' : 'att');
+        const menMine = this.sideMen(b, side, true), menTheirs = this.sideMen(b, side === 'att' ? 'def' : 'att', true);
+        if (mine < 0.22 && theirs > 0.5 && menMine < menTheirs) { this.withdrawBattle(b.id, side); break; }
+      }
+    }
+  },
+
+  // ── court: estates, decrees, candidates, diplomacy extras
+  aiCourt(n) {
+    const s = this.s;
+    if (n.ai.horde) return;
+    const st = n.estates;
+    for (const e of ['nobles', 'clergy', 'burghers', 'peasants']) {
+      if (st[e].loyalty < 30 && st[e].influence > 28) { if (!this.estateAction(n.id, e, 'grant')) break; }
+    }
+    if (n.gold < 0) {
+      const giver = ['burghers', 'clergy', 'nobles'].find((e) => st[e].loyalty > 55);
+      if (giver) this.estateAction(n.id, giver, 'funds');
+    }
+    if (this.atWar(n.id) && n.manpower < n.maxManpower * 0.2 && st.nobles.loyalty > 55) this.estateAction(n.id, 'nobles', 'levies');
+    if (st.nobles.influence > 55 && st.nobles.loyalty > 65 && this.rng() < 0.2) this.estateAction(n.id, 'nobles', 'curb');
+    // absolute rulers decree a beneficial law the estates would reject
+    if (this.canDecree(n.id) && this.rng() < 0.05 && n.legitimacy > 60) {
+      const cat = LAW_ORDER[Math.floor(this.rng() * LAW_ORDER.length)];
+      const cur = this.aiLawScore(n, cat, n.laws[cat]);
+      const opt = Object.keys(LAWS[cat].options).find((o) => { const why = this.canProposeLaw(n.id, cat, o); return (!why || why.startsWith('Another')) && this.aiLawScore(n, cat, o) > cur + 2; });
+      if (opt) this.decreeLaw(n.id, cat, opt);
+    }
+    // keep a pool of courtiers to draw ministers and generals from
+    if (this.charsOf(n.id, 'pool').length < 2 && n.gold > 80) this.recruitCandidate(n.id, this.atWar(n.id) ? 'martial' : ['diplomacy', 'stewardship', 'martial'][Math.floor(this.rng() * 3)]);
+    // broke and at peace: disband the weakest army
+    if (n.gold < -40 && !this.atWar(n.id)) {
+      const weakest = this.armiesOf(n.id).filter((a) => !a.battle).sort((a, b) => this.armyPower(a) - this.armyPower(b))[0];
+      if (weakest && this.armiesOf(n.id).length > 1) this.disband(weakest.id);
+    }
+    // diplomacy extras: marriages, pacts, gifts to friends, vassalising minnows
+    if (this.rng() < 0.15) {
+      const nbs = this.neighbours(n.id);
+      const pick = nbs[Math.floor(this.rng() * nbs.length)];
+      if (pick !== undefined && pick !== s.player) {
+        const o = s.nations[pick];
+        if (!n.marriages.includes(pick) && this.acceptance(n.id, pick, 'marriage')[0] >= 0) this.proposeMarriage(n.id, pick);
+        else if (!n.naps.includes(pick) && this.power(pick) > this.power(n.id) && !this.atWar(n.id, pick) && this.acceptance(n.id, pick, 'nap')[0] >= 0) this.proposeNAP(n.id, pick);
+        else if (o.overlord < 0 && !this.atWar(n.id, pick) && this.power(n.id) > this.power(pick) * 4 && this.acceptance(n.id, pick, 'vassal')[0] >= 0) this.demandVassal(n.id, pick);
+      }
+      const friend = n.allies[Math.floor(this.rng() * n.allies.length)];
+      if (friend !== undefined && n.gold > 300 && this.opinion(friend, n.id) < 60) this.sendGift(n.id, friend, 50);
+    }
+  },
+
+  // ── design army templates suited to what the realm can field and whom it fights
+  aiTemplates(n) {
+    if (n.ai.horde || (this.s.day + n.id) % 180 > 15) return;
+    const can = (k) => unitAvailable(k, n, this);
+    const enemies = this.enemiesOf(n.id).concat(this.neighbours(n.id));
+    let enemyCav = 0, enemyAll = 0;
+    for (const e of enemies) for (const a of this.armiesOf(e)) for (const r of a.regs) { enemyAll++; if (UNITS[r.type].cls === 'cav') enemyCav++; }
+    const cavHeavy = enemyAll && enemyCav / enemyAll > 0.3;
+    const regs = {};
+    const add = (k, c) => { if (c > 0 && can(k)) regs[k] = (regs[k] || 0) + c; };
+    const rich = n.iron > 20;
+    add(can('varangians') ? 'varangians' : can('almogavars') ? 'almogavars' : rich ? 'men_at_arms' : 'levy_spear', 3);
+    add('levy_spear', 3);
+    add('pikemen', cavHeavy ? 3 : 1);
+    add(can('longbowmen') ? 'longbowmen' : can('crossbowmen') && rich ? 'crossbowmen' : 'archers', 3);
+    if (can('horse_archers')) add('horse_archers', 3);
+    if (n.horses > 8) add(can('mamluks') ? 'mamluks' : can('templars') ? 'templars' : 'knights', 2);
+    else add('light_cav', 1);
+    const doctrine = regs.longbowmen || regs.horse_archers ? 'missile' : cavHeavy ? 'defensive' : regs.knights || regs.mamluks || regs.templars ? 'shock' : 'balanced';
+    const t = n.templates.find((x) => x.name === 'Royal Host');
+    if (t) Object.assign(t, { regs, doctrine });
+    else n.templates.unshift({ id: this.newId(), name: 'Royal Host', regs, doctrine });
   },
 };

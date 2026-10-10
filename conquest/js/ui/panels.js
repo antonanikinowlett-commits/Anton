@@ -408,7 +408,7 @@ export const PANELS = {
       if (!w) continue;
       const from = s.nations[o.from];
       const d = el('div', { class: 'card hl' });
-      d.innerHTML = `<b>🕊 ${from.name} offers peace</b><div class="small">Terms: ${o.demands.length ? o.demands.map((x) => describeDemand(g, x)).join(', ') : 'white peace'}</div>`;
+      d.innerHTML = o.concession ? `<b>🕊 ${from.name} sues for peace</b><div class="small">They offer to cede: ${o.demands.map((x) => describeDemand(g, x)).join(', ')}</div>` : `<b>🕊 ${from.name} offers peace</b><div class="small">Terms: ${o.demands.length ? o.demands.map((x) => describeDemand(g, x)).join(', ') : 'white peace'}</div>`;
       d.append(el('div', { class: 'row', style: { marginTop: '5px' } },
         el('div', { class: 'btn green small', onclick: () => { g.makePeace(w, o.side, o.demands); s.peaceOffers = s.peaceOffers.filter((x) => x !== o); ui.renderPanel(true); } }, 'Accept'),
         el('div', { class: 'btn danger small', onclick: () => { s.peaceOffers = s.peaceOffers.filter((x) => x !== o); ui.renderPanel(true); } }, 'Refuse')));

@@ -12,11 +12,12 @@ const out = [`init ${(performance.now()-t0)|0}ms armies=${Object.keys(g.s.armies
 g.s.player = -1; // all AI
 const days = +(new URLSearchParams(location.search).get('days') || 730);
 t0 = performance.now();
-for (let d = 0; d < days; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; }
+window.__maxF=0; window.__wd=0; const wb=g.withdrawBattle.bind(g); g.withdrawBattle=(...x)=>{window.__wd++; return wb(...x);}; for (let d = 0; d < days; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; window.__maxF=Math.max(window.__maxF, Object.keys(g.s.fronts).length); }
 out.push(`ticked ${days} days in ${(performance.now()-t0)|0}ms`);
 out.push('wars: ' + Object.values(g.s.wars).map(w=>w.name+' '+w.score).join(' | '));
 out.push('battles fought: ' + g.s.nations.reduce((t,n)=>t+n.stats.won,0));
 out.push('MON: ' + JSON.stringify((()=>{const m=g.nationByTag('MON'); return m? [m.alive, g.ownedProvinces(m.id).length, g.armiesOf(m.id).length]:null})()));
+out.push('AI fronts now: ' + Object.values(g.s.fronts).map(f=>g.s.nations[f.nation].tag+'>'+g.s.nations[f.enemy].tag+':'+f.armies.length+':'+f.mode).join(' ') + ' | maxFronts ' + window.__maxF + ' assaults ' + g.s.log.filter(l=>/stormed|thrown back/.test(l.text)).length + ' withdrawals ' + window.__wd + ' royalHosts ' + g.s.nations.filter(n=>n.templates.some(t=>t.name==='Royal Host')).length + ' marriages ' + g.s.nations.reduce((t,n)=>t+n.marriages.length,0)/2);
 out.push('alive: ' + g.s.nations.filter(n=>n.alive).length + ' armies ' + Object.keys(g.s.armies).length);
 const top = g.s.nations.filter(n=>n.alive).map(n=>[n.tag, g.ownedProvinces(n.id).length, Math.round(n.gold), Math.round(n.manpower), n.focus.done.length]).sort((a,b)=>b[1]-a[1]).slice(0,15);
 out.push(JSON.stringify(top));
