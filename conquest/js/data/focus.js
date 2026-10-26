@@ -5,6 +5,7 @@
 // Effect kinds: mods, gold, prestige, legitimacy, stability, manpower, iron, timber, horses,
 // claims {tag, box?}, cb {tag, kind}, unlock (unit/law key), build {type, where, n}, dev {where, v},
 // gov {gov, name?}, religion, law {cat, opt}, opinion {tag|group, v}, loyalty {estate:v}, influence {estate:v}
+import { NAT } from './focus_national.js';
 const F = (id, name, icon, x, y, opt = {}) => ({ id, name, icon, x, y, days: 70, pre: [], excl: [], effects: [], ...opt });
 
 function rivalOf(n, game) {
@@ -312,6 +313,6 @@ const U = {
 };
 
 export function buildFocusTree(n, game) {
-  const tree = [...coreBranches(n, game), ...faithBranch(n), ...govBranch(n), ...(U[n.tag] ? U[n.tag]() : [])];
+  const tree = [...coreBranches(n, game), ...faithBranch(n), ...govBranch(n), ...(U[n.tag] ? U[n.tag]() : []), ...(NAT[n.tag] ? NAT[n.tag]() : [])];
   return tree;
 }
