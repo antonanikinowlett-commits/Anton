@@ -174,19 +174,27 @@ export const FrontsMixin = {
     const k = armies.length, m = line.length;
     const slots = [];
     for (let i = 0; i < k; i++) slots.push(line[Math.min(m - 1, Math.round((i + 0.5) * m / k - 0.5))]);
-    const key = slots.join(',');
-    if (f.slotKey !== key) {
-      // re-post everyone, nearest division to nearest post first, so nobody crosses the whole line
-      f.slotKey = key;
-      f.assign = {};
-      const free = [...slots];
+    // keep posts that are still on the line (one division each); only re-post divisions that lost theirs
+    const usedPost = new Set();
+    for (const a of armies) {
+      const cur = f.assign[a.id];
+      if (cur !== undefined && onLine.has(cur) && !usedPost.has(cur)) usedPost.add(cur);
+      else delete f.assign[a.id];
+    }
+    const loose = armies.filter((a) => f.assign[a.id] === undefined);
+    if (loose.length) {
+      const free = slots.filter((p, i) => slots.indexOf(p) === i && !usedPost.has(p));
       const pairs = [];
-      for (const a of armies) for (let j = 0; j < free.length; j++) pairs.push([dist2(a.loc, free[j]), a.id, j]);
+      for (const a of loose) for (const p of free) pairs.push([dist2(a.loc, p), a.id, p]);
       pairs.sort((x, y) => x[0] - y[0]);
-      const usedA = new Set(), usedS = new Set();
-      for (const [, id, j] of pairs) {
-        if (usedA.has(id) || usedS.has(j)) continue;
-        usedA.add(id); usedS.add(j); f.assign[id] = free[j];
+      for (const [, id, p] of pairs) {
+        if (f.assign[id] !== undefined || usedPost.has(p)) continue;
+        f.assign[id] = p; usedPost.add(p);
+      }
+      // more divisions than free slots: double up on the least-held line provinces
+      for (const a of loose) if (f.assign[a.id] === undefined) {
+        const cnt = (p) => armies.filter((x) => f.assign[x.id] === p).length;
+        f.assign[a.id] = line.reduce((best, p) => (cnt(p) < cnt(best) || (cnt(p) === cnt(best) && dist2(a.loc, p) < dist2(a.loc, best)) ? p : best), line[0]);
       }
     }
     // ── advance: every division strikes across the border from its own post, one target each
@@ -201,8 +209,9 @@ export const FrontsMixin = {
         continue;
       }
       if (a.loc < this.L && this.hostileToProvince(a, a.loc)) continue; // busy besieging or occupying
-      if (a.path.length && taken.has(a.path[a.path.length - 1]) === false && foes.has(s.prov[a.path[a.path.length - 1]]?.controller)) {
-        taken.set(a.path[a.path.length - 1], 1); // already marching on a target: keep going
+      const goal = a.path.length ? a.path[a.path.length - 1] : -1;
+      if (goal >= 0 && goal < this.L && foes.has(s.prov[goal]?.controller) && (taken.get(goal) || 0) < (this.fortLevel(goal) ? 2 : 1)) {
+        taken.set(goal, (taken.get(goal) || 0) + 1); // already marching on a target: keep going
         continue;
       }
       const base = onLine.has(a.loc) ? a.loc : post;
