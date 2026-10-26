@@ -29,3 +29,14 @@ Left-drag pan · wheel zoom · click select · right-click move/attack · shift-
 ## Rebuilding map data
 
 `tools/build_geo.mjs` regenerates `data/geo.js` and `data/height.png` from Natural Earth GeoJSON and a NASA elevation bump map (see the script header).
+
+## Development
+
+The code is split into small ES modules (see `docs/ARCHITECTURE.md`) and developed in ten parallel workstreams (`docs/MODULES.md`, briefs in `docs/workstreams/`).
+
+```
+npm run dev     # static server on :8000
+npm run check   # syntax-check every module
+npm run smoke   # headless: 1 year of AI simulation + UI boot
+npm run build -- path/to/esbuild   # rebuild CrownAndConquest.html
+```

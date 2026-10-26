@@ -1,6 +1,6 @@
 // Armies: recruitment, movement, pathfinding, supply, attrition, sieges and occupation.
 import { UNITS, unitAvailable } from '../data/units.js';
-import { TERRAIN_ECON } from './game.js';
+import { TERRAIN_ECON } from './economy.js';
 import { Heap, clamp } from '../util.js';
 import { NATIONS } from '../data/nations.js';
 

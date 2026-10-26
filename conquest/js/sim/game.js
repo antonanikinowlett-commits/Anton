@@ -11,19 +11,12 @@ import { DiplomacyMixin } from './diplomacy.js';
 import { PoliticsMixin } from './politics.js';
 import { AIMixin } from './ai.js';
 import { FrontsMixin } from './fronts.js';
+import { CharactersMixin } from './characters.js';
+import { EconomyMixin } from './economy.js';
+import { EstatesMixin } from './estates.js';
 import { kmPerPx } from '../world/proj.js';
 
-const TERRAIN_ECON = {
-  farmland: { food: 3.0, dev: 3, supply: 1.3, move: 1.0, horses: 0.3 },
-  plains: { food: 2.0, dev: 2, supply: 1.1, move: 1.0, horses: 0.5 },
-  steppe: { food: 1.0, dev: 1, supply: 0.8, move: 1.05, horses: 1.0 },
-  forest: { food: 1.0, dev: 1, supply: 0.8, move: 0.7, timber: 1.5 },
-  taiga: { food: 0.5, dev: 0, supply: 0.5, move: 0.65, timber: 1.5 },
-  hills: { food: 1.2, dev: 1, supply: 0.8, move: 0.7, iron: 0.5 },
-  mountains: { food: 0.5, dev: 0, supply: 0.5, move: 0.45, iron: 1.0 },
-  marsh: { food: 0.8, dev: 0, supply: 0.6, move: 0.5, timber: 0.5 },
-  desert: { food: 0.3, dev: 0, supply: 0.4, move: 0.75, horses: 0.4 },
-};
+import { TERRAIN_ECON } from './economy.js';
 export { TERRAIN_ECON };
 
 export class Game {
@@ -165,80 +158,8 @@ export class Game {
   notify(n) { if (n.nation === undefined || n.nation === this.s.player) this.emit('notify', n); }
   newId() { return this.s.nextId++; }
   rgb(nid) { return nid >= 0 ? hexToRgb(this.s.nations[nid].color) : [120, 120, 120]; }
-  rulerTitle(n) {
-    const r = this.s.chars[n.ruler], f = r && r.female;
-    const T = [['Grand Principality', 'Grand Prince', 'Grand Princess'], ['Grand Duchy', 'Grand Duke', 'Grand Duchess'], ['Principality', 'Prince', 'Princess'], ['Duchy', 'Duke', 'Duchess'],
-      ['Margraviate', 'Margrave', 'Margravine'], ['County', 'Count', 'Countess'], ['Tsardom', 'Tsar', 'Tsaritsa'], ['Banate', 'Ban', 'Banica'], ['Atabegate', 'Atabeg', 'Atabeg'],
-      ['Khanate', 'Khan', 'Khatun'], ['Horde', 'Khan', 'Khatun'], ['Shirvanshah', 'Shah', 'Shahbanu'], ['Zengid', 'Emir', 'Emira'], ['Novgorod', 'Posadnik', 'Posadnitsa'], ['League', 'Rector', 'Rector'],
-      ['Florence', 'Gonfaloniere', 'Gonfaloniere'], ['Pisa', 'Podestà', 'Podestà'], ['Genoa', 'Podestà', 'Podestà'], ['Tribes', 'Chieftain', 'Chieftess'], ['Gwynedd', 'Prince', 'Princess'],
-      ['Byzantine', 'Basileus', 'Basilissa'], ['Holy Roman', 'Emperor', 'Empress'], ['Kingdom', 'King', 'Queen']];
-    for (const [k, m, w] of T) if (n.name.includes(k)) return f ? w : m;
-    const g = GOVS[n.gov];
-    return f ? g.rulerF : g.ruler;
-  }
 
-  // ── characters
-  makeChar(n, role, opts = {}) {
-    const rng = this.rng;
-    const [first, dyn] = opts.name || personName(rng, n.culture);
-    const c = { id: this.newId(), first, dyn, nation: n.id, role, female: !!opts.female, birth: this.s.day - (opts.age ?? (25 + Math.floor(rng() * 30))) * 365,
-      skills: { martial: 0, diplomacy: 0, stewardship: 0, intrigue: 0, learning: 0 }, traits: [], gen: null, army: null, seed: Math.floor(rng() * 1e9), xp: 0 };
-    for (const k of Object.keys(c.skills)) c.skills[k] = Math.round(2 + rng() * 10);
-    if (opts.focusSkill) c.skills[opts.focusSkill] += 4 + Math.round(rng() * 6);
-    if (opts.traits) c.traits = [...opts.traits];
-    else {
-      c.traits.push(pick(rng, PERS_TRAIT_POOL));
-      if (rng() < 0.4) { const t = pick(rng, PERS_TRAIT_POOL); if (!c.traits.includes(t) && !(t === 'brave' && c.traits.includes('craven')) && !(t === 'craven' && c.traits.includes('brave'))) c.traits.push(t); }
-    }
-    if (role === 'general') this.makeGeneral(c, opts.traits);
-    this.s.chars[c.id] = c;
-    return c;
-  }
-  makeGeneral(c, traits) {
-    const rng = this.rng;
-    const sk = c.skills.martial;
-    c.gen = { atk: Math.round(sk / 4 + rng() * 2), def: Math.round(sk / 4 + rng() * 2), tactics: Math.round(sk / 3 + rng() * 2), siege: Math.round(rng() * 3), logistics: Math.round(rng() * 3) };
-    if (!traits || !traits.some((t) => TRAITS[t].mil)) {
-      const t = pick(rng, GEN_TRAIT_POOL);
-      if (!c.traits.includes(t)) c.traits.push(t);
-    }
-  }
-  age(c) { return Math.floor((this.s.day - c.birth) / 365); }
-  charName(c) { return c ? `${c.first} ${c.dyn}` : '—'; }
-  hasTrait(c, t) { return !!c && c.traits.includes(t); }
 
-  initCourt(n, def, rng) {
-    const [rf, rd, ra, rt, sex] = def.ruler;
-    const r = this.makeChar(n, 'ruler', { name: [rf, rd], age: ra, traits: rt, female: sex === 'f' });
-    r.skills.martial += 3; r.skills.diplomacy += 2; r.skills.stewardship += 2;
-    if (rt.some((t) => TRAITS[t].mil)) this.makeGeneral(r, rt);
-    n.ruler = r.id;
-    if (!['merchant_republic', 'theocracy', 'elective_monarchy'].includes(n.gov) && ra > 18) {
-      const h = this.makeChar(n, 'heir', { name: [personName(rng, n.culture)[0], rd], age: Math.max(1, ra - 22 - Math.floor(rng() * 8)) });
-      n.heir = h.id;
-    }
-    for (const role of COUNCIL_ROLES) {
-      const c = this.makeChar(n, 'minister', { focusSkill: ROLE_INFO[role].skill });
-      c.office = role; n.council[role] = c.id;
-    }
-    // generals
-    const famous = def.famous || [];
-    let gens = 0;
-    for (const [f, d, role, age, traits] of famous) {
-      const c = this.makeChar(n, role === 'general' ? 'general' : 'minister', { name: [f, d], age, traits, focusSkill: role === 'general' ? 'martial' : 'stewardship' });
-      if (role === 'general') { c.skills.martial += 4; c.gen.atk += 1; c.gen.tactics += 2; c.gen.def += 1; gens++; }
-      else { // replace the weakest minister
-        const roleKey = c.traits.includes('scholar') ? 'chaplain' : c.traits.includes('diligent') ? 'steward' : 'chancellor';
-        delete this.s.chars[n.council[roleKey]];
-        c.office = roleKey; n.council[roleKey] = c.id; c.skills[ROLE_INFO[roleKey].skill] += 6;
-      }
-    }
-    const want = clamp(Math.round(this.ownedProvinces(n.id).length / 25) + 1, 1, 4);
-    for (; gens < want; gens++) this.makeChar(n, 'general', { focusSkill: 'martial' });
-    // a candidate pool for appointments
-    for (let i = 0; i < 4; i++) this.makeChar(n, 'pool', { focusSkill: pick(rng, ['diplomacy', 'martial', 'stewardship', 'intrigue', 'learning']) });
-  }
-  charsOf(nid, role) { return Object.values(this.s.chars).filter((c) => c.nation === nid && (!role || c.role === role)); }
 
   initTemplates(n) {
     const grp = n.group;
@@ -288,62 +209,8 @@ export class Game {
   }
   mod(nid, key) { const n = this.s.nations[nid]; if (!n) return 0; return (n._m || this.recalcMods(nid))[key] || 0; }
 
-  // ── economy
-  calcMaxManpower(nid) {
-    let mp = 0;
-    for (const p of this.ownedProvinces(nid)) {
-      const pr = this.s.prov[p];
-      mp += pr.dev * 120 * (pr.controller === nid ? 1 : 0.3) * (1 + 0.25 * (pr.buildings.barracks || 0));
-    }
-    return Math.round(mp * (1 + this.mod(nid, 'manpowerMult')));
-  }
 
-  provinceIncome(p, nid) {
-    const pr = this.s.prov[p], sp = this.map.provinces[p], b = pr.buildings, te = TERRAIN_ECON[sp.terrain];
-    const ctl = pr.controller === nid ? 1 : 0;
-    const unrestF = 1 - pr.unrest / 200;
-    const sameFaith = pr.religion === this.s.nations[nid].religion ? 1 : 0.85;
-    const devast = 1 - pr.devast / 100;
-    const tax = pr.dev * 0.08 * (1 + 0.15 * (b.market || 0)) * ctl * unrestF * sameFaith * devast;
-    const trade = ((b.market || 0) * 0.3 + (b.port || 0) * 0.45 + (sp.imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * ctl * devast;
-    const food = ((te.food * 0.35 * (1 + 0.6 * (b.farm || 0)) + (sp.river > 0.03 ? 0.2 : 0)) * ctl * devast - pr.dev * 0.03) * 0.45;
-    const iron = ((te.iron || 0) * 0.2 + (b.mine || 0) * (0.8 + (te.iron || 0) * 0.6)) * ctl;
-    const timber = ((te.timber || 0) * 0.3 + (b.lumber || 0) * 1.2) * ctl;
-    const horses = ((te.horses || 0) * 0.15 + (b.stables || 0) * 0.6) * ctl;
-    const goldMine = (b.mine || 0) * 0.3 * ctl;
-    return { tax, trade, food, iron, timber, horses, goldMine };
-  }
 
-  budget(nid) {
-    const n = this.s.nations[nid];
-    const B = { tax: 0, trade: 0, mines: 0, food: 0, iron: 0, timber: 0, horses: 0, armyUpkeep: 0, armyFood: 0, court: 0, admin: 0, interest: 0, tribute: 0 };
-    for (const p of this.ownedProvinces(nid)) {
-      const i = this.provinceIncome(p, nid);
-      B.tax += i.tax; B.trade += i.trade; B.mines += i.goldMine; B.food += i.food; B.iron += i.iron; B.timber += i.timber; B.horses += i.horses;
-    }
-    B.tax *= 1 + this.mod(nid, 'taxMult');
-    B.trade *= 1 + this.mod(nid, 'tradeMult');
-    B.food *= B.food > 0 ? 1 + this.mod(nid, 'foodMult') : 1;
-    B.iron *= 1 + this.mod(nid, 'ironMult');
-    B.horses *= 1 + this.mod(nid, 'horsesMult');
-    for (const a of this.armiesOf(nid)) {
-      const up = this.armyUpkeep(a);
-      B.armyUpkeep += up.gold; B.armyFood += up.food;
-    }
-    B.armyUpkeep *= 1 + this.mod(nid, 'upkeepMult');
-    const owned = this.ownedProvinces(nid);
-    B.admin = owned.length * 0.025 + owned.reduce((t, p) => t + this.s.prov[p].dev, 0) * 0.006;
-    B.court = 0.4 * COUNCIL_ROLES.filter((r) => n.council[r]).length + 0.3 * this.charsOf(nid, 'general').length;
-    if (n.gold < 0) B.interest = -n.gold * 0.02;
-    // vassal tribute
-    for (const v of this.s.nations) if (v.alive && v.overlord === nid) B.tribute += 1 + this.ownedProvinces(v.id).length * 0.08;
-    if (n.overlord >= 0) B.tribute -= 1 + this.ownedProvinces(nid).length * 0.08;
-    B.income = B.tax + B.trade + B.mines + Math.max(0, B.tribute);
-    B.expense = B.armyUpkeep + B.court + B.admin + B.interest + Math.max(0, -B.tribute);
-    B.net = B.income - B.expense;
-    B.foodNet = B.food - B.armyFood;
-    return B;
-  }
 
   // ── main loop
   tickDay() {
@@ -388,193 +255,13 @@ export class Game {
     this.emit('month');
   }
 
-  monthlyProvinces() {
-    const s = this.s;
-    for (let p = 0; p < this.L; p++) {
-      const pr = s.prov[p];
-      if (pr.owner < 0) continue;
-      const n = s.nations[pr.owner];
-      const sp = this.map.provinces[p];
-      let target = 0;
-      if (pr.culture !== n.culture && groupOf(pr.culture) !== n.group) target += 8;
-      else if (pr.culture !== n.culture) target += 3;
-      if (pr.religion !== n.religion) target += 10 + this.mod(n.id, 'unrestInfidel') * 4;
-      if (pr.controller !== pr.owner) target += 15;
-      target += this.mod(n.id, 'unrest') * 3 + pr.devast * 0.2 - (pr.buildings.church || 0) * 4 + (n.food < 0 ? 10 : 0);
-      target += (3 - (n.estates.peasants?.loyalty ?? 50) / 20);
-      pr.unrest = clamp(pr.unrest + (target - pr.unrest) * 0.08, 0, 100);
-      pr.devast = Math.max(0, pr.devast - 2);
-      // conversion by churches
-      if (pr.religion !== n.religion && (pr.buildings.church || 0) > 0 && this.rng() < 0.004 * pr.buildings.church * (1 + this.mod(n.id, 'legitimacyMonthly') * 5)) {
-        pr.religion = n.religion; this.emit('province', p);
-      }
-      // development growth
-      const growth = 0.008 * (1 + (pr.buildings.farm || 0) * 0.3 + (pr.buildings.market || 0) * 0.3 + this.mod(n.id, 'devGrowth')) * (pr.unrest > 40 ? 0 : 1) * (pr.controller === pr.owner ? 1 : 0);
-      if (this.rng() < growth && pr.dev < 30) { pr.dev++; }
-      if (sp && pr.garrison < 1) pr.garrison = Math.min(1, pr.garrison + 0.1);
-      // rebellion
-      if (pr.unrest > 60 && pr.controller === pr.owner && this.rng() < (pr.unrest - 55) / 600) this.spawnRebels(p);
-    }
-  }
 
-  estateDelta(n, e, v) { if (n.estates[e]) n.estates[e].loyalty = clamp(n.estates[e].loyalty + v, 0, 100); }
-  monthlyEstates(n) {
-    const key = { nobles: 'nobleLoyalty', clergy: 'clergyLoyalty', burghers: 'burgherLoyalty', peasants: 'peasantLoyalty' };
-    const base = GOVS[n.gov].estates;
-    for (const [e, st] of Object.entries(n.estates)) {
-      const target = 50 + this.mod(n.id, key[e]) + (n.stability * 3) + (e === 'nobles' && this.atWar(n.id) ? -3 : 0);
-      st.loyalty = clamp(st.loyalty + (target - st.loyalty) * 0.03, 0, 100);
-      let inf = base[e];
-      for (const [cat, opt] of Object.entries(n.laws)) inf += LAWS[cat]?.options[opt]?.infl?.[e] || 0;
-      inf += n.estateInfl?.[e] || 0;
-      if (e === 'burghers') inf += Math.min(15, this.countBuildings(n.id, 'market') * 0.3);
-      if (e === 'clergy') inf += Math.min(10, this.countBuildings(n.id, 'church') * 0.15);
-      st.influence = clamp(st.influence + (inf - st.influence) * 0.1, 2, 80);
-    }
-    // estates in open revolt
-    const no = n.estates.nobles;
-    if (no && no.loyalty < 15 && no.influence > 40 && this.rng() < 0.05) {
-      this.spawnRebels(this.ownedProvinces(n.id).filter((p) => p !== n.capital)[0] ?? n.capital, true);
-      this.log(`The ${n.adj} nobility rises in revolt!`, { nation: n.id, type: 'war' });
-    }
-  }
 
-  monthlyCharacters(n) {
-    const s = this.s;
-    const ruler = s.chars[n.ruler];
-    const deathP = (c) => { const a = this.age(c); return a < 45 ? 0.0008 : 0.0008 + (a - 45) ** 2 * 0.00003; };
-    for (const c of this.charsOf(n.id)) {
-      if (this.rng() < deathP(c)) this.killChar(c, 'died of natural causes');
-    }
-    if (!s.chars[n.ruler]) this.succession(n);
-    // elections in republics
-    if (n.gov === 'merchant_republic' && n.laws.succession === 'term_elections' && dateOf(s.day).m === 0 && (dateOf(s.day).y % 4 === 0)) {
-      if (ruler) { ruler.role = 'pool'; }
-      this.succession(n);
-    }
-    // heirs
-    if (!n.heir && !['merchant_republic', 'theocracy', 'elective_monarchy', 'caliphate'].includes(n.gov) && ruler && this.age(ruler) > 20 && this.age(ruler) < 55 && this.rng() < 0.02) {
-      const h = this.makeChar(n, 'heir', { name: [personName(this.rng, n.culture)[0], ruler.dyn], age: 0 });
-      n.heir = h.id;
-      if (n.id === s.player) this.log(`An heir is born: ${this.charName(h)}.`, { nation: n.id, type: 'court' });
-    }
-    // refresh candidate pool
-    const pool = this.charsOf(n.id, 'pool');
-    if (pool.length < 4 && this.rng() < 0.2) this.makeChar(n, 'pool', { focusSkill: pick(this.rng, ['diplomacy', 'martial', 'stewardship', 'intrigue', 'learning']) });
-    if (pool.length > 8) this.killChar(pool[0], 'left court');
-  }
 
-  killChar(c, why) {
-    const s = this.s, n = s.nations[c.nation];
-    delete s.chars[c.id];
-    if (c.army) { const a = s.armies[c.army]; if (a) a.general = null; }
-    if (!n) return;
-    if (c.office && n.council[c.office] === c.id) n.council[c.office] = null;
-    if (n.heir === c.id) n.heir = null;
-    if (n.id === s.player && ['ruler', 'heir', 'general', 'minister'].includes(c.role)) {
-      this.log(`${this.charName(c)} ${why}.`, { nation: n.id, type: 'court' });
-    }
-    this.recalcMods(n.id);
-  }
 
-  succession(n) {
-    const s = this.s;
-    const old = s.chars[n.ruler];
-    let heir = s.chars[n.heir];
-    let crisis = false;
-    if (!heir || n.gov === 'elective_monarchy' || n.gov === 'merchant_republic' || n.gov === 'theocracy' || n.laws.succession === 'tanistry' || n.laws.succession === 'seniority') {
-      // electors/council choose the most capable of a few candidates
-      const cands = [heir, ...this.charsOf(n.id, 'pool'), ...this.charsOf(n.id, 'general')].filter(Boolean).filter((c) => this.age(c) >= 16);
-      if (!cands.length) cands.push(this.makeChar(n, 'pool', { age: 30 + Math.floor(this.rng() * 20) }));
-      cands.sort((a, b) => (b.skills.diplomacy + b.skills.martial + b.skills.stewardship) - (a.skills.diplomacy + a.skills.martial + a.skills.stewardship));
-      heir = cands[0];
-      if (n.gov === 'merchant_republic' || n.gov === 'theocracy') heir.birth = Math.min(heir.birth, s.day - 50 * 365);
-    } else if (this.age(heir) < 16) crisis = true;
-    if (heir.office && n.council[heir.office] === heir.id) n.council[heir.office] = null;
-    if (heir.army) { const a = s.armies[heir.army]; if (a) a.general = heir.id; }
-    heir.role = 'ruler'; heir.office = null;
-    n.ruler = heir.id; n.heir = null;
-    if (n.laws.succession === 'gavelkind') { n.stability -= 0.5; this.estateDelta(n, 'nobles', 10); }
-    if (crisis) { n.legitimacy = Math.max(0, n.legitimacy - 25); n.stability = Math.max(-3, n.stability - 1); }
-    else n.legitimacy = clamp(n.legitimacy - 10 + (n.laws.succession === 'primogeniture' ? 10 : 0), 0, 100);
-    if (n.laws.succession === 'tanistry') heir.skills.martial += 2;
-    if (old) old.role = 'dead';
-    this.recalcMods(n.id);
-    const t = this.rulerTitle(n);
-    this.log(`${t} ${this.charName(heir)} now rules the ${n.name}${crisis ? ' — a child ruler! A regency council governs.' : '.'}`, { nation: n.id, type: 'court', important: n.id === s.player });
-    if (n.id === s.player) this.notify({ title: 'Succession', icon: '👑', text: `${t} ${this.charName(heir)} has succeeded to the throne.` });
-  }
 
-  // invest in a province: settlers, clearings, new villages
-  developCost(p) { return Math.round(30 + this.s.prov[p].dev * 7); }
-  developProvince(nid, p) {
-    const pr = this.s.prov[p], n = this.s.nations[nid];
-    if (pr.owner !== nid || pr.controller !== nid) return 'Must own and control the province';
-    if (pr.dev >= 30) return 'Fully developed';
-    const c = this.developCost(p);
-    if (n.gold < c) return `Need ${c} gold`;
-    n.gold -= c; pr.dev++;
-    this.emit('province', p);
-    return null;
-  }
-  // buy strategic goods from foreign merchants
-  resourcePrice(nid, k) { return { iron: 2.2, timber: 1.6, horses: 3.2, food: 0.9 }[k] * (1 - this.mod(nid, 'tradeMult') * 0.3); }
-  buyResource(nid, k, qty = 10) {
-    const n = this.s.nations[nid], cost = Math.round(this.resourcePrice(nid, k) * qty);
-    if (n.gold < cost) return `Need ${cost} gold`;
-    n.gold -= cost; n[k] += qty;
-    return null;
-  }
-  countBuildings(nid, type) { let c = 0; for (const p of this.ownedProvinces(nid)) c += this.s.prov[p].buildings[type] || 0; return c; }
-  maxUnrest(nid) { let m = 0; for (const p of this.ownedProvinces(nid)) m = Math.max(m, this.s.prov[p].unrest); return m; }
 
-  // ── construction
-  buildCost(nid, p, type) {
-    const B = BUILDINGS[type], lvl = this.s.prov[p].buildings[type] || 0;
-    const f = (1 + lvl * 0.6) * (1 + this.mod(nid, 'buildCost'));
-    const c = {};
-    for (const [k, v] of Object.entries(B.cost)) c[k] = Math.round(v * f);
-    return c;
-  }
-  canBuild(nid, p, type) {
-    const pr = this.s.prov[p], sp = this.map.provinces[p], B = BUILDINGS[type];
-    if (pr.owner !== nid) return 'Not your province';
-    if (pr.controller !== nid) return 'Province is occupied';
-    if (!B.allowed(sp)) return 'Not possible in this terrain';
-    const lvl = (pr.buildings[type] || 0) + pr.queue.filter((q) => q.type === type).length;
-    if (lvl >= B.max) return 'Maximum level reached';
-    if (pr.queue.length >= 2) return 'Construction queue full (2)';
-    const c = this.buildCost(nid, p, type), n = this.s.nations[nid];
-    for (const [k, v] of Object.entries(c)) if ((n[k] || 0) < v) return `Not enough ${k}`;
-    return null;
-  }
-  build(nid, p, type) {
-    const why = this.canBuild(nid, p, type);
-    if (why) return why;
-    const n = this.s.nations[nid], c = this.buildCost(nid, p, type);
-    for (const [k, v] of Object.entries(c)) n[k] -= v;
-    const days = Math.round(BUILDINGS[type].days * (1 + (this.s.prov[p].buildings[type] || 0) * 0.4) / (1 + this.mod(nid, 'buildSpeed')));
-    this.s.prov[p].queue.push({ type, days, total: days });
-    this.emit('province', p);
-    return null;
-  }
-  dailyConstruction() {
-    for (let p = 0; p < this.L; p++) {
-      const pr = this.s.prov[p];
-      if (!pr.queue.length) continue;
-      if (pr.controller !== pr.owner) continue;
-      const q = pr.queue[0];
-      if (--q.days <= 0) {
-        pr.queue.shift();
-        pr.buildings[q.type] = (pr.buildings[q.type] || 0) + 1;
-        if (q.type === 'walls') pr.garrison = 1;
-        if (pr.owner === this.s.player) this.log(`${BUILDINGS[q.type].name} completed in ${this.provName(p)}.`, { nation: pr.owner, type: 'build', prov: p });
-        this.emit('building', p, q.type);
-      }
-    }
-  }
 
-  fortLevel(p) { const pr = this.s.prov[p]; if (!pr) return 0; return (pr.buildings.walls || 0) + (this.s.nations[pr.owner]?.capital === p ? 1 : 0); }
 
   // ── power estimates
   armyStrength(nid) { let s = 0; for (const a of this.armiesOf(nid)) s += this.armyPower(a); return s; }
@@ -597,4 +284,4 @@ export class Game {
   }
 }
 
-for (const mixin of [MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, EconomyMixin, EstatesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
