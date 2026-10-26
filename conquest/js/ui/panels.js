@@ -602,6 +602,8 @@ export function describeDemand(g, d) {
   if (d.type === 'province') return g.provName(d.p);
   if (d.type === 'gold') return `${d.v} gold`;
   if (d.type === 'vassal') return `vassalage of ${g.s.nations[d.target].name}`;
+  if (d.type === 'tribute') return 'tribute';
+  if (d.type === 'release') return `release of ${g.s.nations[d.nation].name}`;
   return 'humiliation';
 }
 

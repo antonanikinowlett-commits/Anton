@@ -217,6 +217,7 @@ export const AIMixin = {
           const c = this.demandCost(w, side, d);
           if (c <= budget) { demands.push(d); budget -= c; }
         }
+        budget = this.aiPeaceExtras(w, side, n, demands, budget);
         if (!demands.length && budget > 20 && !n.ai.horde) demands.push({ type: 'gold', v: Math.round(Math.min(150, budget * 6)) });
         if (!demands.length && months < 30) continue;
         if (other === s.player) {
