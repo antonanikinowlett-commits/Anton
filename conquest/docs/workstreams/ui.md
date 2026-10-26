@@ -23,3 +23,5 @@ Constraints: menus must open instantly (no full re-render of the map). Do this r
 5. Tutorial (`tutorial.js`): add steps for fronts, merging and map peace deals.
 
 **Team update (from orchestrator):** integration branch is now `dev` (merged into `ws/ui`); read `docs/TEAM.md`. `heraldry.js` and `portrait.js` now belong to `ws/design`. After the brief's goals, work open GitHub issues labelled `ws:ui`, merge `origin/dev` whenever it moves, and message the orchestrator when blocked or a milestone is pushed.
+
+**Done — goal 2 (part):** `js/ui/outliner.js` (armies/fronts/sieges/construction, collapsible, rebuilt only on key change, toasts shift left), alerts for idle armies at war + focus only when available, `.tab .dot` for tabs with alerts. Breakdown tooltips still TODO.

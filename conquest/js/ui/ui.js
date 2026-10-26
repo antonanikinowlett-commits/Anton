@@ -12,6 +12,7 @@ import { ProvinceMixin } from './province.js';
 import { ArmyMixin } from './army.js';
 import { PeaceMixin } from './peace.js';
 import { MenuMixin } from './menu.js';
+import { OutlinerMixin } from './outliner.js';
 export { TABS } from './panels.js';
 export { terrainTip, unitTip } from './tips.js';
 
@@ -48,6 +49,7 @@ export class UI {
     this.armyEl = el('div', { id: 'army', class: 'frame hidden' }); R.append(this.armyEl);
     this.modesEl = el('div', { id: 'modes' }); R.append(this.modesEl);
     this.toasts = el('div', { id: 'toasts' }); R.append(this.toasts);
+    this.buildOutliner();
     this.buildTopbar(); this.buildTabs(); this.buildModes();
     this.setupTooltips(); this.setupKeys(); this.hook();
   }
@@ -293,7 +295,7 @@ export class UI {
   // periodic refresh
   update() {
     const now = performance.now();
-    if (now - (this._lastTop || 0) > 250) { this._lastTop = now; this.updateTopbar(); this.updateAlerts(); }
+    if (now - (this._lastTop || 0) > 250) { this._lastTop = now; this.updateTopbar(); this.updateAlerts(); this.updateOutliner(); }
     if (now - (this._lastMM || 0) > 400) { this._lastMM = now; this.drawMinimap(); }
     if (this._dirtyDay !== this.s.day && now - (this._lastPanel || 0) > 1500) {
       this._dirtyDay = this.s.day; this._lastPanel = now;
@@ -304,4 +306,4 @@ export class UI {
     this.battleViewer.update();
   }
 }
-Object.assign(UI.prototype, TopbarMixin, AlertsMixin, ProvinceMixin, ArmyMixin, PeaceMixin, MenuMixin);
+Object.assign(UI.prototype, TopbarMixin, AlertsMixin, ProvinceMixin, ArmyMixin, PeaceMixin, MenuMixin, OutlinerMixin);

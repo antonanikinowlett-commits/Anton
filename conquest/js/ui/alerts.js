@@ -10,7 +10,10 @@ export const AlertsMixin = {
     if (myBattles.length) A.push(['battle', '⚔', `${myBattles.length} battle(s) raging — click to watch`, () => this.battleViewer.open(myBattles[0].id), true, myBattles.length]);
     if (s.eventQueue.length) A.push(['event', '📜', 'An event awaits your decision', () => this.showEvent(), true, s.eventQueue.length]);
     if (s.peaceOffers?.length) A.push(['peace', '🕊', 'Peace offer received', () => this.openTab('wars'), true, s.peaceOffers.length]);
-    if (!n.focus.cur) A.push(['focus', '🎯', 'No national focus selected', () => this.openTab('focus'), false]);
+    if (!n.focus.cur && g.focusTree(n.id).some((f) => g.focusStatus(n.id, f) === 'available')) A.push(['focus', '🎯', 'A national focus is available', () => this.openTab('focus'), false]);
+    const atWar = g.warsOf(n.id).length > 0;
+    const idle = atWar ? g.armiesOf(n.id).filter((a) => !a.path.length && !a.battle && !s.prov[a.loc]?.siege && !g.frontsOf(n.id).some((f) => f.armies.includes(a.id))) : [];
+    if (idle.length) A.push(['idle', '💤', `${idle.length} idle army(ies) while at war`, () => this.selectArmies([idle[0].id], true), false, idle.length]);
     if (Object.values(n.council).some((c) => !c)) A.push(['council', '🏛', 'Empty seat on the royal council', () => this.openTab('court'), false]);
     const noGen = g.armiesOf(n.id).filter((a) => !a.general);
     if (noGen.length && g.charsOf(n.id, 'general').some((c) => !c.army)) A.push(['general', '🎖', 'An army has no general (−10% attack, worse morale). Generals are idle.', () => this.selectArmies([noGen[0].id], true), false]);
@@ -23,6 +26,12 @@ export const AlertsMixin = {
     const rebels = Object.values(s.armies).filter((a) => a.nation < 0 && a.rebelOf === n.id);
     if (rebels.length) A.push(['rebels', '🏴', 'Rebels are loose in the realm', () => this.v.flyToProvince(rebels[0].loc), true]);
     if (!n.lawVote && n.prestige > 40 && this.s.day > 60 && this.s.day % 365 < 3) A.push(['law', '📜', 'Consider reforming the laws', () => this.openTab('laws'), false]);
+    const tabOf = { focus: 'focus', council: 'court', law: 'laws', peace: 'wars', gold: 'economy', food: 'economy', idle: 'military', general: 'military' };
+    const tabs = new Set(A.map((a) => tabOf[a[0]]).filter(Boolean));
+    for (const t of this.tabsEl.children) {
+      const on = tabs.has(t.id.slice(4)), d = t.querySelector('.dot');
+      if (on && !d) t.append(el('span', { class: 'dot' })); else if (!on && d) d.remove();
+    }
     const key = A.map((a) => a[0] + (a[5] || '')).join(',');
     if (key === this._alertKey) return;
     this._alertKey = key;
