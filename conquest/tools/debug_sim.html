@@ -10,10 +10,22 @@ let t0 = performance.now();
 g.newGame(new URLSearchParams(location.search).get('tag') || 'FRA');
 const out = [`init ${(performance.now()-t0)|0}ms armies=${Object.keys(g.s.armies).length} chars=${Object.keys(g.s.chars).length}`];
 g.s.player = -1; // all AI
-const days = +(new URLSearchParams(location.search).get('days') || 730);
+const Q = new URLSearchParams(location.search);
+const days = Q.get('years') ? Math.round(+Q.get('years') * 365) : +(Q.get('days') || 730);
+const start = g.s.nations.map(n => g.ownedProvinces(n.id).length);
+let wars = 0, peaces = 0, aiMs = 0, maxDay = 0;
+g.on('war', id => { if (g.s.wars[id] && g.s.wars[id].start === g.s.day) wars++; });
+g.on('peace', () => peaces++);
+const dai = g.dailyAI.bind(g); g.dailyAI = () => { const t = performance.now(); dai(); aiMs += performance.now() - t; };
 t0 = performance.now();
-window.__maxF=0; window.__wd=0; const wb=g.withdrawBattle.bind(g); g.withdrawBattle=(...x)=>{window.__wd++; return wb(...x);}; for (let d = 0; d < days; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; window.__maxF=Math.max(window.__maxF, Object.keys(g.s.fronts).length); }
-out.push(`ticked ${days} days in ${(performance.now()-t0)|0}ms`);
+window.__maxF=0; window.__wd=0; const wb=g.withdrawBattle.bind(g); g.withdrawBattle=(...x)=>{window.__wd++; return wb(...x);}; for (let d = 0; d < days; d++) { const td = performance.now(); g.tickDay(); maxDay = Math.max(maxDay, performance.now() - td); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; window.__maxF=Math.max(window.__maxF, Object.keys(g.s.fronts).length); }
+const el = performance.now()-t0;
+out.push(`ticked ${days} days in ${el|0}ms (${(el/days).toFixed(2)} ms/day, AI ${(aiMs/days).toFixed(2)} ms/day, worst day ${maxDay|0}ms)`);
+// border plausibility: growth relative to the start of the game
+const grow = g.s.nations.filter(n => start[n.id] > 0).map(n => [n.tag, start[n.id], g.ownedProvinces(n.id).length, +(g.ownedProvinces(n.id).length / start[n.id]).toFixed(2)]).sort((a, b) => b[3] - a[3]);
+const L = g.s.prov.filter(p => p.owner >= 0).length, sizes = g.s.nations.map(n => g.ownedProvinces(n.id).length).sort((a, b) => b - a);
+out.push(`metrics: wars declared ${wars} peaces ${peaces} | dead ${g.s.nations.filter(n => !n.alive && start[n.id] > 0).length} | >3x start: ${grow.filter(x => x[3] > 3 && x[2] >= 30).length} (${grow.filter(x => x[3] > 3 && x[2] >= 30).map(x => x[0]).join(',') || '-'}) | >2x: ${grow.filter(x => x[3] > 2 && x[2] >= 30).length} | top5 share ${(sizes.slice(0, 5).reduce((a, b) => a + b, 0) / L * 100).toFixed(1)}%`);
+out.push('growth: ' + grow.slice(0, 8).map(x => `${x[0]} ${x[1]}→${x[2]} (${x[3]}x)`).join(', ') + ' | shrank most: ' + grow.slice(-5).map(x => `${x[0]} ${x[1]}→${x[2]}`).join(', '));
 out.push('wars: ' + Object.values(g.s.wars).map(w=>w.name+' '+w.score).join(' | '));
 out.push('battles fought: ' + g.s.nations.reduce((t,n)=>t+n.stats.won,0));
 out.push('MON: ' + JSON.stringify((()=>{const m=g.nationByTag('MON'); return m? [m.alive, g.ownedProvinces(m.id).length, g.armiesOf(m.id).length]:null})()));
