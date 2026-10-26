@@ -174,6 +174,14 @@ export const BattleMixin = {
       if (n.food < 0) M.moraleTaken += 0.2;
       M.moraleTaken += Math.max(0, -n.stability) * 0.03;
     } else { M.atk -= 0.1; M.def -= 0.1; }
+    // combined arms: infantry, missiles and horse together beat any one arm alone
+    {
+      let inf = 0, rng = 0, cav = 0;
+      for (const a of armies) for (const r of a.regs) { if (r.routed) continue; const c = cls(r.type); if (c === 'inf') inf += r.men; else if (c === 'rng') rng += r.men; else if (c === 'cav') cav += r.men; }
+      const tot = inf + rng + cav || 1;
+      const arms = [inf, rng, cav].filter((v) => v / tot >= 0.12).length;
+      if (arms === 3) { M.atk += 0.06; M.def += 0.04; } else if (arms === 2) { M.atk += 0.02; M.def += 0.02; }
+    }
     // conditions
     if (side === 'att') {
       if (b.river) { M.atk -= 0.25; M.charge -= 0.3; }
@@ -438,6 +446,12 @@ export const BattleMixin = {
       a.regs = a.regs.filter((r) => r.men >= 40);
       const g = this.generalOf(a);
       if (g && this.rng() < 0.06) { this.blog(b, `${this.charName(g)} is slain on the field!`); this.killChar(g, `was slain at the Battle of ${prov}`); }
+      else if (g && nidW >= 0 && nidL >= 0 && this.rng() < 0.12) {
+        const ransom = Math.round(40 + 8 * (g.gen ? (g.gen.atk || 0) + (g.gen.def || 0) + (g.gen.tactics || 0) : 0));
+        const paid = Math.min(ransom, Math.max(0, s.nations[nidL].gold));
+        s.nations[nidL].gold -= paid; s.nations[nidW].gold += paid;
+        this.blog(b, `${this.charName(g)} is taken prisoner and ransomed for ${paid} gold.`);
+      }
       const men = this.armyMen(a);
       if (!a.regs.length || men < 300 || (men < winnerMen * 0.12 && pursuit > 1)) { this.blog(b, `${a.name} is annihilated.`); this.destroyArmy(a, `was destroyed at the Battle of ${prov}`); continue; }
       const dest = this.retreatTarget(a);

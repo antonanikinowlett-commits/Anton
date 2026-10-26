@@ -7,3 +7,7 @@ Goals
 3. Naval battles in sea zones (cogs, galleys) for transports and blockades.
 4. Battle report screen after each player battle (tactics used, why you won/lost).
 Constraints: keep per-day battle cost low (thousands of AI battles per campaign). Balance-check with `tools/debug_sim.html?days=730`.
+
+## Status
+- Done: combined-arms bonus (sideMods), captured-general ransom (endBattle). River penalty and tactics already existed on dev.
+- Todo: night penalties, reserves joining over days, viewer formations/replay, naval battles, battle report screen.
