@@ -22,9 +22,10 @@ index.html ─ js/main.js            boot: generate map → Game → MapView →
             ├ js/render/           three.js map
             │   map3d.js           camera, terrain mesh + province shader, color table, labels, counters
             │   terrain.js         heightfield & textures;  models.js  instanced 3D buildings/units/trees
-            └ js/ui/               DOM UI: ui.js (top bar, selection, orders, game menu), panels.js
-                                   (court, laws, focus, diplomacy, military, economy, ledger…),
-                                   battleview.js (real-time battle canvas), start.js, tutorial.js,
+            └ js/ui/               DOM UI: ui.js (shell: tabs, tooltips, keys, selection, wiring) +
+                                   mixins topbar.js, alerts.js, province.js, army.js, peace.js, menu.js;
+                                   panels.js loads panels/*.js (one module per tab, registered via
+                                   panels/registry.js); tips.js, battleview.js, start.js, tutorial.js,
                                    heraldry.js, portrait.js
 data/        geo.js (coastlines/rivers raster source), height.png/js (NASA elevation)
 vendor/      three.module.js r160
@@ -44,5 +45,5 @@ tools/       build_geo.mjs (regenerate data/), build_single.mjs, check.mjs, smok
 1. Create `js/sim/foo.js` exporting `FooMixin = { ... }`, add it to the mixin list at the bottom of `game.js`.
 2. Hook it into `tickDay`/`monthly` with one line.
 3. Default its state in `newGame` and back-fill it in `load()`.
-4. UI: add a tab/panel in `panels.js` (or a new `js/ui/foo.js` imported by `panels.js`).
+4. UI: create `js/ui/panels/foo.js` calling `registerPanel({ id, icon, name, key, order, render(ui, pb) })` and add `import './panels/foo.js';` to `js/ui/panels.js`. Shared helpers (`H`, `subtabs`, `barHTML`…) are in `js/ui/panels/common.js`.
 5. AI: teach `ai.js` to use it — every player tool must be usable by the AI.
