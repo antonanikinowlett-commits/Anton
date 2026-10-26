@@ -21,3 +21,5 @@ Constraints: menus must open instantly (no full re-render of the map). Do this r
 3. Saves: save logic is in `main.js` (`ui.on('save'|'load')`, keys `cc_saves`/`cc_save_*`, keeps 3). Planned: named slots, yearly autosave on `month` when the month is January, export/import as a `.json` file, and a version check against `serialize().v`.
 4. Settings (`ui.settings`, currently not persisted): UI scale, keybinds, graphics quality, auto-pause on events, and a touch layout (an `@media (max-width: 900px)` block already exists).
 5. Tutorial (`tutorial.js`): add steps for fronts, merging and map peace deals.
+
+**Team update (from orchestrator):** integration branch is now `dev` (merged into `ws/ui`); read `docs/TEAM.md`. `heraldry.js` and `portrait.js` now belong to `ws/design`. After the brief's goals, work open GitHub issues labelled `ws:ui`, merge `origin/dev` whenever it moves, and message the orchestrator when blocked or a milestone is pushed.
