@@ -202,6 +202,7 @@ export class Game {
     if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 });
     if (n.gov === 'imperial') add({ taxMult: 0.1 });
     if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 });
+    if (this.politicsMods) this.politicsMods(n, add);
     if (n.stability) add({ taxMult: n.stability * 0.04, unrest: -n.stability * 1.5 });
     if (n.warExhaustion) add({ unrest: n.warExhaustion * 0.4, manpowerMult: -n.warExhaustion * 0.01 });
     n._m = M;
@@ -279,6 +280,7 @@ export class Game {
     this.s = d.s;
     this.uiState = d.ui;
     this._owned = null; this._ft = null; this._wp = null;
+    this.backfillPolitics?.();
     for (const n of this.s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
