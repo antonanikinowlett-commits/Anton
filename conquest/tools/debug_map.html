@@ -3,9 +3,11 @@
 <script type="module">
 import { generateMap } from '../js/world/mapgen.js';
 import { NATIONS } from '../js/data/nations.js';
-const mode = new URLSearchParams(location.search).get('mode') || 'political';
+const qs = new URLSearchParams(location.search);
+const mode = qs.get('mode') || 'political';
 const t0 = performance.now();
-const m = await generateMap((s, p) => document.getElementById('o').textContent = s + ' ' + p);
+const m = await generateMap((s, p) => document.getElementById('o').textContent = s + ' ' + p, { cache: !qs.has('nocache') });
+window.m = m;
 const c = document.getElementById('c'); c.width = m.W; c.height = m.H;
 const ctx = c.getContext('2d'); const im = ctx.createImageData(m.W, m.H);
 const BC = ['#2b4a6b','#3a6a8a','#b8b860','#9fb070','#3f6f3a','#2f5a40','#8a8a5a','#777','#5a6a4a','#c8b878','#e0c890'];
@@ -26,6 +28,6 @@ ctx.putImageData(im,0,0);
 ctx.font = '9px sans-serif'; ctx.fillStyle = '#000';
 if (mode !== 'biome') for (const p of m.provinces) if (!p.sea && p.imp >= 3) ctx.fillText(p.name, p.x, p.y);
 const terr = {}; m.provinces.forEach(p => terr[p.terrain] = (terr[p.terrain]||0)+1);
-document.getElementById('o').textContent = `L=${m.L} S=${m.S} t=${(performance.now()-t0|0)}ms ` + JSON.stringify(terr) + ' unowned=' + m.provinces.filter((p,i)=>!p.sea&&m.owner[i]<0).length;
+document.getElementById('o').textContent = `L=${m.L} S=${m.S} t=${(performance.now()-t0|0)}ms${m.cached ? ' (cached)' : ''} ` + JSON.stringify(terr) + ' unowned=' + m.provinces.filter((p,i)=>!p.sea&&m.owner[i]<0).length;
 window.done = true;
 </script>

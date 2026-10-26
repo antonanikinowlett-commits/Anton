@@ -9,6 +9,9 @@ import { CITIES } from '../data/cities.js';
 import { NATIONS } from '../data/nations.js';
 import { mulberry32, fbm, ridged, clamp, Heap } from '../util.js';
 import { placeName } from '../data/names.js';
+import { MAP_VERSION } from './version.js';
+import { cacheGet, cachePut, hashStr } from './cache.js';
+export { MAP_VERSION };
 
 // Province spacing relative to the original design: 0.6 gives ~2.5x as many provinces.
 const PROV_SCALE = 0.6;
@@ -40,7 +43,30 @@ async function loadImage(src) {
 
 function inBox(lon, lat, a, b, c, d) { return lon >= a && lon <= c && lat >= b && lat <= d; }
 
-export async function generateMap(progress = () => {}) {
+// Every input that shapes the raster/graph; nations only through their seeds (ownership).
+function inputKey() {
+  const nat = NATIONS.map((n) => [n.tag, n.capital, n.seeds]);
+  return 'v' + MAP_VERSION + '-' + W + 'x' + H + '-' + hashStr(JSON.stringify([CITIES, nat, PROV_SCALE, GEO.land.length, GEO.rivers.length, GEO.lakes.length, HEIGHT.src.length, HEIGHT.src.slice(-200)]));
+}
+
+// Builds the world, or restores it from the IndexedDB cache when inputs are unchanged.
+// opts.cache = false forces a fresh build (tools/debug_map.html?nocache).
+export async function generateMap(progress = () => {}, opts = {}) {
+  const key = inputKey();
+  let m = opts.cache === false ? null : await cacheGet(key);
+  if (m && m.L > 0 && m.provinces && m.provinces.length === m.L + m.S) {
+    progress('Unrolling the map', 0.6);
+    m.cached = true;
+  } else {
+    m = await buildWorld(progress);
+    if (opts.cache !== false) { progress('Storing the map', 0.82); await cachePut(key, m); }
+  }
+  nameWorld(m, progress);
+  progress('Map complete', 0.9);
+  return m;
+}
+
+async function buildWorld(progress) {
   const rng = mulberry32(1200);
   progress('Charting coastlines', 0.02);
   // ── 1. coast, lakes, rivers
@@ -282,7 +308,6 @@ export async function generateMap(progress = () => {}) {
   }
   await tick();
 
-  { let u = 0, ex = null; for (let i = 0; i < N; i++) if (land[i] === 1 && pid[i] < 0) { u++; if (!ex) ex = [i % W, (i / W) | 0, height[i], biome[i], river[i]]; } window.__dbg = { u, ex }; }
   // ── 6. orphan islands: create or attach
   progress('Settling islands', 0.57);
   const comp = new Int32Array(N).fill(-1);
@@ -423,7 +448,6 @@ export async function generateMap(progress = () => {}) {
   }
   for (const [key] of straitPairs) { const a = Math.floor(key / 65536), b = key % 65536; addEdge(a, b, false, true); }
 
-  const used = new Set(CITIES.map((c) => c[0]));
   const provinces = [];
   for (let p = 0; p < T; p++) {
     const cx = sumX[p] / cnt[p], cy = sumY[p] / cnt[p];
@@ -500,6 +524,14 @@ export async function generateMap(progress = () => {}) {
     }
   }
   for (let p = L; p < T; p++) owner[p] = -1;
+  return { W, H, L, S, land, river, height, biome, aridity, pid, provinces, owner, capitals, dist, lat: latA, lon: lonA };
+}
+
+// Culture, religion and names: cheap, and depends on data tables other workstreams edit,
+// so it runs on every load instead of being cached.
+function nameWorld(m, progress) {
+  const { L, provinces, owner } = m, T = provinces.length;
+  const used = new Set(CITIES.map((c) => c[0]));
 
   // ── 11. culture and names
   progress('Naming the land', 0.84);
@@ -532,8 +564,6 @@ export async function generateMap(progress = () => {}) {
     pr.name = best.n + (seaUsed[best.n] > 1 ? ' ' + ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][seaUsed[best.n]] : '');
     pr.culture = null;
   }
-  progress('Map complete', 0.9);
-  return { W, H, L, S, land, river, height, biome, aridity, pid, provinces, owner, capitals, dist, lat: latA, lon: lonA };
 }
 
 function cultureAt(lon, lat, c, tag) {

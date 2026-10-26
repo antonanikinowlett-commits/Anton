@@ -54,7 +54,7 @@ async function boot() {
   ui.on('load', (key) => {
     const json = store.get(key);
     if (!json) { ui.toast('Load failed', 'Save not found', '🚫'); return; }
-    game.load(json);
+    try { game.load(json); } catch (e) { ui.toast('Load failed', String(e.message || e), '🚫'); return; }
     ui.build();
     started = true;
     ui.setSpeed(0);
