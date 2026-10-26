@@ -7,3 +7,7 @@ Goals
 3. Map visuals: smoother province borders (distance-field borders), parchment-style political mode at far zoom, nicer water, fog-of-war option, seasonal snow tint.
 4. A small perf HUD (`?perf=1`) printing frame time and draw calls.
 Constraints: don't change the color-table layout without updating every `ci(p,row)` user; keep the vendored three.js r160. Verify visually with screenshots from a headless run (`npm run smoke` writes `smoke.png`).
+
+## Status
+- Goal 4 done: `?perf=1` HUD (render ms, frame ms, draw calls, triangles, dpr) in `map3d.js`.
+- Not started: goals 1–3 (profiling, close-zoom 3D, map visuals).

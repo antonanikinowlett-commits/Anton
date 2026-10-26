@@ -135,6 +135,11 @@ export class MapView {
     this.dpr = Math.min(this.maxDpr, 1.25);
     R.setPixelRatio(this.dpr);
     R.setClearColor(0x0d1a24);
+    if (/[?&]perf=1/.test(location.search)) {
+      const el = this.perfEl = document.createElement('div');
+      el.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99;font:11px monospace;color:#9f9;background:rgba(0,0,0,.6);padding:3px 6px;pointer-events:none';
+      document.body.appendChild(el);
+    }
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.Fog(0x162a36, 1400, 2600);
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.3, 5000);
@@ -980,9 +985,22 @@ export class MapView {
     this.updateMarkers();
     this.updateProvLabels(rect);
     if ((this.pathGroup.children.length || this.game.frontsOf(this.game.s.player).length) && this._lastPathRefresh !== this.game.s.day) { this._lastPathRefresh = this.game.s.day; this.refreshPaths(); }
+    const t0 = this.perfEl ? performance.now() : 0;
     this.renderer.render(this.scene, this.camera);
+    if (this.perfEl) this.updatePerf(performance.now() - t0, frameGap);
   }
 }
+
+MapView.prototype.updatePerf = function (cpuMs, gap) {
+  // ?perf=1 HUD: smoothed CPU time of the draw submission, frame gap, draw calls and triangles.
+  this._pf = this._pf ? this._pf * 0.9 + cpuMs * 0.1 : cpuMs;
+  if (gap > 0 && gap < 0.5) this._pg = this._pg ? this._pg * 0.9 + gap * 0.1 : gap;
+  const now = performance.now();
+  if (now - (this._pfShown || 0) < 250) return;
+  this._pfShown = now;
+  const i = this.renderer.info.render;
+  this.perfEl.textContent = `render ${this._pf.toFixed(1)} ms | frame ${((this._pg || 0) * 1000).toFixed(1)} ms | calls ${i.calls} | tris ${i.triangles} | dpr ${this.dpr.toFixed(2)}`;
+};
 
 MapView.prototype.adaptResolution = function (gap) {
   // Keep the frame rate smooth: lower the render resolution when frames take too long.
