@@ -32,12 +32,12 @@ export const ACHIEVEMENTS = {
   veteran: { name: 'Veteran Captain', icon: '🎖', desc: 'Win 10 battles.', test: (g, n) => n.stats.won >= 10 },
   scholar: { name: 'Age of Learning', icon: '🎓', desc: 'Learn 15 innovations.', test: (g, n) => n.prog.known.length >= 15 },
   polymath: { name: 'Polymath', icon: '📚', desc: 'Learn an innovation in every branch.', test: (g, n) => new Set(n.prog.known.map((i) => INNOV[i].branch)).size >= 4 },
-  duke: { name: 'Ducal Coronet', icon: '🛡', desc: 'Reach the rank of Duchy.', test: (g, n) => n.prog.rank >= 1 },
-  king: { name: 'Crowned King', icon: '👑', desc: 'Reach the rank of Kingdom.', test: (g, n) => n.prog.rank >= 2 },
-  emperor: { name: 'Imperial Purple', icon: '🦅', desc: 'Reach the rank of Empire.', test: (g, n) => n.prog.rank >= 3 },
+  duke: { name: 'Ducal Coronet', icon: '🛡', desc: 'Be raised to the rank of Duchy.', test: (g, n) => n.prog.crowned >= 1 },
+  king: { name: 'Crowned King', icon: '👑', desc: 'Be raised to the rank of Kingdom.', test: (g, n) => n.prog.crowned >= 2 },
+  emperor: { name: 'Imperial Purple', icon: '🦅', desc: 'Be raised to the rank of Empire.', test: (g, n) => n.prog.crowned >= 3 },
   rich: { name: 'Fat Purse', icon: '💰', desc: 'Hold 1000 gold.', test: (g, n) => n.gold >= 1000 },
-  builder: { name: 'Master Builder', icon: '🏗', desc: 'Hold 60 building levels.', test: (g, n) => totalLevels(g, n.id) >= 60 },
-  realm20: { name: 'Broad Dominions', icon: '🗺', desc: 'Rule 20 provinces.', test: (g, n) => g.ownedProvinces(n.id).length >= 20 },
+  builder: { name: 'Master Builder', icon: '🏗', desc: 'Hold building levels worth 4 per province.', test: (g, n) => totalLevels(g, n.id) >= 4 * g.ownedProvinces(n.id).length },
+  realm20: { name: 'Broad Dominions', icon: '🗺', desc: 'Rule 300 provinces.', test: (g, n) => g.ownedProvinces(n.id).length >= 300 },
   devoted: { name: 'Fulfilled Ambitions', icon: '🎯', desc: 'Complete 3 ambitions.', test: (g, n) => n.prog.ambDone >= 3 },
   renown: { name: 'Renowned', icon: '✨', desc: 'Reach 200 prestige.', test: (g, n) => n.prestige >= 200 },
   decade: { name: 'Steadfast', icon: '⏳', desc: 'Survive until 1300.', test: (g) => dateOf(g.s.day).y >= 1300 },
@@ -84,6 +84,7 @@ export const ProgressionMixin = {
     let known = 0;
     if (nb) for (const o of nb) if (this.s.nations[o].prog?.known.includes(id)) known++;
     c *= 1 - Math.min(0.4, known * 0.1);
+    c *= 0.55 + 0.45 * Math.min(1, n.prog.known.length / 6);
     return Math.round(c);
   },
   researchRate(nid) {
@@ -147,6 +148,7 @@ export const ProgressionMixin = {
     if (inf.maxed || !inf.ok) return false;
     n.gold -= inf.cost;
     n.prog.rank++;
+    n.prog.crowned = Math.max(n.prog.crowned || 0, n.prog.rank);
     n.prestige += 15; n.legitimacy = Math.min(100, n.legitimacy + 5);
     this._applyRankMods(n);
     this.recalcMods(nid);
