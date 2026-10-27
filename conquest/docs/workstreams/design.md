@@ -8,13 +8,11 @@ Owns `docs/STYLE.md`, `assets/` (new), `js/ui/heraldry.js`, `js/ui/portrait.js`,
 Verify with screenshots from `npm run smoke` and close-zoom shots; attach before/after images in your issue comments.
 
 ## Status
-_Updated 2026-10-26 (handover)._
-- **Done:** `docs/STYLE.md` v1: palette tokens (with exact CSS to add to `:root`), type scale, panel chrome, icon grid and API spec, realm-colour legibility rules, map label table, heraldry rank rules, 3D model budget. Contrast ratios checked.
-- **Half-done:** nothing in progress. The issue for `ws:ui` with the CSS variables from STYLE.md §1 (and the `.ic` CSS from §4) is **not filed yet**.
+_Updated 2026-10-26._
+- **Done:** `docs/STYLE.md` v1. `ws:ui` issue #1 filed (CSS tokens + `.ic` CSS). Icons: `js/ui/icons.js` (56 glyphs, `icon()`, `iconFor()`, `iconize()`, `EMOJI` map covering ~95 emoji) + `assets/icons/*.svg` (regenerate with `node assets/icons/export.mjs`).
 - **Next:**
-  1. File a `ws:ui` issue with the STYLE.md §1 `:root` block and §4 `.ic` CSS.
-  2. Icons: write `js/ui/icons.js` (24×24 filled `currentColor` paths, `icon()`, `iconFor()`, `iconize()`, `EMOJI` map) plus `assets/icons/export.mjs` to write `assets/icons/*.svg`. Emoji inventory: about 140 distinct emoji. The most common are ⚔ 🚫 📜 🏰 👑 🛡 🔥 🌾 🐎 🕊 ★ 🤝 ⚓ ✠ 🪙 🏛 ⚖ 💰 ✝, mostly in ui.js, panels.js and the data tables. Then file a `ws:ui` adoption issue.
-  3. Heraldry: rank crowns above shields (`coaSVG(coa, size, {rank})`), add tenné/sanguine tinctures.
-  4. Portraits: culture-specific clothing and headgear.
-  5. models.js: culture variants (kremlin, Mediterranean tile roofs), unit silhouettes. Keep to the STYLE.md §8 budget.
-- No open `ws:design` issues as of this update.
+  1. File `ws:ui` icon adoption issue (use `iconize()` on panel HTML; add `.ic` CSS from issue #1).
+  2. Heraldry: rank crowns above shields (`coaSVG(coa, size, {rank})`), add tenné/sanguine tinctures.
+  3. Portraits: culture-specific clothing and headgear.
+  4. models.js: culture variants (kremlin, Mediterranean tile roofs), unit silhouettes. Keep to STYLE.md §8 budget.
+- Unmapped rarer emoji (✂ 🍷 🦊 …) stay as emoji until more glyphs are drawn.
