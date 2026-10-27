@@ -13,3 +13,7 @@ Reported to fixer (session_01DWFX6UDAcppDhULwit3mH3) 2026-10-27, from docs/qa/si
 check 60/60, smoke OK, longrun 20y×2 no crash (13 ms/day avg, 1.0M men y20), `tools/qa/visual.cjs` OK (far/mid/close render fine).
 Still failing: frozen world (ALM858/CUM477/BYZ420 at y20), non-mutual alliances (HRE/BAV, LOM/FLO, PAP/GEN, ENG/TOU…), 0-regiment army (seed 2 day 396).
 Visual (ws/design, minor): far zoom shows repeating diamond/star-shaped light patches across open sea (west of Ireland/France).
+
+## 2026-10-27 13:25 verify fix/conquest a4442e9 (20y×2 seeds)
+VERIFIED: non-mutual alliances, tick time (13.2/13.6 ms/day at y20), army growth, sea-diamond render (ws/design). Borders: 412/346 provinces changed owner by y20 (new `provs changed owner` column) – "frozen world" withdrawn (top-3 sizes understate turnover).
+Open (minor): transient 0-regiment army (1 hit/seed), regiment morale slightly negative (-0.02). Tick still ~13 ms vs 10 budget.
