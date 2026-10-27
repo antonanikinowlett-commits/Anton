@@ -234,7 +234,7 @@ export const DiplomacyMixin = {
     const [sc, R] = this.acceptance(aid, bid, 'tribute');
     if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 20; return this.refusal(R, 'They refuse and are offended'); }
     const dev = this.ownedProvinces(bid).reduce((t, p) => t + s.prov[p].dev, 0);
-    b.tribute = { to: aid, amt: Math.round(3 + dev * 0.12), until: s.day + 1825 };
+    b.tribute = { to: aid, amt: Math.max(2, Math.round(dev * 0.02)), until: s.day + 1825 };
     b.opinion[aid] = (b.opinion[aid] ?? 0) - 15;
     a.prestige += 4;
     this.log(`The ${b.name} agrees to pay tribute to the ${a.name}.`, { nation: aid, type: 'diplo' });
