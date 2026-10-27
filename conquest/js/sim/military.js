@@ -115,6 +115,7 @@ export const MilitaryMixin = {
     const n = this.s.nations[nid], pr = this.s.prov[p];
     if (!pr || pr.owner !== nid || pr.controller !== nid) return 'Must recruit in a province you control';
     for (const type of Object.keys(t.regs)) if (t.regs[type] > 0 && !unitAvailable(type, n, this)) return `${UNITS[type].name} not available`;
+    if (Object.keys(t.regs).some((k) => t.regs[k] > 0 && UNITS[k].ship) && !(this.map.provinces[p].coastal && (pr.buildings.port || 0) >= 1)) return 'Ships need a coastal province with a Harbour';
     const c = this.templateCost(nid, t);
     if (!Object.values(t.regs).some((v) => v > 0)) return 'Template is empty';
     for (const k of ['gold', 'iron', 'timber', 'horses']) if (c[k] > (n[k] || 0)) return `Not enough ${k} (${c[k]} needed)`;
@@ -366,7 +367,9 @@ export const MilitaryMixin = {
   checkContact(a) {
     if (a.retreating) return;
     const here = this.armiesAt(a.loc).filter((b) => b !== a && !b.retreating && this.hostileArmies(a, b));
-    if (!here.length || a.atSea) return;
+    if (!here.length) return;
+    // at sea only fleets fight: a transport meeting a hostile fleet is caught, two plain land armies pass
+    if (a.atSea && !a.regs.some((r) => UNITS[r.type].ship) && !here.some((b) => b.regs.some((r) => UNITS[r.type].ship))) return;
     const existing = Object.values(this.s.battles).find((b) => b.prov === a.loc && !b.over);
     if (existing) { this.joinBattle(existing, a); return; }
     // the army that has been sitting there longer is the defender
