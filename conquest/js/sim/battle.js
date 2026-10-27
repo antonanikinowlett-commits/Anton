@@ -48,6 +48,7 @@ export const BattleMixin = {
     if (attackers.some((a) => a.nation === pl) || defenders.some((a) => a.nation === pl)) {
       this.notify({ title: 'Battle!', icon: '⚔', text: `Battle of ${sp.name}`, battle: id, prov: p });
     }
+    this.checkFriction(b, 'att'); this.checkFriction(b, 'def');
     this.emit('battle', id);
     return b;
   },
@@ -66,6 +67,7 @@ export const BattleMixin = {
     b[side].push(a.id); a.battle = b.id; a.path = []; a.prog = 0;
     b.startMen[side] += this.armyMen(a);
     for (const x of sideArmiesOf(this, b, side)) for (const r of x.regs) if (!r.routed) r.morale = Math.min(1, r.morale + 0.06);
+    this.checkFriction(b, side);
     this.blog(b, `${a.name} arrives to reinforce ${this.sideName(b, side)}!`);
   },
 
@@ -198,6 +200,7 @@ export const BattleMixin = {
       M.def += Math.min(0.15, ent * 0.01);
     }
     if (b.weather === 'rain') { M.ranged -= 0.3; M.charge -= 0.25; }
+    if (b.friction && b.friction[side]) { M.atk -= 0.05; M.moraleTaken += 0.05; }
     if (b.naval) { M.charge -= 0.8; M.flank -= 0.3; M.ranged += 0.15; M.casualtiesTaken += 0.1; } // decks: no charges, grappling and missiles
     if (b.night) { M.ranged -= 0.35; M.charge -= 0.2; if (side === 'att') M.atk -= 0.08; }
     if (b.weather === 'rain' && ['marsh', 'plains', 'forest'].includes(b.terrain)) { M.charge -= 0.15; M.atk -= 0.05; } // churned mud
@@ -279,6 +282,24 @@ export const BattleMixin = {
       if (s.prov[p].blockadedBy === nid) continue;
       s.prov[p].blockadedBy = nid;
       if (s.prov[p].owner === s.player || nid === s.player) this.log(`${s.nations[nid].name} blockades ${P[p].name}: trade is choked and no troops can be raised there.`, { nation: s.player, type: 'mil', prov: p, important: true });
+    }
+  },
+  // Two generals sharing one battle line may quarrel: jealous or ambitious men form rivalries, rivals
+  // fight badly together, and the one blamed for a defeat loses the court's confidence.
+  checkFriction(b, side) {
+    const gens = [];
+    for (const i of b[side]) { const a = this.s.armies[i]; const g = a && this.generalOf(a); if (g && g.gen && !gens.some((x) => x.g === g)) gens.push({ g, a }); }
+    for (let i = 0; i < gens.length; i++) for (let j = i + 1; j < gens.length; j++) {
+      const x = gens[i].g, y = gens[j].g;
+      const jealous = [x, y].some((c) => c.traits.includes('ambitious') || c.traits.includes('greedy'));
+      if (!x.rival && !y.rival && this.rng() < (jealous ? 0.3 : 0.04)) {
+        x.rival = y.id; y.rival = x.id;
+        if (gens[i].a.nation === this.s.player) this.log(`${this.charName(x)} and ${this.charName(y)} have become bitter rivals.`, { nation: gens[i].a.nation, type: 'mil', important: true });
+      }
+      if (x.rival === y.id) {
+        (b.friction ||= {})[side] = [x.id, y.id];
+        this.blog(b, `${this.charName(x)} and ${this.charName(y)}, rivals, squabble over who commands.`);
+      }
     }
   },
   // Generals learn from fighting: XP, skills, and a chance at a battlefield trait after a few wins.
@@ -503,6 +524,12 @@ export const BattleMixin = {
       const g = this.generalOf(a);
       if (g) { g.battles = (g.battles || 0) + 1; g.losses = (g.losses || 0) + 1; }
       if (g && this.rng() < 0.2) this.woundGeneral(g, a, prov);
+      if (g && b.friction && b.friction[loser] && b.friction[loser].includes(g.id) && this.rng() < 0.5) {
+        g.loyalty = Math.max(0, (g.loyalty ?? 1) - 0.35);
+        if (a.nation === this.s.player) this.log(`${this.charName(g)} is blamed at court for the defeat at ${prov}.`, { nation: a.nation, type: 'mil', army: a.id });
+        if (g.loyalty < 0.3 && a.nation === this.s.player) this.notify({ title: 'General disgruntled', icon: '😠', text: `${this.charName(g)} is bitter and may leave your service.`, army: a.id });
+        else if (g.loyalty < 0.3 && this.rng() < 0.5) this.dismissGeneral(g.id);
+      }
       if (g && this.rng() < 0.06) { this.blog(b, `${this.charName(g)} is slain on the field!`); this.killChar(g, `was slain at the Battle of ${prov}`); }
       else if (g && nidW >= 0 && nidL >= 0 && this.rng() < 0.12) {
         const ransom = Math.round(40 + 8 * (g.gen ? (g.gen.atk || 0) + (g.gen.def || 0) + (g.gen.tactics || 0) : 0));
