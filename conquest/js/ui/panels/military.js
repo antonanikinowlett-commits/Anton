@@ -1,6 +1,8 @@
 // Military panel: Armies, fronts, templates, mustering and the unit codex.
 import { el, fmt, pct } from '../../util.js';
 import { coaSVG } from '../heraldry.js';
+import { MIL_DOCTRINES, pickMilDoctrine } from '../../data/mildoctrines.js';
+import { INNOV } from '../../data/innovations.js';
 import { UNITS, UNIT_ORDER, unitAvailable, unitReqText, TERRAIN_COMBAT } from '../../data/units.js';
 import { DOCTRINES } from '../../data/tactics.js';
 import { unitTip } from '../tips.js';
@@ -57,6 +59,11 @@ function templateEditor(ui, pb) {
     st.tmpl = t0 ? { id: t0.id, name: t0.name, regs: { ...t0.regs }, doctrine: t0.doctrine } : { id: 'new', name: 'New Host', regs: {}, doctrine: 'balanced' };
   }
   const T = st.tmpl;
+  {
+    const md = MIL_DOCTRINES[n.milDoc || pickMilDoctrine(n)], active = md.perk && n.prog && n.prog.known.includes(md.perk.innov);
+    pb.append(H(`<div class="card" style="margin-bottom:6px"><b>${md.icon} ${md.name}</b> <span class="muted small">national doctrine</span><div class="small">${md.desc}</div>
+      <div class="small ${active ? 'pos' : 'muted'}">${active ? '✔' : '🔒'} ${md.perk.name}: ${md.perk.desc}${active ? '' : ` Unlocked by the ${INNOV[md.perk.innov] ? INNOV[md.perk.innov].name : md.perk.innov} innovation.`}</div></div>`));
+  }
   const list = el('div', { class: 'row wrap' });
   for (const t of n.templates) list.append(el('div', { class: 'subtab' + (t.id === T.id ? ' on' : ''), onclick: () => { st.tmpl = { id: t.id, name: t.name, regs: { ...t.regs }, doctrine: t.doctrine }; ui.renderPanel(true); } }, t.name));
   list.append(el('div', { class: 'subtab' + (T.id === 'new' ? ' on' : ''), onclick: () => { st.tmpl = { id: 'new', name: 'New Host', regs: { levy_spear: 4 }, doctrine: 'balanced' }; ui.renderPanel(true); } }, '+ New'));
