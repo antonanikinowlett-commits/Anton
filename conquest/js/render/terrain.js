@@ -11,6 +11,45 @@ const BC = {
   [BIOME.DESERT]: [222, 192, 130], [BIOME.LAKE]: [60, 100, 130], [BIOME.SEA]: [30, 70, 100],
 };
 
+// Sea heights blurred so isolated shallow pixels don't show up as diamond-shaped bilinear patches.
+function smoothSea(map) {
+  if (map._seaSm) return map._seaSm;
+  const { W, H, height, land } = map;
+  let a = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) a[i] = land[i] === 1 ? 0 : height[i];
+  for (let pass = 0; pass < 3; pass++) {
+    const b = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let t = 0, n = 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        t += a[yy * W + xx]; n++;
+      }
+      b[y * W + x] = t / n;
+    }
+    a = b;
+  }
+  // open sea far from any coast is flat deep water: underwater bumps there only read as noise
+  let m = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) m[i] = land[i] === 1 ? 1 : 0;
+  for (let pass = 0; pass < 4; pass++) {
+    const b = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let t = 0, n = 0;
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        t += m[yy * W + xx]; n++;
+      }
+      b[y * W + x] = t / n;
+    }
+    m = b;
+  }
+  for (let i = 0; i < W * H; i++) { const c = clamp(m[i] * 7, 0, 1); a[i] = a[i] * c - 1500 * (1 - c); }
+  return (map._seaSm = a);
+}
+
 export function bakeTerrain(map) {
   const { W, H, biome, height, land, dist, aridity } = map;
   const img = new ImageData(W, H);
@@ -63,7 +102,7 @@ export function bakeTerrain(map) {
       r *= shade; g *= shade; bl *= shade;
     } else if (land[i] === 2) { r = 60; g = 100; bl = 128; }
     else {
-      const dep = clamp(-height[i] / 2000, 0, 1), sh = Math.pow(1 - clamp(-height[i] / 350, 0, 1), 2);
+      const hs = smoothSea(map)[i], dep = clamp(-hs / 2000, 0, 1), sh = Math.pow(1 - clamp(-hs / 350, 0, 1), 2);
       r = 70 - dep * 50; g = 120 - dep * 70; bl = 130 - dep * 60;
       // turquoise shallows hugging the coast
       r += sh * 18; g += sh * 42; bl += sh * 24;
@@ -137,7 +176,7 @@ export function depthTexture(map) {
   const { W, H, height, land } = map;
   const out = new Uint8Array(W * H * 4);
   for (let i = 0; i < W * H; i++) {
-    const v = land[i] === 1 ? 0 : land[i] === 2 ? 0.15 : clamp(-height[i] / 1800, 0.02, 1);
+    const v = land[i] === 1 ? 0 : land[i] === 2 ? 0.15 : clamp(-smoothSea(map)[i] / 1800, 0.02, 1);
     out[i * 4] = v * 255; out[i * 4 + 3] = 255;
   }
   return out;
