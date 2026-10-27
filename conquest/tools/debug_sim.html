@@ -18,6 +18,8 @@ out.push('wars: ' + Object.values(g.s.wars).map(w=>w.name+' '+w.score).join(' | 
 out.push('battles fought: ' + g.s.nations.reduce((t,n)=>t+n.stats.won,0));
 out.push('MON: ' + JSON.stringify((()=>{const m=g.nationByTag('MON'); return m? [m.alive, g.ownedProvinces(m.id).length, g.armiesOf(m.id).length]:null})()));
 out.push('AI fronts now: ' + Object.values(g.s.fronts).map(f=>g.s.nations[f.nation].tag+'>'+g.s.nations[f.enemy].tag+':'+f.armies.length+':'+f.mode).join(' ') + ' | maxFronts ' + window.__maxF + ' assaults ' + g.s.log.filter(l=>/stormed|thrown back/.test(l.text)).length + ' withdrawals ' + window.__wd + ' royalHosts ' + g.s.nations.filter(n=>n.templates.some(t=>t.name==='Royal Host')).length + ' marriages ' + g.s.nations.reduce((t,n)=>t+n.marriages.length,0)/2);
+out.push('fleets: ' + Object.values(g.s.armies).filter(a=>a.regs.some(r=>r.type==='cog'||r.type==='galley'||r.type==='longship')).length + ' naval battles (recent 25): ' + (g.s.pastBattles||[]).filter(x=>g.map.provinces[x.prov].sea).length + ' of ' + (g.s.pastBattles||[]).length);
+out.push('provinces with a harbour: ' + g.s.prov.filter(p=>p.buildings&&p.buildings.port).length + ', nations with one: ' + g.s.nations.filter(n=>n.alive&&g.ownedProvinces(n.id).some(p=>g.s.prov[p].buildings.port)).length);
 out.push('alive: ' + g.s.nations.filter(n=>n.alive).length + ' armies ' + Object.keys(g.s.armies).length);
 const top = g.s.nations.filter(n=>n.alive).map(n=>[n.tag, g.ownedProvinces(n.id).length, Math.round(n.gold), Math.round(n.manpower), n.focus.done.length]).sort((a,b)=>b[1]-a[1]).slice(0,15);
 out.push(JSON.stringify(top));

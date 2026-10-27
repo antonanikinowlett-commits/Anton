@@ -91,11 +91,11 @@ void main(){
   // gentle swell: two slow noise layers, stronger when zoomed in
   float n1 = texture2D(tNoise, vW.xz*0.15 + vec2(uTime*0.010, uTime*0.006)).r;
   float n2 = texture2D(tNoise, vW.xz*0.27 - vec2(uTime*0.008, uTime*0.012)).r;
-  float w = mix(0.08, 0.5, uNear);
+  float w = mix(0.03, 0.5, uNear);
   vec3 N = normalize(vec3((n1-0.5)*w, 1.0, (n2-0.5)*w));
   vec3 V = normalize(cameraPosition - vW);
   vec3 H = normalize(normalize(uSun) + V);
-  float spec = pow(max(dot(N,H),0.0), 80.0) * mix(0.12, 0.45, uNear);
+  float spec = pow(max(dot(N,H),0.0), 80.0) * mix(0.015, 0.45, uNear*uNear);
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   col = mix(col, vec3(0.55,0.68,0.75), fres*0.25) + spec;
   float foam = smoothstep(0.045, 0.0, d) * (0.55+0.45*sin(uTime*1.3 + n1*9.0)) * uNear;

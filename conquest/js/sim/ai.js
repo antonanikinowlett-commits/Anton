@@ -78,6 +78,7 @@ export const AIMixin = {
     // economy
     this.aiBuild(n);
     this.aiRecruit(n);
+    this.aiFleet(n);
     this.aiDiplomacy(n);
   },
 
@@ -129,6 +130,16 @@ export const AIMixin = {
       if (!best) break;
       if (this.build(n.id, best[0], best[1])) break;
     }
+  },
+
+  // Maritime realms keep a small war fleet in a harbour; it defends the coast and catches enemy transports.
+  aiFleet(n) {
+    if (n.ai.horde || n.gold < 120 || this.rng() > 0.25) return;
+    if (this.armiesOf(n.id).some((a) => a.regs.some((r) => UNITS[r.type].ship)) || this.s.recruit.some((r) => r.nation === n.id && Object.keys(r.template.regs).some((k) => UNITS[k].ship))) return;
+    const port = this.ownedProvinces(n.id).find((p) => this.map.provinces[p].coastal && (this.s.prov[p].buildings.port || 0) >= 1);
+    if (port === undefined) return;
+    const ship = n.group === 'norse' || n.tag === 'NOR' || n.tag === 'DEN' || n.tag === 'SWE' ? 'longship' : n.gov === 'merchant_republic' ? 'galley' : 'cog';
+    this.recruit(n.id, port, { id: this.newId(), name: 'War Fleet', regs: { [ship]: 3, cog: 1 }, doctrine: 'balanced' });
   },
 
   aiRecruit(n) {

@@ -17,6 +17,7 @@ import { EstatesMixin } from './estates.js';
 import { ProgressionMixin } from './progression.js';
 import { PapacyMixin } from './papacy.js';
 import { ReligionMixin } from './religion.js';
+import { ProjectsMixin } from './projects.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
 
@@ -297,4 +298,4 @@ export class Game {
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, EconomyMixin, EstatesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, EconomyMixin, EstatesMixin, ProjectsMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

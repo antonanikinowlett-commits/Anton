@@ -6,6 +6,7 @@ export { describeDemand } from './panels/common.js';
 
 import './panels/realm.js';
 import './panels/court.js';
+import './panels/treasury.js';
 import './panels/laws.js';
 import './panels/focus.js';
 import './panels/progress.js';
