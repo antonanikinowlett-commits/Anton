@@ -41,13 +41,17 @@ export const UNITS = {
     desc: 'Roofed rams that smash gates and small forts: cheap and best against light fortifications.' },
   siege_tower: { name: 'Siege Towers', icon: '🗼', cls: 'siege', men: 300, atk: 0.3, def: 0.4, armor: 0.1, morale: 0.6, charge: 0, anti: 0, ranged: 0.2, pursuit: 0, screen: 0, siege: 1.8, tower: true, speed: 11, cost: { gold: 14, timber: 9 }, upkeep: 0.2, days: 60,
     desc: 'Rolling wooden towers that put storming parties on the wall-walk. Slow but effective against stone curtains.' },
+  free_company: { name: 'Free Company', icon: '💰', cls: 'inf', merc: true, men: 1000, atk: 2.2, def: 1.7, armor: 0.45, morale: 1.0, charge: 0.4, anti: 1.0, ranged: 0.2, pursuit: 0.6, screen: 0.6, speed: 22, cost: { gold: 38 }, upkeep: 0.7, days: 8,
+    desc: 'Mercenary routiers and condottieri. Hired in days with no call on manpower, but expensive, and they walk away if the pay chest runs dry.' },
+  merc_crossbowmen: { name: 'Mercenary Crossbowmen', icon: '🏹', cls: 'rng', merc: true, men: 1000, atk: 0.8, def: 1.0, armor: 0.3, morale: 0.9, charge: 0, anti: 0.4, ranged: 2.3, pursuit: 0.1, screen: 0.3, speed: 20, cost: { gold: 34 }, upkeep: 0.6, days: 8,
+    desc: 'Genoese and Gascon crossbow companies for hire. Fine marksmen, loyal only while paid.' },
   mangonel: { name: 'Mangonels', icon: '⚙', cls: 'siege', men: 300, atk: 0.2, def: 0.3, armor: 0, morale: 0.6, charge: 0, anti: 0, ranged: 0.6, pursuit: 0, screen: 0, siege: 1.5, speed: 14, cost: { gold: 10, timber: 4 }, upkeep: 0.15, days: 40,
     desc: 'Traction catapults to batter palisades and lob fire over walls.' },
   trebuchet: { name: 'Trebuchets', icon: '🏰', cls: 'siege', men: 300, atk: 0.1, def: 0.2, armor: 0, morale: 0.6, charge: 0, anti: 0, ranged: 0.3, pursuit: 0, screen: 0, siege: 3.2, speed: 12, cost: { gold: 22, timber: 7, iron: 1 }, upkeep: 0.3, days: 80,
     desc: 'Counterweight engines hurling 100 kg stones. Stone curtain walls finally had an answer.', req: { unlock: 'trebuchet', default: true } },
 };
 
-export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'light_cav', 'horse_archers', 'knights', 'mamluks', 'templars', 'mangonel', 'ram', 'siege_tower', 'trebuchet', 'cog', 'galley', 'longship'];
+export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'light_cav', 'horse_archers', 'knights', 'mamluks', 'templars', 'free_company', 'merc_crossbowmen', 'mangonel', 'ram', 'siege_tower', 'trebuchet', 'cog', 'galley', 'longship'];
 
 // Terrain multipliers on unit class effectiveness (attack/defence). Cavalry hates broken ground.
 export const TERRAIN_COMBAT = {

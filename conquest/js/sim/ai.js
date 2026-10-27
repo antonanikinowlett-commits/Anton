@@ -601,6 +601,7 @@ export const AIMixin = {
     if (can('horse_archers')) add('horse_archers', 3);
     if (n.horses > 8) add(can('mamluks') ? 'mamluks' : can('templars') ? 'templars' : 'knights', 2);
     else add('light_cav', 1);
+    if (this.atWar(n.id) && n.gold > 250) add('free_company', 2); // rich realms at war hire mercenaries
     const doctrine = regs.longbowmen || regs.horse_archers ? 'missile' : cavHeavy ? 'defensive' : regs.knights || regs.mamluks || regs.templars ? 'shock' : 'balanced';
     const t = n.templates.find((x) => x.name === 'Royal Host');
     if (t) Object.assign(t, { regs, doctrine });

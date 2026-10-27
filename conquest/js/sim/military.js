@@ -48,7 +48,7 @@ export const MilitaryMixin = {
       const u = UNITS[type];
       const cav = u.cls === 'cav' ? 1 + this.mod(nid, 'cavCost') : 1;
       for (const [k, v] of Object.entries(u.cost)) c[k] += v * count * rc * cav;
-      c.manpower += u.men * count;
+      if (!u.merc) c.manpower += u.men * count; // mercenaries are bought, not levied
       if (count) days.push(u.days);
     }
     for (const k of Object.keys(c)) c[k] = Math.round(c[k]);
@@ -416,6 +416,13 @@ export const MilitaryMixin = {
     if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
     a.attrWhy = why;
+    // unpaid mercenaries drift away
+    if (n && n.gold < 0 && a.regs.some((r) => UNITS[r.type].merc)) {
+      let left = 0;
+      for (const r of a.regs) if (UNITS[r.type].merc) { const d = r.men * 0.04; r.men -= d; left += d; r.morale = Math.max(0.05, r.morale - 0.03); }
+      if (left > 0) why.push(['Mercenaries desert: the treasury cannot pay them', 0]);
+      if (a.nation === s.player && !a.deserterWarned) { a.deserterWarned = true; this.notify({ title: 'Mercenaries deserting', icon: '💰', text: `${a.name}: mercenaries are walking out because the treasury is empty.`, army: a.id }); }
+    } else if (a.deserterWarned) a.deserterWarned = false;
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
