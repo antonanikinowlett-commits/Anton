@@ -596,6 +596,7 @@ export class MapView {
       case 'culture': { const h = hash2(pr.culture.length * 31 + pr.culture.charCodeAt(0), pr.culture.charCodeAt(1) || 0, 3); const h2 = hash2(pr.culture.charCodeAt(2) || 0, pr.culture.length, 7); return [80 + h * 160, 80 + h2 * 150, 90 + (1 - h) * 140]; }
       case 'development': { const t = clamp(pr.dev / 22, 0, 1); return [60 + t * 60, 70 + t * 170, 40 + t * 40]; }
       case 'supply': { const v = g.supplyLimit(p, pl >= 0 ? pl : pr.owner); const t = clamp(v / 18, 0, 1); return [220 - t * 160, 60 + t * 160, 50]; }
+      case 'attrition': { const t = clamp(g.attritionRisk(p, pl >= 0 ? pl : pr.owner) / 0.09, 0, 1); return [70 + t * 180, 190 - t * 140, 80]; }
       case 'unrest': { const t = clamp(pr.unrest / 60, 0, 1); return [80 + t * 170, 170 - t * 120, 70]; }
       case 'fort': { const f = g.fortLevel(p); return f === 0 ? [110, 110, 100] : [[150, 140, 90], [190, 160, 70], [230, 170, 50], [250, 120, 40]][Math.min(3, f - 1)]; }
       case 'terrainType': return hexToRgb({ farmland: '#c8c060', plains: '#9ab86a', forest: '#3a7a3a', taiga: '#2a5a4a', hills: '#a08a5a', mountains: '#8a7a7a', marsh: '#5a7a6a', steppe: '#d0c080', desert: '#e8d090' }[sp.terrain]);

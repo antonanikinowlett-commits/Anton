@@ -101,7 +101,7 @@ export const ArmyMixin = {
       const ri = a.regs.indexOf(r);
       const d = el('div', { class: 'reg' + (regSel.has(ri) ? ' picked' : ''), onclick: () => { if (!mine) return; regSel.has(ri) ? regSel.delete(ri) : regSel.add(ri); this.renderArmy(); } });
       d.innerHTML = `<div class="row"><span class="ri">${u.icon}</span><span class="grow">${u.name}</span></div><div class="row between"><span>${fmt(r.men)}</span><span class="gold">${'★'.repeat(Math.floor((r.xp || 0) * 3))}</span></div><div class="bar green"><i style="width:${r.morale * 100}%"></i></div>`;
-      d._tip = () => unitTip(r.type) + `<hr>Men ${Math.round(r.men)}/${r.max} · morale ${pct(r.morale)} · experience ${pct(r.xp || 0)}`;
+      d._tip = () => unitTip(r.type) + `<hr>Men ${Math.round(r.men)}/${r.max} · morale ${pct(r.morale)} · experience ${pct(r.xp || 0)}${UNITS[r.type].merc ? ` · loyalty ${pct(r.loy ?? 1)} (falls while the treasury is empty; below 50% they desert)` : ''}`;
       regs.append(d);
     }
     pb.append(regs);

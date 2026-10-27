@@ -416,13 +416,19 @@ export const MilitaryMixin = {
     if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
     a.attrWhy = why;
-    // unpaid mercenaries drift away
-    if (n && n.gold < 0 && a.regs.some((r) => UNITS[r.type].merc)) {
+    // mercenary loyalty: falls while the treasury is empty, recovers when paid; the disloyal walk away
+    if (a.regs.some((r) => UNITS[r.type].merc)) {
+      const broke = n && n.gold < 0;
       let left = 0;
-      for (const r of a.regs) if (UNITS[r.type].merc) { const d = r.men * 0.04; r.men -= d; left += d; r.morale = Math.max(0.05, r.morale - 0.03); }
-      if (left > 0) why.push(['Mercenaries desert: the treasury cannot pay them', 0]);
-      if (a.nation === s.player && !a.deserterWarned) { a.deserterWarned = true; this.notify({ title: 'Mercenaries deserting', icon: '💰', text: `${a.name}: mercenaries are walking out because the treasury is empty.`, army: a.id }); }
-    } else if (a.deserterWarned) a.deserterWarned = false;
+      for (const r of a.regs) {
+        if (!UNITS[r.type].merc) continue;
+        r.loy = clamp((r.loy ?? 1) + (broke ? -0.02 : 0.01), 0, 1);
+        if (r.loy < 0.5) { const d = r.men * 0.05 * (1 - r.loy); r.men -= d; left += d; r.morale = Math.max(0.05, r.morale - 0.03); }
+      }
+      if (left > 0) why.push(['Mercenaries desert: they are unpaid and disloyal', 0]);
+      if (broke && a.nation === s.player && !a.deserterWarned) { a.deserterWarned = true; this.notify({ title: 'Mercenaries restless', icon: '💰', text: `${a.name}: the treasury is empty and the mercenaries are losing faith.`, army: a.id }); }
+      else if (!broke) a.deserterWarned = false;
+    }
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
@@ -434,6 +440,20 @@ export const MilitaryMixin = {
       }
     }
     if (a.regs.some((r) => r.men < 30)) a.regs = a.regs.filter((r) => r.men >= 30);
+  },
+  // Per-month attrition an army of nation nid would suffer standing in province p (0..~0.2), for the map mode.
+  attritionRisk(p, nid) {
+    const sp = this.map.provinces[p];
+    if (sp.sea) return 0.09;
+    const se = this.season();
+    let a = 0;
+    if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain))) a += 0.001;
+    if (se === 'summer' && sp.terrain === 'desert') a += 0.0008;
+    const n = this.s.nations[nid];
+    if (n && n.food < 0) a += 0.001;
+    const lim = this.supplyLimit(p, nid);
+    if (lim < 3) a += 0.0015 * (3 / Math.max(0.5, lim) - 1) * 3 * 0.5;
+    return Math.min(0.2, a * 30);
   },
   dailyRecruit() {
     const s = this.s;
