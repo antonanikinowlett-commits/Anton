@@ -8,3 +8,8 @@ Reported to fixer (session_01DWFX6UDAcppDhULwit3mH3) 2026-10-27, from docs/qa/si
 | negative morale (reg morale -0.005) | seed 2 day 2979 | still failing (minor) |
 | MON alive with 0 provinces; 0-regiment armies | 50y seeds 1-3 | not seen in 20y |
 `controller = -2` is the rebel sentinel, not a bug (invariant fixed).
+
+## 2026-10-27 12:40 re-test (dev 2ba98df + ws/design,battle,progression,military,ui merged in scratch; fix/conquest not on remote yet)
+check 60/60, smoke OK, longrun 20y×2 no crash (13 ms/day avg, 1.0M men y20), `tools/qa/visual.cjs` OK (far/mid/close render fine).
+Still failing: frozen world (ALM858/CUM477/BYZ420 at y20), non-mutual alliances (HRE/BAV, LOM/FLO, PAP/GEN, ENG/TOU…), 0-regiment army (seed 2 day 396).
+Visual (ws/design, minor): far zoom shows repeating diamond/star-shaped light patches across open sea (west of Ireland/France).
