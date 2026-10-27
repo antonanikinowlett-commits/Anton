@@ -17,3 +17,7 @@ Visual (ws/design, minor): far zoom shows repeating diamond/star-shaped light pa
 ## 2026-10-27 13:25 verify fix/conquest a4442e9 (20y×2 seeds)
 VERIFIED: non-mutual alliances, tick time (13.2/13.6 ms/day at y20), army growth, sea-diamond render (ws/design). Borders: 412/346 provinces changed owner by y20 (new `provs changed owner` column) – "frozen world" withdrawn (top-3 sizes understate turnover).
 Open (minor): transient 0-regiment army (1 hit/seed), regiment morale slightly negative (-0.02). Tick still ~13 ms vs 10 budget.
+
+## 2026-10-27 14:55 dev e87241d (+ws/progression 01426e9, ws/battle), 20y×3
+check 70/70, smoke OK, visual OK, no crash, save/load OK, 7–8 ms/day (within budget), 111–125 wars, 245–310 provinces changed owner.
+Open: rebel armies at y20 = 13/22/20 of 55/71/70 armies (a quarter–third of all armies; was 0 on a4442e9) – check unrest/rebel spawn & disband (js/sim/politics.js / ai.js); 0-regiment army (1–2/run, transient); morale slightly <0.
