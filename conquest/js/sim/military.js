@@ -396,22 +396,26 @@ export const MilitaryMixin = {
     const sp = this.map.provinces[a.loc];
     const g = this.generalOf(a);
     let attr = 0;
-    if (sp.sea) attr += 0.003;
+    const why = [];
+    a.supply = null;
+    if (sp.sea) { attr += 0.003; why.push(['At sea: ships and rations wear men down', 0.003]); }
     else {
       const regs = this.armiesAt(a.loc).filter((b) => b.nation === a.nation).reduce((t, b) => t + b.regs.length, 0);
       const lim = this.supplyLimit(a.loc, a.nation) * (1 + (g?.gen?.logistics || 0) * 0.1);
-      if (regs > lim) attr += 0.0015 * (regs / lim - 1) * 3;
+      a.supply = { regs, lim: Math.round(lim * 10) / 10 };
+      if (regs > lim) { const x = 0.0015 * (regs / lim - 1) * 3; attr += x; why.push([`Overcrowded: ${regs} regiments here, the land supports ${a.supply.lim}`, x]); }
       const se = this.season();
-      if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain)) && !(g && g.traits.includes('winter_soldier'))) attr += 0.001;
-      if (se === 'summer' && sp.terrain === 'desert') attr += 0.0008;
-      if (n && n.food < 0) attr += 0.001;
-      if (g && g.traits.includes('logistician')) attr *= 0.5;
+      if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain)) && !(g && g.traits.includes('winter_soldier'))) { attr += 0.001; why.push(['Winter in mountains, taiga or the far north', 0.001]); }
+      if (se === 'summer' && sp.terrain === 'desert') { attr += 0.0008; why.push(['Summer heat and thirst in the desert', 0.0008]); }
+      if (n && n.food < 0) { attr += 0.001; why.push(['The realm is starving: no food for the army', 0.001]); }
+      if (g && g.traits.includes('logistician')) { attr *= 0.5; why.push(['Logistician general halves attrition', 0]); }
       // foraging devastates enemy land
       const pr = s.prov[a.loc];
       if (pr.owner !== a.nation) pr.devast = Math.min(100, pr.devast + 0.15 * a.regs.length / 5);
     }
     if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
+    a.attrWhy = why;
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);

@@ -105,6 +105,15 @@ export const ArmyMixin = {
       regs.append(d);
     }
     pb.append(regs);
+    // supply & attrition
+    {
+      const at = a.attrition || 0;
+      const pc = (at * 30 * 100).toFixed(1);
+      const card = el('div', { class: 'small', style: { marginTop: '6px' } });
+      card.innerHTML = `📦 Supply: ${a.supply ? `${a.supply.regs}/${a.supply.lim} regiments supported here` : a.atSea ? 'at sea' : '—'} · Attrition <b class="${at > 0 ? 'neg' : 'pos'}">${pc}%/month</b>`;
+      card._tip = () => (a.attrWhy && a.attrWhy.length ? a.attrWhy.map(([t, v]) => `${t}${v ? ` (−${(v * 30 * 100).toFixed(1)}%/month)` : ''}`).join('<br>') : 'No attrition. Armies in friendly land recover; enemy land, winter in mountains or taiga, desert summers, and overcrowding all cost men.');
+      pb.append(card);
+    }
     // orders
     if (mine) {
       const o = el('div', { class: 'row wrap', style: { marginTop: '8px' } });
