@@ -114,3 +114,25 @@ registerPanel({ id: 'progress', icon: '📚', name: 'Progress', key: 'i', order:
   pb.append(tabs);
   ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, ach: renderAchievements })[cur](ui, pb, g, n);
 } });
+
+// End-of-game summary (the age ends in 1453). Shown once per session by AlertsMixin.updateAlerts.
+export function showEndScore(ui) {
+  const g = ui.g, s = g.s, n = ui.P;
+  const rows = s.nations.filter((x) => x.alive).map((x) => [x, g.nationScore(x.id)]).sort((a, b) => b[1] - a[1]);
+  const pos = rows.findIndex((r) => r[0].id === n.id) + 1;
+  const was = ui.speed;
+  ui.setSpeed(0);
+  ui.modal((m, close) => {
+    m.append(el('div', { class: 'mh' }, el('div', { class: 'frame-title' }, `The Year ${END_YEAR}: An Age Ends`)));
+    const mb = el('div', { class: 'mb' });
+    const p = n.prog;
+    const top = rows.slice(0, 8).map(([x, v], i) => `<tr${x.id === n.id ? ' class="click"' : ''}><td>${i + 1}</td><td>${x.id === n.id ? '<b class="gold">' + x.name + '</b>' : x.name}</td><td>${v}</td></tr>`).join('');
+    mb.innerHTML = ico(`<div class="small">${n.name} stands as a <b>${RANKS[p.rank]}</b> with <b>${g.ownedProvinces(n.id).length}</b> provinces, ${p.known.length} innovations, ${p.ach.length} of ${Object.keys(ACHIEVEMENTS).length} achievements and ${n.stats.won} battles won.</div>
+      <div class="frame-title" style="font-size:18px;margin:8px 0">Score ${g.nationScore(n.id)} — ${pos}${['st', 'nd', 'rd'][pos - 1] || 'th'} in Europe</div>
+      <table class="tbl"><tr><th>#</th><th>Realm</th><th>Score</th></tr>${top}</table>
+      <div class="muted small" style="margin-top:6px">You may keep ruling; the chronicle continues.</div>`);
+    m.append(mb);
+    const done = () => { close(); if (was) ui.setSpeed(was); };
+    m.append(el('div', { class: 'mf' }, el('div', { class: 'btn primary', onclick: done }, 'Continue ruling'), el('div', { class: 'btn', onclick: () => { done(); ui.state && (ui.subtab.progress = 'ach'); ui.openTab('progress'); } }, 'Achievements & score')));
+  }, { dismiss: false });
+}
