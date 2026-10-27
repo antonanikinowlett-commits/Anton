@@ -125,6 +125,7 @@ export const ArmyMixin = {
       if (others.length) o.append(el('div', { class: 'btn small', onclick: () => { g.merge([a.id, ...others.map((b) => b.id)]); this.renderArmy(); } }, '⧉ Merge here'));
       const pr = s.prov[a.loc];
       if (pr && pr.siege && pr.siege.by === a.nation) o.append(el('div', { class: 'btn small danger', onclick: () => { const r = g.assault(a.loc); this.toast('Assault', r || 'The walls are stormed!', r ? '💀' : '🏰'); this.renderArmy(); } }, '⚔ Assault'));
+      if (a.template && !a.battle) o.append(el('div', { class: 'btn small green', onclick: () => { const r = g.reinforceFromTemplate(a.id); this.toast(r ? 'Cannot reinforce' : 'Reinforcements', r || 'Missing regiments are mustering and will join the army.', r ? '🚫' : '⚔'); this.updateTopbar(); }, 'data-tip': 'Recruit the regiments this army has lost, up to its template. They muster here and merge in.' }, '➕ Reinforce from template'));
       if (a.battle) o.append(el('div', { class: 'btn small primary', onclick: () => this.battleViewer.open(a.battle) }, '👁 Watch battle'));
       o.append(el('div', { class: 'btn small danger', onclick: () => this.confirm('Disband army', `Disband ${a.name}? 60% of the men return to the manpower pool.`, () => { g.disband(a.id); this.selectArmies([]); }) }, '✖ Disband'));
       pb.append(o);

@@ -123,17 +123,32 @@ export const MilitaryMixin = {
     if (c.manpower > n.manpower) return `Not enough manpower (${Math.round(c.manpower)} needed)`;
     return null;
   },
-  recruit(nid, p, t) {
+  recruit(nid, p, t, mergeInto) {
     const why = this.canRecruit(nid, p, t);
     if (why) return why;
     const n = this.s.nations[nid], c = this.templateCost(nid, t);
     for (const k of ['gold', 'iron', 'timber', 'horses', 'manpower']) n[k] -= c[k];
     const barracks = this.s.prov[p].buildings.barracks || 0;
     const days = Math.max(10, Math.round(c.days * (1 - barracks * 0.2)));
-    this.s.recruit.push({ id: this.newId(), nation: nid, prov: p, template: { ...t, regs: { ...t.regs } }, days, total: days });
+    this.s.recruit.push({ id: this.newId(), nation: nid, prov: p, template: { ...t, regs: { ...t.regs } }, days, total: days, mergeInto: mergeInto || null });
     if (nid === this.s.player) this.log(`Mustering "${t.name}" at ${this.provName(p)} (${days} days).`, { nation: nid, type: 'mil', prov: p });
     this.emit('recruit');
     return null;
+  },
+  // Top an army up to the composition of the template it was raised from; the new regiments muster
+  // in the army's province and merge into it when ready.
+  reinforceFromTemplate(aid) {
+    const a = this.s.armies[aid];
+    if (!a) return 'No army';
+    const t = this.s.nations[a.nation]?.templates.find((x) => x.id === a.template);
+    if (!t) return 'This army was not raised from a saved template';
+    if (a.atSea || a.loc >= this.L || this.s.prov[a.loc].controller !== a.nation) return 'Must be in a province you control';
+    const have = {};
+    for (const r of a.regs) have[r.type] = (have[r.type] || 0) + 1;
+    const missing = {};
+    for (const [k, c] of Object.entries(t.regs)) if (c > (have[k] || 0)) missing[k] = c - (have[k] || 0);
+    if (!Object.keys(missing).length) return 'Already at template strength';
+    return this.recruit(a.nation, a.loc, { id: t.id, name: `${a.name} reinforcements`, regs: missing, doctrine: t.doctrine }, a.id);
   },
   cancelRecruit(id) {
     const i = this.s.recruit.findIndex((r) => r.id === id);
@@ -465,6 +480,7 @@ export const MilitaryMixin = {
         const regs = this.regsFromTemplate(r.template);
         const a = this.createArmy(r.nation, r.prov, regs, r.template.name, { doctrine: r.template.doctrine });
         a.template = r.template.id;
+        if (r.mergeInto && s.armies[r.mergeInto] && s.armies[r.mergeInto].loc === r.prov) a.mergeInto = r.mergeInto;
         if (r.nation === s.player) { this.log(`${a.name} has mustered at ${this.provName(r.prov)}.`, { nation: r.nation, type: 'mil', prov: r.prov, army: a.id }); this.emit('mustered', a.id); }
         // auto-assign an idle general to AI armies
         if (r.nation !== s.player) { const gen = this.charsOf(r.nation, 'general').find((c) => !c.army); if (gen) this.assignGeneral(a.id, gen.id); }

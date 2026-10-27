@@ -1,7 +1,7 @@
 // Military panel: Armies, fronts, templates, mustering and the unit codex.
 import { el, fmt, pct } from '../../util.js';
 import { coaSVG } from '../heraldry.js';
-import { UNITS, UNIT_ORDER, unitAvailable, unitReqText } from '../../data/units.js';
+import { UNITS, UNIT_ORDER, unitAvailable, unitReqText, TERRAIN_COMBAT } from '../../data/units.js';
 import { DOCTRINES } from '../../data/tactics.js';
 import { unitTip } from '../tips.js';
 import { registerPanel } from './registry.js';
@@ -108,6 +108,8 @@ function templateEditor(ui, pb) {
   if (!S.cav) tips.push('No cavalry: no pursuit to finish fleeing enemies, and no flank cover.');
   if (S.siege === 0) tips.push('No siege engines: castles will take many months to starve out.');
   if (S.regs > 24) tips.push('Large armies may exceed the supply limit of poor provinces, especially in winter.');
+  // combat width: how many of these regiments can fight at once on each kind of ground
+  pb.append(H(`<div class="small" style="margin-top:6px">↔ Combat width (fighting at once / total ${S.regs}): ${[['plains', 'Plains'], ['hills', 'Hills'], ['forest', 'Forest'], ['mountains', 'Mountains'], ['marsh', 'Marsh']].map(([k, nm]) => `${nm} ${Math.min(S.regs, Math.max(6, Math.round(TERRAIN_COMBAT[k].width / 2)))}`).join(' · ')}. The rest wait in reserve.</div>`));
   pb.append(H(tips.map((t) => `<div class="small" style="margin-top:3px">• ${t}</div>`).join('')));
   pb.append(H(`<div class="small" style="margin-top:6px">Cost: 🪙 ${C.gold} · ⚒ ${C.iron} · 🪵 ${C.timber} · 🐎 ${C.horses} · 👥 ${fmt(C.manpower)}</div>`));
   const btns = el('div', { class: 'row wrap', style: { marginTop: '6px' } });
