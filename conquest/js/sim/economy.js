@@ -33,15 +33,17 @@ export const EconomyMixin = {
     const unrestF = 1 - pr.unrest / 200;
     const sameFaith = pr.religion === this.s.nations[nid].religion ? 1 : 0.85;
     const devast = 1 - pr.devast / 100;
-    const tax = pr.dev * 0.08 * (1 + 0.15 * (b.market || 0)) * ctl * unrestF * sameFaith * devast;
-    const trade = ((b.market || 0) * 0.3 + (b.port || 0) * 0.45 + (sp.imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * ctl * devast * (pr.blockadedBy !== undefined ? 0.2 : 1);
+    const tax = pr.dev * 0.08 * (1 + 0.08 * (b.market || 0)) * ctl * unrestF * sameFaith * devast;
+    const trade = ((b.market || 0) * 0.2 + (b.port || 0) * 0.3 + (sp.imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * ctl * devast * (pr.blockadedBy !== undefined ? 0.2 : 1);
     const food = ((te.food * 0.35 * (1 + 0.6 * (b.farm || 0)) + (sp.river > 0.03 ? 0.2 : 0)) * ctl * devast - pr.dev * 0.03) * 0.45;
     const iron = ((te.iron || 0) * 0.2 + (b.mine || 0) * (0.8 + (te.iron || 0) * 0.6)) * ctl;
     const timber = ((te.timber || 0) * 0.3 + (b.lumber || 0) * 1.2) * ctl;
     const horses = ((te.horses || 0) * 0.15 + (b.stables || 0) * 0.6) * ctl;
-    const goldMine = (b.mine || 0) * 0.3 * ctl;
+    const goldMine = (b.mine || 0) * 0.12 * ctl;
     return { tax, trade, food, iron, timber, horses, goldMine };
   },
+  // stacked income bonuses (laws, foci, innovations, ministers) have diminishing returns: +100% counts as +56%
+  softMult(m) { return m > 0 ? m / (1 + m * 0.8) : m; },
   budget(nid) {
     const n = this.s.nations[nid];
     const B = { tax: 0, trade: 0, mines: 0, food: 0, iron: 0, timber: 0, horses: 0, armyUpkeep: 0, armyFood: 0, court: 0, admin: 0, interest: 0, tribute: 0 };
@@ -49,8 +51,8 @@ export const EconomyMixin = {
       const i = this.provinceIncome(p, nid);
       B.tax += i.tax; B.trade += i.trade; B.mines += i.goldMine; B.food += i.food; B.iron += i.iron; B.timber += i.timber; B.horses += i.horses;
     }
-    B.tax *= 1 + this.mod(nid, 'taxMult');
-    B.trade *= 1 + this.mod(nid, 'tradeMult');
+    B.tax *= 1 + this.softMult(this.mod(nid, 'taxMult'));
+    B.trade *= 1 + this.softMult(this.mod(nid, 'tradeMult'));
     B.food *= B.food > 0 ? 1 + this.mod(nid, 'foodMult') : 1;
     B.iron *= 1 + this.mod(nid, 'ironMult');
     B.horses *= 1 + this.mod(nid, 'horsesMult');
@@ -60,13 +62,17 @@ export const EconomyMixin = {
     }
     B.armyUpkeep *= 1 + this.mod(nid, 'upkeepMult');
     const owned = this.ownedProvinces(nid);
-    B.admin = owned.length * 0.025 + owned.reduce((t, p) => t + this.s.prov[p].dev, 0) * 0.006;
+    // administration grows faster than the realm: every province, development point and building level costs upkeep
+    B.admin = owned.length * 0.02 + owned.reduce((t, p) => t + this.s.prov[p].dev * 0.016 + Object.entries(this.s.prov[p].buildings).reduce((x, [k, y]) => x + y * (BUILDINGS[k]?.upkeep ?? 0.07), 0), 0);
     B.court = 0.4 * COUNCIL_ROLES.filter((r) => n.council[r]).length + 0.3 * this.charsOf(nid, 'general').length;
     if (n.gold < 0) B.interest = -n.gold * 0.02;
     // vassal tribute
     for (const v of this.s.nations) if (v.alive && v.overlord === nid) B.tribute += (1 + this.ownedProvinces(v.id).length * 0.08) * this.tributeFactor(v.id);
     if (n.overlord >= 0) B.tribute -= (1 + this.ownedProvinces(nid).length * 0.08) * this.tributeFactor(nid);
     B.nodes = this.tradeIncome(nid);
+    // commerce saturates: the more a realm earns from trade, the smaller each extra coin (merchant republics saturate later)
+    const T = B.trade + B.nodes;
+    if (T > 0) { const K = 3.2 * Math.sqrt(this.ownedProvinces(nid).length || 1) * (n.gov === 'merchant_republic' ? 1.8 : 1), f = 1 / (1 + T / K); B.trade *= f; B.nodes *= f; }
     B.income = B.tax + B.trade + B.nodes + B.mines + Math.max(0, B.tribute);
     B.expense = B.armyUpkeep + B.court + B.admin + B.interest + Math.max(0, -B.tribute);
     B.net = B.income - B.expense;
@@ -95,7 +101,8 @@ export const EconomyMixin = {
         pr.religion = n.religion; this.emit('province', p);
       }
       // development growth
-      const growth = 0.008 * (1 + (pr.buildings.farm || 0) * 0.3 + (pr.buildings.market || 0) * 0.3 + this.mod(n.id, 'devGrowth')) * (pr.unrest > 40 ? 0 : 1) * (pr.controller === pr.owner ? 1 : 0);
+      // slow, with diminishing returns: the richer a province, the harder it is to improve (soft cap ~20)
+      const growth = 0.0011 * (1 + (pr.buildings.farm || 0) * 0.25 + (pr.buildings.market || 0) * 0.2 + this.mod(n.id, 'devGrowth')) * Math.max(0, 1 - pr.dev / 20) * (pr.unrest > 40 ? 0 : 1) * (pr.controller === pr.owner ? 1 : 0);
       if (this.rng() < growth && pr.dev < 30) { pr.dev++; }
       if (sp && pr.garrison < 1) pr.garrison = Math.min(1, pr.garrison + 0.1);
       // rebellion
@@ -103,7 +110,7 @@ export const EconomyMixin = {
     }
   },
   // invest in a province: settlers, clearings, new villages
-  developCost(p) { return Math.round(30 + this.s.prov[p].dev * 7); },
+  developCost(p) { const d = this.s.prov[p].dev; return Math.round(60 + d * d * 12); },
   developProvince(nid, p) {
     const pr = this.s.prov[p], n = this.s.nations[nid];
     if (pr.owner !== nid || pr.controller !== nid) return 'Must own and control the province';

@@ -77,7 +77,7 @@ export const ProgressionMixin = {
   hasResearchOptions(nid) { return INNOVATIONS.some((i) => this.innovAvailable(nid, i.id)); },
   innovCost(nid, id) {
     const i = INNOV[id], n = this.s.nations[nid];
-    let c = 120 * (1 + i.era * 0.7);
+    let c = 260 * (1 + i.era * 0.7);
     const yr = dateOf(this.s.day).y;
     if (i.year > yr) c *= 1 + Math.min(1.5, (i.year - yr) / 50);
     const nb = this._neighbours ? this._neighbours[nid] : null;
@@ -102,7 +102,10 @@ export const ProgressionMixin = {
   _learn(n, id) {
     const i = INNOV[id];
     n.prog.known.push(id);
-    n.mods.push({ src: 'innov:' + id, mods: i.mods });
+    // income bonuses are halved: dozens of innovations stack additively and would otherwise run the economy away
+    const mods = {};
+    for (const [k, v] of Object.entries(i.mods)) mods[k] = ['taxMult', 'tradeMult', 'foodMult', 'devGrowth'].includes(k) ? v * 0.5 : v;
+    n.mods.push({ src: 'innov:' + id, mods });
     if (i.unlock && !n.unlocks.includes(i.unlock) && (i.unlock !== 'longbowmen' || ['english', 'welsh'].includes(n.culture))) n.unlocks.push(i.unlock);
     this.recalcMods(n.id);
     this.log(`${n.name} masters ${i.name}.`, { nation: n.id });

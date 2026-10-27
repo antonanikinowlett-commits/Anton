@@ -2,6 +2,7 @@
 // Two holy-war slots share the machinery: s.papacy.crusade (Catholic, called by the Pope) and
 // s.papacy.jihad (Sunni, called by the leading Sunni realm). State is plain JSON, back-filled by initPapacy().
 import { clamp } from '../util.js';
+import { NATIONS } from '../data/nations.js';
 
 const SLOTS = { crusade: { faith: 'catholic', verb: 'Crusade', word: 'crusade' }, jihad: { faith: 'sunni', verb: 'Jihad', word: 'jihad' } };
 const CALL_WINDOW = 730;        // days the call stays open for joiners
@@ -112,7 +113,7 @@ export const PapacyMixin = {
         if (r) { delete c.members[nid]; return r; }
         w = this.warBetween(nid, c.target);
       }
-      if (w) { c.warId = w.id; w.holy = kind; c.provs0 = this.ownedProvinces(c.target).length; c.start = s.day; }
+      if (w) { c.warId = w.id; w.holy = kind; c.provs0 = this.ownedProvinces(c.target).length; c.targetProvs = this.ownedProvinces(c.target).slice(); c.start = s.day; }
     } else if (!w.att.includes(nid) && !w.def.includes(nid)) this.joinWar(w, nid, 'att');
     this.papalFavorChange(nid, 10);
     this.log(`${n.name} takes the cross.`, { nation: nid, important: nid === s.player });
@@ -204,6 +205,25 @@ export const PapacyMixin = {
     if (over) this._finishHolyWar(kind);
     else if (w) for (const id of Object.keys(c.members)) { const m = c.members[id]; if (!w.att.includes(+id) && !w.def.includes(+id)) delete c.members[id]; }
   },
+  // revive a fallen Latin state (Jerusalem, then Antioch) from the provinces the crusaders took, or let them keep the spoils
+  _crusaderState(c, memberIds) {
+    const s = this.s, taken = c.targetProvs.filter((p) => memberIds.includes(s.prov[p].owner));
+    if (taken.length < 3) return;
+    const tag = ['JER', 'ANT'].find((x) => { const n = this.nationByTag(x); return n && !n.alive; });
+    if (!tag) { this.log('The crusaders divide the conquered lands among themselves.', { important: true }); return; }
+    const n = this.nationByTag(tag);
+    n.alive = true; n.overlord = -1; n.allies = []; n.marriages = []; n.truces = {}; n.cbs = []; n.mods = n.mods.filter((m) => m.src !== 'excomm');
+    n.gold = 100; n.food = 100; n.legitimacy = 65; n.stability = 1; n.prestige = 25; n.warExhaustion = 0; n.excommunicated = false;
+    for (const p of taken) this.setOwner(p, n.id);
+    n.maxManpower = this.calcMaxManpower(n.id); n.manpower = Math.round(n.maxManpower * 0.6);
+    this.initCourt(n, NATIONS[n.id], this.rng);
+    n.templates = [];
+    this.initTemplates(n);
+    this.spawnStartingArmies(n);
+    for (const o of s.nations) { if (o.id === n.id) continue; o.opinion[n.id] = this.baseOpinion(o, n); n.opinion[o.id] = this.baseOpinion(n, o); if (o.religion === 'catholic') o.opinion[n.id] += 30; }
+    this.recalcMods(n.id);
+    this.log(`The crusaders found the ${n.name} in the conquered lands (${taken.length} provinces).`, { nation: n.id, important: true });
+  },
   _finishHolyWar(kind) {
     const s = this.s, P = s.papacy, c = P[kind], sl = SLOTS[kind];
     const t = s.nations[c.target];
@@ -223,6 +243,8 @@ export const PapacyMixin = {
         if (id === s.player) this.notify({ nation: id, title: 'Crusade failed', icon: '✠', text: `The ${sl.word} against ${t.name} has failed. Prestige −10.` });
       }
     }
+    // a victorious crusade against Muslim lands may found a crusader state out of the conquered provinces
+    if (won && kind === 'crusade' && t.religion === 'sunni' && c.targetProvs) this._crusaderState(c, ids);
     // the victorious leader is crowned in the conquered land
     const lead = won ? this.holyWarLeader(kind) : null;
     if (lead !== null && lost >= 3) { const L = s.nations[lead]; L.prestige += 20; L.legitimacy = Math.min(100, L.legitimacy + 5); }
