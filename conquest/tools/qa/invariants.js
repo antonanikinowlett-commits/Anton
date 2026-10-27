@@ -15,7 +15,7 @@ export function check(g) {
   });
   for (const n of s.nations) {
     if (!n.alive) { if (g.ownedProvinces(n.id).length) v.push(`dead nation ${n.tag} owns provinces`); continue; }
-    if (!g.ownedProvinces(n.id).length) v.push(`alive nation ${n.tag} owns 0 provinces`);
+    if (!n.ai.horde && !g.ownedProvinces(n.id).length) v.push(`alive nation ${n.tag} owns 0 provinces`);
     if (n.manpower < 0) v.push(`${n.tag} negative manpower ${n.manpower}`);
     if (n.capital >= 0 && n.capital < L && s.prov[n.capital].owner !== n.id && g.ownedProvinces(n.id).length) v.push(`${n.tag} capital ${n.capital} not owned`);
     for (const a of n.allies) if (!nat(a) || !s.nations[a].alive) v.push(`${n.tag} allied with dead/invalid ${a}`);

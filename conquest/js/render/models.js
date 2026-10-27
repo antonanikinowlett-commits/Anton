@@ -38,6 +38,7 @@ const cyl = (seg = 8) => new THREE.CylinderGeometry(0.5, 0.5, 1, seg);
 const cone = (seg = 8) => new THREE.ConeGeometry(0.5, 1, seg);
 const pyr = new THREE.ConeGeometry(0.72, 1, 4);
 const sph = new THREE.SphereGeometry(0.5, 8, 6);
+const ico = new THREE.IcosahedronGeometry(0.5, 0);
 const prism = (() => { // gable roof
   const g = new THREE.BufferGeometry();
   const v = [-0.5, 0, -0.5, 0.5, 0, -0.5, 0, 0.5, -0.5, -0.5, 0, 0.5, 0.5, 0, 0.5, 0, 0.5, 0.5];
@@ -203,14 +204,35 @@ export const MODELS = {
     part(box, WOOD, { y: 0.45, sx: 0.6, sy: 0.04, sz: 0.04, rz: -0.6 }),
     part(box, '#5a5a5a', { x: -0.2, y: 0.3, sx: 0.1, sy: 0.12, sz: 0.1 }),
   ]),
-  tree: () => merge([
-    part(cyl(5), '#5a3e26', { y: 0.12, sx: 0.06, sy: 0.24, sz: 0.06 }),
-    part(sph, '#ffffff', { y: 0.38, sx: 0.36, sy: 0.38, sz: 0.36 }),
+  tree: () => merge([ // broadleaf: trunk and three lumpy crown blobs (tinted per instance)
+    part(cyl(5), '#5a3e26', { y: 0.12, sx: 0.07, sy: 0.26, sz: 0.07 }),
+    part(ico, '#ffffff', { y: 0.38, sx: 0.4, sy: 0.34, sz: 0.4 }),
+    part(ico, '#e6ecd8', { x: 0.13, y: 0.3, z: 0.06, sx: 0.28, sy: 0.26, sz: 0.28 }),
+    part(ico, '#f6f6ee', { x: -0.1, y: 0.5, z: -0.05, sx: 0.26, sy: 0.24, sz: 0.26 }),
   ]),
-  pine: () => merge([
-    part(cyl(5), '#5a3e26', { y: 0.08, sx: 0.05, sy: 0.16, sz: 0.05 }),
-    part(cone(6), '#ffffff', { y: 0.36, sx: 0.32, sy: 0.5, sz: 0.32 }),
-    part(cone(6), '#ffffff', { y: 0.56, sx: 0.22, sy: 0.36, sz: 0.22 }),
+  pine: () => merge([ // conifer: three stacked tiers
+    part(cyl(5), '#5a3e26', { y: 0.07, sx: 0.05, sy: 0.14, sz: 0.05 }),
+    part(cone(7), '#ffffff', { y: 0.26, sx: 0.36, sy: 0.3, sz: 0.36 }),
+    part(cone(7), '#eef2ea', { y: 0.44, sx: 0.28, sy: 0.28, sz: 0.28 }),
+    part(cone(7), '#ffffff', { y: 0.6, sx: 0.19, sy: 0.26, sz: 0.19 }),
+  ]),
+  cypress: () => merge([
+    part(cyl(5), '#5a3e26', { y: 0.05, sx: 0.04, sy: 0.1, sz: 0.04 }),
+    part(cone(6), '#ffffff', { y: 0.38, sx: 0.17, sy: 0.7, sz: 0.17 }),
+  ]),
+  peak: () => merge([ // rocky mountain: stacked irregular cones, strata shading
+    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
+    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
+    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
+    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
+  ]),
+  peakSnow: () => merge([ // high peak with snow cap
+    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
+    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
+    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
+    part(cone(5), '#ffffff', { x: -0.1, y: 1.08, z: -0.05, sx: 0.36, sy: 0.4, sz: 0.36 }),
+    part(cone(5), '#fafcff', { x: 0.25, y: 0.98, z: 0.1, sx: 0.46, sy: 0.4, sz: 0.44, ry: 1.1 }),
+    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
   ]),
   palm: () => merge([
     part(cyl(5), '#7a5a36', { y: 0.3, sx: 0.04, sy: 0.6, sz: 0.04, rz: 0.1 }),
@@ -221,3 +243,41 @@ export const MODELS = {
     part(cyl(4), WOOD_D, { y: 0.45, sx: 0.02, sy: 0.2, sz: 0.02 }),
   ]),
 };
+
+// ── Unit figures (white parts are tinted with the realm colour per instance). Each < ~150 tris.
+const SKIN = '#d8b090', MAIL = '#8d9097', STEEL = '#b4b8c0', LEATHER = '#5a4a3a', GOLD = '#d4a83a';
+function legs(y = 0.05, c = LEATHER) {
+  return [part(box, c, { x: -0.035, y, sx: 0.045, sy: 0.12, sz: 0.045 }), part(box, c, { x: 0.035, y, sx: 0.045, sy: 0.12, sz: 0.045 })];
+}
+function torso(c, h = 0.22, w = 0.12) { return [part(box, c, { y: 0.11 + h / 2, sx: w, sy: h, sz: 0.08 }), part(box, SKIN, { y: 0.11 + h + 0.05, sx: 0.075, sy: 0.085, sz: 0.075 })]; }
+const kite = (x, c = '#ffffff') => [part(box, c, { x, y: 0.26, z: 0.01, sx: 0.025, sy: 0.17, sz: 0.1 }), part(box, '#2a2014', { x: x + (x > 0 ? 0.014 : -0.014), y: 0.26, z: 0.01, sx: 0.006, sy: 0.12, sz: 0.012 })];
+const spear = (x, len = 0.62, y = 0.34) => [part(cyl(4), '#6a5030', { x, y, sx: 0.014, sy: len, sz: 0.014 }), part(cone(4), '#c8c8d0', { x, y: y + len / 2 + 0.03, sx: 0.035, sy: 0.07, sz: 0.035 })];
+function horse(coat, caparison) {
+  return [
+    part(box, coat, { y: 0.22, sx: 0.13, sy: 0.15, sz: 0.38 }),
+    part(box, coat, { y: 0.34, z: 0.21, sx: 0.07, sy: 0.2, sz: 0.09, rx: -0.45 }),
+    part(box, coat, { y: 0.43, z: 0.28, sx: 0.07, sy: 0.07, sz: 0.12 }),
+    part(box, '#2a1e14', { y: 0.25, z: -0.21, sx: 0.03, sy: 0.12, sz: 0.04, rx: 0.4 }),
+    ...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => part(box, '#3a2a1a', { x: a * 0.045, z: b * 0.14, y: 0.08, sx: 0.035, sy: 0.17, sz: 0.035 })),
+    ...(caparison ? [part(box, caparison, { y: 0.21, sx: 0.145, sy: 0.14, sz: 0.28 })] : []),
+  ];
+}
+const rider = (coat, helm, extra = []) => [part(box, coat, { y: 0.38, sx: 0.1, sy: 0.17, sz: 0.075 }), part(box, SKIN, { y: 0.51, sx: 0.07, sy: 0.075, sz: 0.07 }), ...helm, ...extra];
+
+Object.assign(MODELS, {
+  spear: () => merge([...legs(), ...torso('#ffffff', 0.2, 0.11), part(cone(5), '#7a6a50', { y: 0.455, sx: 0.09, sy: 0.05, sz: 0.09 }), ...spear(0.085, 0.6), ...kite(-0.075, '#e8dcc0')]),
+  pike: () => merge([...legs(), ...torso('#ffffff', 0.2, 0.11), part(box, '#7a6a50', { y: 0.46, sx: 0.1, sy: 0.04, sz: 0.1 }), part(cyl(4), '#6a5030', { x: 0.07, y: 0.5, z: 0.12, sx: 0.014, sy: 0.9, sz: 0.014, rx: Math.PI / 2.6 }), part(cone(4), '#c8c8d0', { x: 0.07, y: 0.68, z: 0.36, sx: 0.035, sy: 0.07, sz: 0.035, rx: Math.PI / 2.6 })]),
+  manatarms: () => merge([...legs(0.05, MAIL), ...torso('#ffffff', 0.22, 0.12), part(box, MAIL, { y: 0.28, sx: 0.125, sy: 0.07, sz: 0.085 }), part(box, STEEL, { y: 0.47, sx: 0.085, sy: 0.075, sz: 0.085 }), part(box, STEEL, { y: 0.51, sx: 0.02, sy: 0.04, sz: 0.09 }), ...kite(-0.085), part(cyl(4), STEEL, { x: 0.085, y: 0.36, sx: 0.015, sy: 0.3, sz: 0.015 }), part(box, GOLD, { x: 0.085, y: 0.24, sx: 0.05, sy: 0.012, sz: 0.012 })]),
+  axeman: () => merge([...legs(0.05, MAIL), ...torso('#ffffff', 0.22, 0.125), part(box, STEEL, { y: 0.47, sx: 0.085, sy: 0.075, sz: 0.085 }), part(box, '#b8602a', { y: 0.34, z: 0.05, sx: 0.11, sy: 0.04, sz: 0.012 }), part(cyl(4), '#6a5030', { x: 0.09, y: 0.38, sx: 0.016, sy: 0.55, sz: 0.016 }), part(box, STEEL, { x: 0.09, y: 0.6, z: 0.03, sx: 0.015, sy: 0.1, sz: 0.1 })]),
+  archer: () => merge([...legs(), ...torso('#ffffff', 0.2, 0.11), part(cone(5), '#4a5a3a', { y: 0.455, sx: 0.1, sy: 0.07, sz: 0.1 }), part(new THREE.TorusGeometry(0.18, 0.012, 3, 8, Math.PI), '#6a4a2a', { x: 0.1, y: 0.3, ry: Math.PI / 2, rz: Math.PI / 2 }), part(box, '#8a7a5a', { x: -0.06, y: 0.2, z: -0.05, sx: 0.04, sy: 0.14, sz: 0.04 })]),
+  crossbow: () => merge([...legs(), ...torso('#ffffff', 0.2, 0.11), part(cone(5), '#6a5a4a', { y: 0.455, sx: 0.1, sy: 0.06, sz: 0.1 }), part(box, '#6a4a2a', { x: 0.06, y: 0.3, z: 0.1, sx: 0.025, sy: 0.025, sz: 0.2 }), part(box, '#6a4a2a', { x: 0.06, y: 0.3, z: 0.17, sx: 0.2, sy: 0.015, sz: 0.015 }), ...kite(-0.075, '#d8d0b0')]),
+  lightcav: () => merge([...horse('#7a5a3a', null), ...rider('#ffffff', [part(cone(5), '#6a5a4a', { y: 0.57, sx: 0.09, sy: 0.06, sz: 0.09 })], [...spear(0.08, 0.62, 0.55).map((p) => p)])]),
+  horsearcher: () => merge([...horse('#9a7a4a', null), ...rider('#ffffff', [part(cone(5), '#c8a860', { y: 0.57, sx: 0.09, sy: 0.07, sz: 0.09 })], [part(new THREE.TorusGeometry(0.15, 0.012, 3, 8, Math.PI), '#6a4a2a', { x: 0.09, y: 0.42, ry: Math.PI / 2, rz: Math.PI / 2 })])]),
+  knight: () => merge([...horse('#6a4a30', '#ffffff'), part(box, '#ffffff', { y: 0.18, z: -0.17, sx: 0.15, sy: 0.14, sz: 0.04 }),
+    ...rider(MAIL, [part(box, STEEL, { y: 0.52, sx: 0.085, sy: 0.1, sz: 0.085 }), part(box, '#ffffff', { y: 0.6, z: -0.03, sx: 0.025, sy: 0.07, sz: 0.06 })], [part(box, '#ffffff', { y: 0.35, sx: 0.115, sy: 0.12, sz: 0.085 }), ...kite(-0.075), part(cyl(4), '#6a5030', { x: 0.08, y: 0.44, z: 0.2, sx: 0.016, sy: 0.75, sz: 0.016, rx: Math.PI / 2.2 }), part(box, '#ffffff', { x: 0.08, y: 0.6, z: 0.45, sx: 0.01, sy: 0.07, sz: 0.1 })])]),
+  templar: () => merge([...horse('#7a6a58', '#f0ece0'), ...rider(MAIL, [part(box, STEEL, { y: 0.52, sx: 0.085, sy: 0.1, sz: 0.085 })], [part(box, '#f0ece0', { y: 0.35, sx: 0.115, sy: 0.12, sz: 0.085 }), part(box, '#ffffff', { y: 0.36, z: 0.044, sx: 0.02, sy: 0.1, sz: 0.01 }), part(box, '#ffffff', { y: 0.38, z: 0.044, sx: 0.07, sy: 0.02, sz: 0.01 }), ...kite(-0.075, '#f0ece0'), part(cyl(4), '#6a5030', { x: 0.08, y: 0.44, z: 0.2, sx: 0.016, sy: 0.75, sz: 0.016, rx: Math.PI / 2.2 })])]),
+  mamluk: () => merge([...horse('#3a2a1e', '#ffffff'), ...rider('#ffffff', [part(cyl(6), '#e8e0c8', { y: 0.58, sx: 0.1, sy: 0.07, sz: 0.1 }), part(cone(5), STEEL, { y: 0.64, sx: 0.02, sy: 0.05, sz: 0.02 })], [part(box, MAIL, { y: 0.35, sx: 0.105, sy: 0.07, sz: 0.08 }), part(cyl(4), '#6a5030', { x: 0.08, y: 0.44, z: 0.2, sx: 0.016, sy: 0.75, sz: 0.016, rx: Math.PI / 2.2 }), part(cyl(8), '#b8a060', { x: -0.08, y: 0.4, sx: 0.015, sy: 0.12, sz: 0.12 })])]),
+  cog: () => merge([part(box, '#6a4a2e', { y: 0.12, sx: 0.5, sy: 0.18, sz: 1.3 }), part(box, '#6a4a2e', { y: 0.12, z: 0.7, sx: 0.3, sy: 0.14, sz: 0.2, rx: 0.3 }), part(cyl(5), WOOD_D, { y: 0.7, sx: 0.04, sy: 1.1, sz: 0.04 }), part(box, '#ffffff', { y: 0.78, z: 0.02, sx: 0.7, sy: 0.7, sz: 0.02 }), part(box, '#4a3420', { y: 0.27, z: -0.55, sx: 0.4, sy: 0.14, sz: 0.2 }), part(box, '#4a3420', { y: 0.27, z: 0.55, sx: 0.36, sy: 0.12, sz: 0.2 })]),
+  galley: () => merge([part(box, '#7a5a38', { y: 0.08, sx: 0.28, sy: 0.12, sz: 1.5 }), part(cone(4), '#7a5a38', { y: 0.1, z: 0.85, sx: 0.2, sy: 0.3, sz: 0.2, rx: Math.PI / 2 }), part(cyl(5), WOOD_D, { y: 0.55, sx: 0.03, sy: 0.9, sz: 0.03 }), part(box, '#ffffff', { y: 0.6, sx: 0.5, sy: 0.4, sz: 0.02, rz: 0 }), ...[-1, 1].flatMap((a) => [0.5, 0.15, -0.2, -0.55].map((z) => part(box, '#4a3420', { x: a * 0.3, y: 0.05, z, sx: 0.28, sy: 0.015, sz: 0.02 })))]),
+  longship: () => merge([part(box, '#6a4a2e', { y: 0.08, sx: 0.26, sy: 0.1, sz: 1.2 }), part(box, '#6a4a2e', { y: 0.2, z: 0.65, sx: 0.04, sy: 0.3, sz: 0.1, rx: 0.5 }), part(box, '#6a4a2e', { y: 0.2, z: -0.65, sx: 0.04, sy: 0.3, sz: 0.1, rx: -0.5 }), part(cyl(5), WOOD_D, { y: 0.5, sx: 0.03, sy: 0.8, sz: 0.03 }), part(box, '#ffffff', { y: 0.62, sx: 0.55, sy: 0.38, sz: 0.02 }), ...[-1, 1].flatMap((a) => [0.3, -0.1, -0.5].map((z) => part(cyl(10), '#d8c8a0', { x: a * 0.15, y: 0.14, z, sx: 0.1, sy: 0.015, sz: 0.1, rx: Math.PI / 2, ry: Math.PI / 2 })))]),
+});

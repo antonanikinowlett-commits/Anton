@@ -159,7 +159,7 @@ export const DiplomacyMixin = {
   },
   proposeAlliance(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
-    if (a.allies.includes(bid)) return 'Already allied';
+    if (a.allies.includes(bid) || b.allies.includes(aid)) return 'Already allied';
     if (this.atWar(aid, bid)) return 'We are at war';
     const [sc] = this.acceptance(aid, bid, 'alliance');
     if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return 'They refuse'; }
@@ -204,7 +204,7 @@ export const DiplomacyMixin = {
   makeVassal(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     b.overlord = aid;
-    b.allies = b.allies.filter((x) => x !== aid);
+    b.allies = b.allies.filter((x) => x !== aid); a.allies = a.allies.filter((x) => x !== bid);
     for (const w of this.warsOf(bid)) this.leaveWar(w, bid);
     this.log(`The ${b.name} swears fealty to the ${a.name}.`, { nation: aid, type: 'diplo' });
     this.emit('diplo');
