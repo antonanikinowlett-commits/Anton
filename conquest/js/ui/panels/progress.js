@@ -113,6 +113,36 @@ function renderDecisions(ui, pb, g, n) {
   }
 }
 
+function renderPapacy(ui, pb, g, n) {
+  const P = g.s.papacy, kind = g.holyWarKind(n.id), word = kind === 'jihad' ? 'Jihad' : 'Crusade';
+  if (!P) return;
+  if (n.religion === 'catholic' && n.tag !== 'PAP') {
+    pb.append(H(`<div class="card hl"><b>Papal favour: ${Math.round(n.papalFavor)}</b>${barHTML(n.papalFavor / 100, n.papalFavor < 15 ? 'red' : 'green')}<div class="muted small">Rises with clergy loyalty, donations and crusading; falls when the realm is in disorder. Below 15 the Pope may excommunicate the ruler.</div></div>`));
+    if (n.excommunicated) pb.append(el('div', { class: 'card', style: { marginTop: '6px' } }, H('<b class="neg">Excommunicated</b> <span class="muted small">−legitimacy and stability each month; every Catholic realm may declare holy war on us.</span>'),
+      el('div', { class: 'btn primary', style: { marginTop: '6px' }, onclick: () => { const r = g.liftExcommunication(n.id); ui.toast('Penance', r || 'We are received back into the Church.', r ? '🚫' : '✝'); ui.renderPanel(true); } }, 'Do penance (100 gold)')));
+  }
+  if (!kind) { pb.append(H('<p class="muted">Our faith has no holy war to call or answer.</p>')); }
+  else {
+    const c = P[kind];
+    if (!c) pb.append(H(`<p class="muted">No ${word.toLowerCase()} is currently proclaimed.</p>`));
+    else {
+      const t = g.s.nations[c.target], mine = c.members[n.id];
+      const rank = Object.keys(c.members).map(Number).sort((a, b) => g.contribution(b, kind) - g.contribution(a, kind));
+      const card = el('div', { class: 'card hl', style: { marginTop: '6px' } });
+      card.innerHTML = ico(`<b>${word} against ${t.name}</b><div class="small muted">${c.scripted === 'fourth_crusade' ? 'The Fourth Crusade. ' : ''}Open for joiners until ${Math.max(0, Math.ceil((c.endDay - g.s.day) / 30))} more months. ${rank.length} realm(s) have taken the cross.</div>`);
+      const why = g.canJoinHolyWar(n.id, kind);
+      const row = el('div', { class: 'row wrap', style: { marginTop: '6px' } });
+      if (!mine && n.religion === (kind === 'jihad' ? 'sunni' : 'catholic')) row.append(el('div', { class: 'btn primary' + (why ? ' disabled' : ''), onclick: () => { const r = g.joinHolyWar(n.id, kind); ui.toast(word, r || 'We take the cross!', r ? '🚫' : '✠'); ui.renderPanel(true); } }, why ? `Cannot join: ${why}` : `Take the cross`));
+      if (n.religion === (kind === 'jihad' ? 'sunni' : 'catholic')) row.append(el('div', { class: 'btn', onclick: () => { const r = g.donateHolyWar(n.id, 60, kind); ui.toast(word, r || 'Donated 60 gold.', r ? '🚫' : '💰'); ui.renderPanel(true); } }, 'Donate 60 gold'));
+      card.append(row);
+      if (mine) card.append(H(`<div class="small pos" style="margin-top:4px">We are crusading: contribution ${Math.round(g.contribution(n.id, kind))}, rank ${rank.indexOf(n.id) + 1} of ${rank.length}.</div>`));
+      pb.append(card);
+      if (rank.length) pb.append(H('<div class="section">Contributors</div>' + rank.map((id, i) => `<div class="small">${i + 1}. ${g.s.nations[id].name} — ${Math.round(g.contribution(id, kind))}</div>`).join('')));
+    }
+  }
+  if (P.history.length) pb.append(H('<div class="section">Past holy wars</div>' + P.history.slice().reverse().map((h) => `<div class="small muted">${Math.floor(h.call / 365) + 1200}–${Math.floor(h.end / 365) + 1200}: ${h.kind === 'jihad' ? 'Jihad' : 'Crusade'} vs ${h.target} (${h.members.join(', ') || 'no participants'})</div>`).join('')));
+}
+
 function renderAchievements(ui, pb, g, n) {
   const p = n.prog;
   const hist = p.score.length ? p.score.map(([yr, v]) => `${yr}: ${v}`).join(' · ') : 'recorded every 5 years';
@@ -127,10 +157,10 @@ function renderAchievements(ui, pb, g, n) {
 registerPanel({ id: 'progress', icon: '📚', name: 'Progress', key: 'i', order: 55, wide: true, render(ui, pb) {
   const g = ui.g, n = ui.P;
   if (!n.prog) g._initProgFor(n);
-  const [tabs, cur] = subtabs(ui, 'progress', [['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['dec', 'Decisions'], ['ach', 'Achievements & Score']]);
+  const [tabs, cur] = subtabs(ui, 'progress', [['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['dec', 'Decisions'], ['pap', 'Papacy & Holy War'], ['ach', 'Achievements & Score']]);
   pb.style.padding = '8px';
   pb.append(tabs);
-  ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, dec: renderDecisions, ach: renderAchievements })[cur](ui, pb, g, n);
+  ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, dec: renderDecisions, pap: renderPapacy, ach: renderAchievements })[cur](ui, pb, g, n);
 } });
 
 // End-of-game summary (the age ends in 1453). Shown once per session by AlertsMixin.updateAlerts.

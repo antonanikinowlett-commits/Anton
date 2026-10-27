@@ -93,6 +93,16 @@ export const DiplomacyMixin = {
       if (n.ae[o.id]) { n.ae[o.id] = Math.max(0, n.ae[o.id] - 0.6 * (1 + this.mod(o.id, 'aeDecay'))); if (!n.ae[o.id]) delete n.ae[o.id]; }
     }
     for (const k of Object.keys(n.truces)) if (n.truces[k] < s.day) delete n.truces[k];
+    this.monthlyTribute(n);
+    if (n.id !== s.player && !n.ai.horde && n.overlord < 0 && this.rng() < 0.03) {
+      // strong realms lean on weak neighbours; friendly strong realms guarantee small ones
+      const nb = this.neighbours(n.id).map((x) => s.nations[x]).filter((o) => o?.alive && o.overlord < 0 && !this.atWar(n.id, o.id));
+      const weak = nb.filter((o) => this.power(n.id) > this.power(o.id) * 2.5 && !o.allies.includes(n.id) && !o.tribute);
+      if (weak.length && n.ai.aggro > 0.45) this.demandTribute(n.id, weak[Math.floor(this.rng() * weak.length)].id);
+      else { const small = nb.filter((o) => this.opinion(o.id, n.id) > 20 && this.power(o.id) < this.power(n.id) * 0.6 && !(n.guarantees || []).includes(o.id)); if (small.length) this.guaranteeIndependence(n.id, small[0].id); }
+    }
+    if (n.guarantees?.length) n.guarantees = n.guarantees.filter((x) => (n.guarUntil?.[x] || 0) > s.day && s.nations[x]?.alive);
+    if (n.id !== s.player && n.allies.length) for (const w of this.warsOf(n.id)) for (const al of n.allies) if (!w.att.includes(al) && !w.def.includes(al) && this.rng() < 0.25) this.callToArms(n.id, al, w.id);
     if (n.claimFab) {
       n.claimFab.days -= 30 * (1 + this.mod(n.id, 'claimSpeed'));
       if (n.claimFab.days <= 0) {
@@ -159,31 +169,135 @@ export const DiplomacyMixin = {
       R.push(['Relative power', Math.round(clamp((ratio - 3) * 12, -60, 60))]);
       if (this.ownedProvinces(bid).length > 12) R.push(['Too large to submit', -40]);
       if (relGroup(a.religion) !== relGroup(b.religion)) R.push(['Different faith', -30]);
+    } else if (kind === 'tribute') {
+      const ratio = this.power(aid) / Math.max(1, this.power(bid));
+      R.push(['Base reluctance', -35]);
+      R.push(['Relative power', Math.round(clamp((ratio - 1.5) * 25, -50, 50))]);
+      if (this.neighbours(bid).includes(aid)) R.push(['Our army at their border', 10]);
+      if (b.allies.length) R.push(['Allies may defend them', -10 * Math.min(3, b.allies.length)]);
+      if (this.atWar(bid)) R.push(['Already at war', 15]);
+    } else if (kind === 'guarantee') {
+      R.push(['Base', 10]);
+      if (relGroup(a.religion) !== relGroup(b.religion)) R.push(['Different faith', -20]);
+      if (this.power(bid) > this.power(aid) * 2) R.push(['They need no protection', -15]);
+      if (this.neighbours(bid).includes(aid)) R.push(['Neighbours distrust a guarantor', -10]);
+    } else if (kind === 'arms') {
+      R.push(['Alliance duty', 15]);
+      const foes = this.enemiesOf(aid);
+      if (foes.some((e) => this.isAlly(bid, e) || b.marriages.includes(e))) R.push(['Allied to our enemy', -1000]);
+      if (foes.some((e) => (b.truces[e] || 0) > this.s.day)) R.push(['Bound by a truce with the enemy', -1000]);
+      if (this.atWar(bid)) R.push(['Busy with their own war', -25]);
+      const strongest = Math.max(1, ...foes.map((e) => this.power(e)));
+      if (this.power(bid) < strongest * 0.5) R.push(['The enemy is too strong', -20]);
+      if (b.overlord >= 0 && b.overlord !== aid) R.push(['Their overlord forbids it', -1000]);
     }
     return [R.reduce((t, [, v]) => t + v, 0), R];
+  },
+  // "why was my offer refused": the two heaviest negative factors
+  refusal(R, verb = 'They refuse') {
+    const neg = R.filter(([, v]) => v < 0).sort((x, y) => x[1] - y[1]).slice(0, 2);
+    return neg.length ? `${verb}: ${neg.map(([k, v]) => `${k} (${v <= -1000 ? '✕' : v})`).join(', ')}` : verb;
   },
   proposeAlliance(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     if (a.allies.includes(bid) || b.allies.includes(aid)) return 'Already allied';
     if (this.atWar(aid, bid)) return 'We are at war';
-    const [sc] = this.acceptance(aid, bid, 'alliance');
-    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return 'They refuse'; }
+    if ((a.noAlly?.[bid] || 0) > this.s.day) return 'They do not forget a broken alliance (wait a few years)';
+    const [sc, R] = this.acceptance(aid, bid, 'alliance');
+    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return this.refusal(R); }
     a.allies.push(bid); b.allies.push(aid);
     this.log(`The ${a.adj} and the ${b.adj} have formed an alliance.`, { nation: aid, type: 'diplo' });
     this.emit('diplo');
     return null;
   },
   breakAlliance(aid, bid) {
-    const a = this.s.nations[aid], b = this.s.nations[bid];
+    const s = this.s, a = s.nations[aid], b = s.nations[bid];
+    // abandoning an ally in the middle of a war is dishonourable
+    const together = this.warsOf(aid).filter((w) => (w.att.includes(aid) && w.att.includes(bid)) || (w.def.includes(aid) && w.def.includes(bid)));
+    const betrayal = together.length > 0 || this.warsOf(bid).length > 0;
     a.allies = a.allies.filter((x) => x !== bid); b.allies = b.allies.filter((x) => x !== aid);
-    b.opinion[aid] = (b.opinion[aid] ?? 0) - 40; a.prestige -= 5;
+    b.opinion[aid] = (b.opinion[aid] ?? 0) - (betrayal ? 80 : 40);
+    a.prestige -= betrayal ? 20 : 5;
+    if (betrayal) a.legitimacy = Math.max(0, a.legitimacy - 5);
+    for (const x of b.allies) { const o = s.nations[x]; if (o?.alive) o.opinion[aid] = (o.opinion[aid] ?? 0) - 15; }
+    (a.noAlly ||= {})[bid] = s.day + 1825; (b.noAlly ||= {})[aid] = s.day + 1825;
+    for (const w of together) this.leaveWar(w, aid);
+    this.log(`The ${a.name} breaks its alliance with the ${b.name}${betrayal ? ' in their hour of need' : ''}.`, { nation: aid, type: 'diplo', important: aid === s.player || bid === s.player });
     this.emit('diplo');
+  },
+  breakAlliancePenalty(aid, bid) {
+    const betrayal = this.warsOf(aid).some((w) => w.att.includes(bid) || w.def.includes(bid)) || this.warsOf(bid).length > 0;
+    return betrayal ? '−80 opinion, −20 prestige, −5 legitimacy, others lose trust' : '−40 opinion, −5 prestige';
+  },
+  // ── tribute: a weaker realm pays a monthly sum for five years
+  demandTribute(aid, bid) {
+    const s = this.s, a = s.nations[aid], b = s.nations[bid];
+    if (!b?.alive || aid === bid) return 'No such realm';
+    if (this.atWar(aid, bid)) return 'We are at war';
+    if (b.tribute && b.tribute.to === aid) return 'They already pay us tribute';
+    if (b.overlord === aid) return 'They are our vassal already';
+    const [sc, R] = this.acceptance(aid, bid, 'tribute');
+    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 20; return this.refusal(R, 'They refuse and are offended'); }
+    const dev = this.ownedProvinces(bid).reduce((t, p) => t + s.prov[p].dev, 0);
+    b.tribute = { to: aid, amt: Math.max(2, Math.round(dev * 0.02)), until: s.day + 1825 };
+    b.opinion[aid] = (b.opinion[aid] ?? 0) - 15;
+    a.prestige += 4;
+    this.log(`The ${b.name} agrees to pay tribute to the ${a.name}.`, { nation: aid, type: 'diplo' });
+    this.emit('diplo');
+    return null;
+  },
+  tributeFor(aid, bid) { const b = this.s.nations[bid]; return b.tribute?.to === aid ? b.tribute : null; },
+  monthlyTribute(n) {
+    const s = this.s, tr = n.tribute;
+    if (!tr) return;
+    const to = s.nations[tr.to];
+    if (tr.until < s.day || !to?.alive || this.atWar(n.id, tr.to) || to.overlord === n.id) { n.tribute = null; return; }
+    const pay = Math.min(tr.amt, Math.max(0, n.gold));
+    n.gold -= pay; to.gold += pay;
+    n.opinion[tr.to] = (n.opinion[tr.to] ?? 0) - 0.5;
+  },
+  // ── guarantee independence: guarantors are called to the defender's side when a guaranteed realm is attacked
+  guaranteeIndependence(aid, bid) {
+    const s = this.s, a = s.nations[aid], b = s.nations[bid];
+    if (!b?.alive || aid === bid) return 'No such realm';
+    if ((a.guarantees || []).includes(bid)) return 'Already guaranteed';
+    if ((a.guarantees || []).length >= 3) return 'We cannot guarantee more than three realms';
+    if (b.overlord >= 0 || a.overlord === bid) return 'Not an independent realm';
+    const [sc, R] = this.acceptance(aid, bid, 'guarantee');
+    if (sc < 0) return this.refusal(R);
+    (a.guarantees ||= []).push(bid); (a.guarUntil ||= {})[bid] = s.day + 7300;
+    b.opinion[aid] = (b.opinion[aid] ?? 0) + 25;
+    this.log(`The ${a.name} guarantees the independence of the ${b.name}.`, { nation: aid, type: 'diplo' });
+    this.emit('diplo');
+    return null;
+  },
+  revokeGuarantee(aid, bid) {
+    const a = this.s.nations[aid], b = this.s.nations[bid];
+    if (!(a.guarantees || []).includes(bid)) return;
+    a.guarantees = a.guarantees.filter((x) => x !== bid);
+    if (b) b.opinion[aid] = (b.opinion[aid] ?? 0) - 25;
+    a.prestige -= 3;
+    this.emit('diplo');
+  },
+  // ── call an ally to arms in a war we are fighting
+  callToArms(aid, allyId, warId) {
+    const s = this.s, w = s.wars[warId], b = s.nations[allyId];
+    if (!w || !b?.alive) return 'No such war';
+    const side = w.att.includes(aid) ? 'att' : w.def.includes(aid) ? 'def' : null;
+    if (!side) return 'We are not part of that war';
+    if (!s.nations[aid].allies.includes(allyId)) return 'Not our ally';
+    if (w.att.includes(allyId) || w.def.includes(allyId)) return 'Already in the war';
+    const [sc, R] = this.acceptance(aid, allyId, 'arms');
+    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return this.refusal(R, `${b.name} declines`); }
+    this.joinWar(w, allyId, side);
+    this.log(`The ${b.name} honours the call to arms.`, { nation: allyId, type: 'diplo' });
+    return null;
   },
   proposeMarriage(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     if (a.marriages.includes(bid)) return 'Already married';
-    const [sc] = this.acceptance(aid, bid, 'marriage');
-    if (sc < 0) return 'They refuse';
+    const [sc, R] = this.acceptance(aid, bid, 'marriage');
+    if (sc < 0) return this.refusal(R);
     a.marriages.push(bid); b.marriages.push(aid);
     a.prestige += 5; b.prestige += 5;
     this.log(`A royal marriage unites the houses of the ${a.adj} and the ${b.adj}.`, { nation: aid, type: 'diplo' });
@@ -193,22 +307,23 @@ export const DiplomacyMixin = {
   proposeNAP(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     if (a.naps.includes(bid)) return 'Already have a pact';
-    const [sc] = this.acceptance(aid, bid, 'nap');
-    if (sc < 0) return 'They refuse';
+    const [sc, R] = this.acceptance(aid, bid, 'nap');
+    if (sc < 0) return this.refusal(R);
     a.naps.push(bid); b.naps.push(aid);
     this.emit('diplo');
     return null;
   },
   demandVassal(aid, bid) {
     const b = this.s.nations[bid];
-    const [sc] = this.acceptance(aid, bid, 'vassal');
-    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 25; return 'They refuse and are offended'; }
+    const [sc, R] = this.acceptance(aid, bid, 'vassal');
+    if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 25; return this.refusal(R, 'They refuse and are offended'); }
     this.makeVassal(aid, bid);
     return null;
   },
   makeVassal(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     b.overlord = aid;
+    this.vassalStart(b, a);
     b.allies = b.allies.filter((x) => x !== aid); a.allies = a.allies.filter((x) => x !== bid);
     for (const w of this.warsOf(bid)) this.leaveWar(w, bid);
     this.log(`The ${b.name} swears fealty to the ${a.name}.`, { nation: aid, type: 'diplo' });
@@ -271,6 +386,7 @@ export const DiplomacyMixin = {
     // the defender calls allies, vassals and overlord
     const defCall = new Set([...b.allies, ...s.nations.filter((x) => x.alive && x.overlord === bid).map((x) => x.id)]);
     if (b.overlord >= 0) defCall.add(b.overlord);
+    for (const x of s.nations) if (x.alive && x.id !== aid && x.guarantees?.includes(bid)) defCall.add(x.id);
     // fearful neighbours join a coalition against aggressive conquerors
     for (const o of s.nations) if (o.alive && (o.ae[aid] || 0) > 45 && this.opinion(o.id, aid) < -60) defCall.add(o.id);
     for (const x of defCall) {
