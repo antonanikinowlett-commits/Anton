@@ -11,6 +11,8 @@ Verify with screenshots from `npm run smoke` and close-zoom shots; attach before
 _Updated 2026-10-26._
 - **Done:** `docs/STYLE.md` v1. `ws:ui` issue #1 filed (CSS tokens + `.ic` CSS). Icons: `js/ui/icons.js` (56 glyphs, `icon()`, `iconFor()`, `iconize()`, `EMOJI` map covering ~95 emoji) + `assets/icons/*.svg` (regenerate with `node assets/icons/export.mjs`).
 - **Visuals pass 1 (done):** terrain bake richer — per-biome tone patches, grain, northern tundra, stronger hillshade, turquoise coastal shallows (`js/render/terrain.js`).
+- **Visuals pass 2 (done):** flat UI chrome; per-regiment 3D figures (knight/templar/mamluk/men-at-arms/pike/archer/crossbow/horse archer/ships, realm tint only on near-white parts); sea artifact fix; rocky/snow-capped mountain peaks by altitude; richer broadleaf/conifer/cypress trees.
+- **Blocked:** real flags/portraits need network access to commons.wikimedia.org / upload.wikimedia.org.
 - **Next (orchestrator list):** 2) trees/mountains 3) effects (water foam, clouds, seasons, smoke, dust) 4) CSS vars + icon adoption.
 - **Older next:**
   1. File `ws:ui` icon adoption issue (use `iconize()` on panel HTML; add `.ic` CSS from issue #1).

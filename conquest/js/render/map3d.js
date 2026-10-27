@@ -212,6 +212,7 @@ export class MapView {
     progress('Planting forests', 0.97);
     await tick();
     this.buildTrees();
+    this.buildPeaks();
     this.buildBuildingMeshes();
     this.buildArmyMeshes();
     this.labelGroup = new THREE.Group();
@@ -259,7 +260,7 @@ export class MapView {
   buildTrees() {
     const { W, H, biome, land, height, provinces, pid } = this.map;
     const rng = mulberry32(5);
-    const decid = [], pine = [], palm = [];
+    const decid = [], pine = [], palm = [], cyp = [];
     const anchors = new Set();
     for (const p of provinces) if (!p.sea) anchors.add(Math.round(p.y) * W + Math.round(p.x));
     for (let y = 1; y < H - 1; y += 1) for (let x = 1; x < W - 1; x += 1) {
@@ -277,6 +278,7 @@ export class MapView {
       const ent = [tx, tz, 0.9 + rng() * 0.7, rng()];
       if (b === BIOME.DESERT || (b === BIOME.STEPPE && this.map.lat[y] < 34)) palm.push(ent);
       else if (b === BIOME.TAIGA || b === BIOME.MOUNT || (b === BIOME.FOREST && (this.map.lat[y] > 55 || rng() < 0.25))) pine.push(ent);
+      else if (b !== BIOME.FOREST && this.map.lat[y] < 44 && rng() < 0.35) cyp.push(ent);
       else decid.push(ent);
     }
     const CH = 160;
@@ -309,7 +311,35 @@ export class MapView {
       mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 60000),
       mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 60000),
       mk(MODELS.palm(), palm, ['#5d8a3a', '#6e9a40'], 8000),
+      mk(MODELS.cypress(), cyp, ['#3f5e34', '#4a6a38'], 12000),
     ];
+  }
+  // ── mountain ranges: rocky peaks scaled by altitude, snow-capped above the snow line
+  buildPeaks() {
+    const { W, H, biome, land, height, lat } = this.map;
+    const rng = mulberry32(11), rock = [], snow = [];
+    for (let y = 2; y < H - 3; y += 3) for (let x = 2; x < W - 3; x += 3) {
+      const i = y * W + x;
+      if (land[i] !== 1 || biome[i] !== BIOME.MOUNT) continue;
+      const e = height[i];
+      if (e < 900 || rng() > 0.5) continue;
+      const k = 1 + clamp((e - 900) / 1800, 0, 1.6) * 1.5;
+      const ent = [x + rng() * 3, y + rng() * 3, k * (0.8 + rng() * 0.5), rng()];
+      (e > 2400 - Math.max(0, (lat[y] ?? 45) - 45) * 30 ? snow : rock).push(ent);
+    }
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    this.peaks = [[MODELS.peak(), rock], [MODELS.peakSnow(), snow]].map(([geo, list]) => {
+      const m = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length));
+      list.forEach(([x, z, sc, r], i) => {
+        q.setFromAxisAngle(up, r * 6.28);
+        M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.05, z), q, new THREE.Vector3(sc * 1.7, sc * (1.2 + r * 0.5), sc * 1.7));
+        m.setMatrixAt(i, M);
+      });
+      m.instanceMatrix.needsUpdate = true; m.frustumCulled = false;
+      this.scene.add(m);
+      return m;
+    });
   }
   setSeason() {
     const s = this.game.season();
@@ -985,6 +1015,7 @@ export class MapView {
     this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
     const showDetail = c.d < 300;
     for (const m of this.trees) m.visible = c.d < 240;
+    for (const m of this.peaks) m.visible = c.d < 520;
     for (const m of Object.values(this.bmesh)) m.visible = showDetail;
     for (const l of this.labelGroup.children) {
       const op = clamp((c.d - 110) / 160, 0, 1) * clamp((l.userData.size * 34 - c.d) / 200 + 0.6, 0.15, 1);

@@ -38,6 +38,7 @@ const cyl = (seg = 8) => new THREE.CylinderGeometry(0.5, 0.5, 1, seg);
 const cone = (seg = 8) => new THREE.ConeGeometry(0.5, 1, seg);
 const pyr = new THREE.ConeGeometry(0.72, 1, 4);
 const sph = new THREE.SphereGeometry(0.5, 8, 6);
+const ico = new THREE.IcosahedronGeometry(0.5, 0);
 const prism = (() => { // gable roof
   const g = new THREE.BufferGeometry();
   const v = [-0.5, 0, -0.5, 0.5, 0, -0.5, 0, 0.5, -0.5, -0.5, 0, 0.5, 0.5, 0, 0.5, 0, 0.5, 0.5];
@@ -203,14 +204,35 @@ export const MODELS = {
     part(box, WOOD, { y: 0.45, sx: 0.6, sy: 0.04, sz: 0.04, rz: -0.6 }),
     part(box, '#5a5a5a', { x: -0.2, y: 0.3, sx: 0.1, sy: 0.12, sz: 0.1 }),
   ]),
-  tree: () => merge([
-    part(cyl(5), '#5a3e26', { y: 0.12, sx: 0.06, sy: 0.24, sz: 0.06 }),
-    part(sph, '#ffffff', { y: 0.38, sx: 0.36, sy: 0.38, sz: 0.36 }),
+  tree: () => merge([ // broadleaf: trunk and three lumpy crown blobs (tinted per instance)
+    part(cyl(5), '#5a3e26', { y: 0.12, sx: 0.07, sy: 0.26, sz: 0.07 }),
+    part(ico, '#ffffff', { y: 0.38, sx: 0.4, sy: 0.34, sz: 0.4 }),
+    part(ico, '#e6ecd8', { x: 0.13, y: 0.3, z: 0.06, sx: 0.28, sy: 0.26, sz: 0.28 }),
+    part(ico, '#f6f6ee', { x: -0.1, y: 0.5, z: -0.05, sx: 0.26, sy: 0.24, sz: 0.26 }),
   ]),
-  pine: () => merge([
-    part(cyl(5), '#5a3e26', { y: 0.08, sx: 0.05, sy: 0.16, sz: 0.05 }),
-    part(cone(6), '#ffffff', { y: 0.36, sx: 0.32, sy: 0.5, sz: 0.32 }),
-    part(cone(6), '#ffffff', { y: 0.56, sx: 0.22, sy: 0.36, sz: 0.22 }),
+  pine: () => merge([ // conifer: three stacked tiers
+    part(cyl(5), '#5a3e26', { y: 0.07, sx: 0.05, sy: 0.14, sz: 0.05 }),
+    part(cone(7), '#ffffff', { y: 0.26, sx: 0.36, sy: 0.3, sz: 0.36 }),
+    part(cone(7), '#eef2ea', { y: 0.44, sx: 0.28, sy: 0.28, sz: 0.28 }),
+    part(cone(7), '#ffffff', { y: 0.6, sx: 0.19, sy: 0.26, sz: 0.19 }),
+  ]),
+  cypress: () => merge([
+    part(cyl(5), '#5a3e26', { y: 0.05, sx: 0.04, sy: 0.1, sz: 0.04 }),
+    part(cone(6), '#ffffff', { y: 0.38, sx: 0.17, sy: 0.7, sz: 0.17 }),
+  ]),
+  peak: () => merge([ // rocky mountain: stacked irregular cones, strata shading
+    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
+    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
+    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
+    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
+  ]),
+  peakSnow: () => merge([ // high peak with snow cap
+    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
+    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
+    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
+    part(cone(5), '#ffffff', { x: -0.1, y: 1.08, z: -0.05, sx: 0.36, sy: 0.4, sz: 0.36 }),
+    part(cone(5), '#fafcff', { x: 0.25, y: 0.98, z: 0.1, sx: 0.46, sy: 0.4, sz: 0.44, ry: 1.1 }),
+    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
   ]),
   palm: () => merge([
     part(cyl(5), '#7a5a36', { y: 0.3, sx: 0.04, sy: 0.6, sz: 0.04, rz: 0.1 }),
