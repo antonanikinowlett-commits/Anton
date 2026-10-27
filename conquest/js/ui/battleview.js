@@ -3,7 +3,7 @@
 import { el, fmt, pct, clamp, mulberry32, hexToRgb } from '../util.js';
 import { coaSVG, rebelCoa } from './heraldry.js';
 import { portraitSVG } from './portrait.js';
-import { UNITS } from '../data/units.js';
+import { UNITS, TERRAIN_COMBAT } from '../data/units.js';
 import { TACTICS, PHASES, PHASE_NAMES, DOCTRINES } from '../data/tactics.js';
 import { TRAITS } from '../data/traits.js';
 
@@ -50,7 +50,9 @@ export class BattleViewer {
     const b = this.b, g = this.g;
     const sp = g.map.provinces[b.prov];
     const W = { clear: '☀ Clear', rain: '🌧 Rain', fog: '🌫 Fog', snow: '❄ Snow', heat: '🔥 Heat' }[b.weather];
-    const tags = [`<span class="chip">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
+    const tcm = TERRAIN_COMBAT[sp.terrain];
+    const tcTip = tcm ? `Terrain effects — infantry ×${tcm.inf}, missiles ×${tcm.rng}, cavalry ×${tcm.cav}, frontage ${tcm.width}.` + (['forest', 'taiga', 'hills', 'mountains', 'marsh'].includes(sp.terrain) ? ' Favours ambushes (Ambush tactic).' : '') + (sp.terrain === 'hills' ? ' Archers on a slope: Arrow Storm bonus.' : '') + (['steppe', 'desert', 'plains'].includes(sp.terrain) ? ' Open ground favours horse archers.' : '') : '';
+    const tags = [`<span class="chip" data-tip="${tcTip}">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
     if (b.river) tags.push('<span class="chip bad" data-tip="Attacker crossing a river: −25% attack, −30% charge, narrower front">〰 River crossing</span>');
     if (b.night) tags.push('<span class="chip bad" data-tip="Night battle: missiles −35%, charges −20%, attacker −8% attack">🌙 Night</span>');
     if (b.highGround) tags.push('<span class="chip" data-tip="Defender on higher ground: +12% defence; attacker −12% attack and −15% missiles">⛰ High ground</span>');

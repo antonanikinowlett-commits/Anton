@@ -15,4 +15,5 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 - Done: viewer night chip; post-battle report (tactics per phase, strength graph) in showResult.
 - Done: viewer formations (schiltron ring, wedge, shield-wall ranks, circling horse archers).
 - Done: replay (game.s.pastBattles keeps 25 compact records; BattleViewer.replay(id), Replay button on result panel). UI could add a battle-history list calling ui.battleViewer.replay(id).
-- Todo: terrain bonuses in viewer, naval battles.
+- Done: terrain chip tooltip lists terrain multipliers and favoured tactics.
+- Todo: naval battles.
