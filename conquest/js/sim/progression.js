@@ -156,10 +156,11 @@ export const ProgressionMixin = {
   },
 
   // ── formable nations
-  formableStatus(nid, f) {
+  formableStatus(nid, f, ai = false) {
     const n = this.s.nations[nid], r = f.req;
     const inBox = this.ownedProvinces(nid).filter((p) => { const sp = this.map.provinces[p]; return sp.lon >= r.region[0] && sp.lat >= r.region[1] && sp.lon <= r.region[2] && sp.lat <= r.region[3]; }).length;
-    const checks = [['Provinces in the region', inBox, r.min], ['Prestige', Math.round(n.prestige), r.prestige], ['Gold', Math.round(n.gold), r.gold]];
+    const checks = [['Provinces in the region', inBox, r.min], ['Prestige', Math.round(n.prestige), r.prestige]];
+    if (!ai) checks.push(['Gold', Math.round(n.gold), r.gold]); // AI realms rarely hoard gold: they pay what they have
     if (r.religion) checks.push([`Faith: ${r.religion}`, n.religion === r.religion ? 1 : 0, 1]);
     return { ok: checks.every((c) => c[1] >= c[2]), checks };
   },
@@ -167,10 +168,10 @@ export const ProgressionMixin = {
     const n = this.s.nations[nid], done = n.prog.formed || [];
     return FORMABLES.filter((f) => f.tags.includes(n.tag) && !done.includes(f.id) && !this.s.nations.some((x) => x.prog?.formed?.includes(f.id)));
   },
-  formNation(nid, id) {
+  formNation(nid, id, ai = false) {
     const n = this.s.nations[nid], f = FORMABLES.find((x) => x.id === id);
-    if (!f || !f.tags.includes(n.tag) || this.s.nations.some((x) => x.prog?.formed?.includes(id)) || !this.formableStatus(nid, f).ok) return false;
-    n.gold -= f.req.gold;
+    if (!f || !f.tags.includes(n.tag) || this.s.nations.some((x) => x.prog?.formed?.includes(id)) || !this.formableStatus(nid, f, ai).ok) return false;
+    n.gold -= ai ? Math.min(Math.max(0, n.gold), f.req.gold) : f.req.gold;
     (n.prog.formed ||= []).push(id);
     if (f.rename) { n.name = f.rename.name; n.adj = f.rename.adj; }
     this.applyEffects(nid, f.effects, 'form:' + id);
@@ -247,7 +248,7 @@ export const ProgressionMixin = {
         if (n.id === s.player) this.notify({ nation: n.id, text: `Our realm has shrunk: reduced to a ${RANKS[p.rank]}.` });
       }
       this._monthlyAmbition(n);
-      if (n.id !== s.player && this.rng() < 0.05) for (const f of this.availableFormables(n.id)) if (this.formableStatus(n.id, f).ok) { this.formNation(n.id, f.id); break; }
+      if (n.id !== s.player && this.rng() < 0.05) for (const f of this.availableFormables(n.id)) if (this.formableStatus(n.id, f, true).ok) { this.formNation(n.id, f.id, true); break; }
       if (n.id === s.player) this._checkAchievements(n);
       if (dt.m === 0) {
         if (dt.y % 5 === 0) { p.score.push([dt.y, this.nationScore(n.id)]); if (p.score.length > 40) p.score.shift(); }

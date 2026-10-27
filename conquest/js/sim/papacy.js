@@ -171,7 +171,9 @@ export const PapacyMixin = {
     if (!P.fourthDone && s.day >= 365 * 2 + 170) {
       P.fourthDone = true;
       const byz = this.nationByTag('BYZ'), ven = this.nationByTag('VEN');
-      if (byz?.alive && ven?.alive && !P.crusade && this.rng() < 0.5) { this.callCrusade(byz.id, { scripted: 'fourth_crusade' }); if (ven.id !== s.player) this.joinHolyWar(ven.id, 'crusade'); }
+      const ayy = this.nationByTag('AYY');
+      const tg = ayy?.alive && this.rng() < 0.5 ? ayy : byz;
+      if (tg?.alive && ven?.alive && !P.crusade && this.rng() < 0.7) { this.callCrusade(tg.id, { scripted: 'fourth_crusade' }); if (ven.id !== s.player) this.joinHolyWar(ven.id, 'crusade'); }
     }
     for (const kind of Object.keys(SLOTS)) this._monthlyHolyWar(kind);
   },
@@ -203,7 +205,10 @@ export const PapacyMixin = {
     const w = c.warId ? s.wars[c.warId] : null;
     const over = (c.warId && !w) || (s.day >= c.endDay && !c.warId) || !t.alive;
     if (over) this._finishHolyWar(kind);
-    else if (w) for (const id of Object.keys(c.members)) { const m = c.members[id]; if (!w.att.includes(+id) && !w.def.includes(+id)) delete c.members[id]; }
+    else if (w) {
+      for (const id of Object.keys(c.members)) { if (!w.att.includes(+id) && !w.def.includes(+id)) delete c.members[id]; }
+      this._holyWarAdvance(kind, c, w);
+    }
   },
   // revive a fallen Latin state (Jerusalem, then Antioch) from the provinces the crusaders took, or let them keep the spoils
   _crusaderState(c, memberIds) {
@@ -223,6 +228,34 @@ export const PapacyMixin = {
     for (const o of s.nations) { if (o.id === n.id) continue; o.opinion[n.id] = this.baseOpinion(o, n); n.opinion[o.id] = this.baseOpinion(n, o); if (o.religion === 'catholic') o.opinion[n.id] += 30; }
     this.recalcMods(n.id);
     this.log(`The crusaders found the ${n.name} in the conquered lands (${taken.length} provinces).`, { nation: n.id, important: true });
+  },
+  // The crusading host in the field: abstracts landings, sieges and storms by the (often distant) members.
+  // Each month the strength of the members against the target decides whether a province of the target falls to the host.
+  _holyWarAdvance(kind, c, w) {
+    const s = this.s, t = s.nations[c.target];
+    const ids = Object.keys(c.members).map(Number).filter((id) => s.nations[id]?.alive);
+    if (!ids.length || !t.alive) return;
+    const members = ids.reduce((x, id) => x + this.power(id), 0);
+    let p = clamp(0.2 * members / Math.max(1, this.power(c.target)), 0.08, 0.6);
+    if (c.scripted === 'fourth_crusade' && t.tag === 'BYZ') p *= 0.6; // the walls of Constantinople
+    if (this.rng() >= p) return;
+    const owned = this.ownedProvinces(c.target).filter((x) => x !== t.capital && s.prov[x].controller === c.target);
+    if (!owned.length) return;
+    const P = this.map.provinces;
+    const held = new Set(ids);
+    // prefer provinces beside the host's conquests, then beside a member's land, then any harbour
+    const near = (x) => P[x].adj.some((e) => e.id < this.L && (held.has(s.prov[e.id].controller) || held.has(s.prov[e.id].owner)));
+    let cands = owned.filter(near);
+    if (!cands.length) cands = owned.filter((x) => P[x].coastal);
+    if (!cands.length) cands = owned;
+    const pick = cands[Math.floor(this.rng() * cands.length)];
+    const taker = this.holyWarLeader(kind) ?? ids[0];
+    const pr = s.prov[pick];
+    pr.controller = taker; pr.siege = null;
+    c.members[taker].bonus = (c.members[taker].bonus || 0) + 1;
+    w.battleScore = (w.battleScore || 0) + 4;
+    this.emit('control', pick);
+    if (taker === s.player || c.target === s.player) this.log(`The crusaders take ${this.provName(pick)}.`, { nation: taker, type: 'war', prov: pick });
   },
   _finishHolyWar(kind) {
     const s = this.s, P = s.papacy, c = P[kind], sl = SLOTS[kind];
