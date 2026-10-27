@@ -15,7 +15,7 @@ window.runSeed = function (seed, years, tag = 'FRA') {
   g.newGame(tag);
   g.s.player = -1;
   const R = { seed, years: [], violations: {}, crash: null, wars: 0, battles: 0, revolts: 0, saveload: [], maxRealmShare: 0 };
-  const L = g.L, seenWars = new Set(), seenBattles = new Set();
+  const L = g.L, owner0 = g.s.prov.map((p) => p.owner), seenWars = new Set(), seenBattles = new Set();
   let tickMs = 0, tickMax = 0, lastWarDay = 0, longestPeace = 0, day0 = 0;
   const viol = (list, day) => { for (const m of list) { const k = m.replace(/\d+/g, '#'); const e = R.violations[k] ||= { n: 0, first: day, example: m }; e.n++; } };
   const total = years * 365;
@@ -40,7 +40,7 @@ window.runSeed = function (seed, years, tag = 'FRA') {
         R.maxRealmShare = Math.max(R.maxRealmShare, sizes[0][1] / L);
         const armies = Object.values(g.s.armies);
         R.years.push({ y, ms: +(tickMs / 365).toFixed(2), msMax: +tickMax.toFixed(1), alive: alive.length, top: sizes.slice(0, 3).map((x) => x.join(':')).join(' '), topShare: +(sizes[0][1] / L).toFixed(3),
-          wars: Object.keys(g.s.wars).length, armies: armies.length, men: Math.round(armies.reduce((t, a) => t + g.armyMen(a), 0)), rebels: armies.filter((a) => a.rebelOf >= 0).length, gold: Math.round(alive.reduce((t, n) => t + n.gold, 0)) });
+          wars: Object.keys(g.s.wars).length, armies: armies.length, men: Math.round(armies.reduce((t, a) => t + g.armyMen(a), 0)), rebels: armies.filter((a) => a.rebelOf >= 0).length, changed: g.s.prov.reduce((t, p, i) => t + (p.owner !== owner0[i] ? 1 : 0), 0), gold: Math.round(alive.reduce((t, n) => t + n.gold, 0)) });
         tickMs = 0; tickMax = 0;
         if (y % 10 === 0) { // save -> load -> continue round-trip, compared against the uninterrupted run
           const json = g.serialize();
