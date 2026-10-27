@@ -37,7 +37,7 @@ const server = http.createServer((req, res) => {
     await u.evaluate(() => [...document.querySelectorAll('#start .nitem')].find(n => /France/.test(n.textContent)).click());
     await u.evaluate(() => [...document.querySelectorAll('.btn')].find(b => /Rule the/.test(b.textContent)).click());
     await u.waitForTimeout(4000);
-    for (const k of ['c', 'b', 'm', 'l', 'f', 'g', 'Escape']) { await u.keyboard.press(k); await u.waitForTimeout(400); }
+    for (const k of ['c', 'b', 'm', 'l', 'f', 'g', 'i', 'Escape']) { await u.keyboard.press(k); await u.waitForTimeout(400); }
     await u.screenshot({ path: path.join(root, 'smoke.png') });
     console.log('UI booted; screenshot at smoke.png');
   } finally { await browser.close(); server.close(); }

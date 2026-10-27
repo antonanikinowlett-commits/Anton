@@ -8,6 +8,7 @@ import './panels/realm.js';
 import './panels/court.js';
 import './panels/laws.js';
 import './panels/focus.js';
+import './panels/progress.js';
 import './panels/diplomacy.js';
 import './panels/military.js';
 import './panels/economy.js';
