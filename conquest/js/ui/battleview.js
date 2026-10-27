@@ -295,6 +295,8 @@ export class BattleViewer {
       for (let i = 0; i < dots; i++) {
         const c2 = i % cols, rr = Math.floor(i / cols);
         let px = cx + (c2 - (cols - 1) / 2) * (bw * sx / cols), py = cy + (rr - (rows - 1) / 2) * (bh * sy / Math.max(1, rows));
+        const f = formationDot(r.type, i, dots, tg.side === 'att' ? 1 : -1, t);
+        if (f) { px = cx + f[0] * bw * sx; py = cy + f[1] * bh * sy; }
         if (tg.routed) { px += (rng() - 0.5) * 30 * sx; py += (rng() - 0.5) * 40 * sy; }
         else if (v.moving) py += Math.sin(t * 10 + i) * 0.8;
         ctx.fillStyle = `rgb(${col[0] * 0.85 | 0},${col[1] * 0.85 | 0},${col[2] * 0.85 | 0})`;
@@ -361,5 +363,21 @@ export class BattleViewer {
     ctx.fillStyle = nationCol('att'); ctx.fillRect(10 * dpr, h - 14 * dpr, (w - 20 * dpr) * ma / Math.max(1, ma + md), 8 * dpr);
     ctx.fillStyle = nationCol('def'); ctx.fillRect(10 * dpr + (w - 20 * dpr) * ma / Math.max(1, ma + md), h - 14 * dpr, (w - 20 * dpr) * md / Math.max(1, ma + md), 8 * dpr);
   }
+}
+// Per-unit-type formation: offsets in -0.5..0.5 of the block box, or null for the default grid.
+// dir is +1 when the unit faces right (attacker), -1 facing left.
+function formationDot(type, i, n, dir, t) {
+  if (type === 'pikemen') { const a = i / n * 6.283; return [Math.cos(a) * 0.5, Math.sin(a) * 0.5]; } // schiltron ring
+  if (type === 'horse_archers' || type === 'mamluks') { const a = i / n * 6.283 + t * 1.6; return [Math.cos(a) * 0.55, Math.sin(a) * 0.5]; } // circling riders
+  if (type === 'knights' || type === 'templars' || type === 'varangians') { // wedge, point toward the enemy
+    let row = 0, left = i; while (left > row) { left -= row + 1; row++; }
+    const rows = Math.max(1, Math.ceil((Math.sqrt(8 * n + 1) - 1) / 2));
+    return [dir * (0.5 - row / rows), (left - row / 2) / rows];
+  }
+  if (type === 'levy_spear' || type === 'men_at_arms' || type === 'almogavars') { // shield wall: two tight ranks
+    const half = Math.ceil(n / 2), rank = i < half ? 0 : 1, k = rank ? i - half : i;
+    return [dir * (rank ? -0.12 : 0.12), (k + 0.5) / half - 0.5];
+  }
+  return null;
 }
 function key(x) { return x.a + ':' + x.i; }

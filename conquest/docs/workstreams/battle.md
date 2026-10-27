@@ -13,4 +13,5 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 - Done: rain-mud penalty (extra charge/attack malus on marsh, plains, forest).
 - Done: night battles (10%, 20% winter: ranged -35%, charge -20%, attacker -8%); reinforcements arriving raise side morale +6%. 730-day smoke OK.
 - Done: viewer night chip; post-battle report (tactics per phase, strength graph) in showResult.
-- Todo: distinct formations per unit type in viewer, replay, naval battles.
+- Done: viewer formations (schiltron ring, wedge, shield-wall ranks, circling horse archers).
+- Todo: replay, terrain bonuses in viewer, naval battles.
