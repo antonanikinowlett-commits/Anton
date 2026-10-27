@@ -5,7 +5,7 @@ import { registerPanel } from './registry.js';
 import { H, barHTML } from './common.js';
 import { TRADE_NODES } from '../../data/trade.js';
 
-registerPanel({ id: 'trade', icon: '⚓', name: 'Trade', key: 't', order: 85, render(ui, pb) {
+registerPanel({ id: 'trade', icon: '⚓', name: 'Trade', key: 'k', order: 85, render(ui, pb) {
   const g = ui.g, n = ui.P, s = g.s, T = s.trade;
   if (!T || !T.nodes) return;
   const slots = g.merchantSlots(n.id), inc = g.tradeIncome(n.id);
