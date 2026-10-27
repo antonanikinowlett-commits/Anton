@@ -4,7 +4,8 @@ import { coaSVG } from '../heraldry.js';
 import { portraitSVG } from '../portrait.js';
 import { GOVS, LAWS } from '../../data/government.js';
 import { registerPanel } from './registry.js';
-import { H, traitChips, skills, barHTML } from './common.js';
+import { H, traitChips, skills, barHTML, estName } from './common.js';
+import { RANKS } from '../../sim/progression.js';
 
 registerPanel({ id: 'realm', icon: '👑', name: 'Realm', key: 'r', order: 10, render(ui, pb) {
   const g = ui.g, n = ui.P, s = g.s;
@@ -25,6 +26,14 @@ registerPanel({ id: 'realm', icon: '👑', name: 'Realm', key: 'r', order: 10, r
     hc.innerHTML = `<span class="portrait">${portraitSVG(heir, g, 40)}</span><div><b>Heir: ${g.charName(heir)}</b> <span class="muted small">age ${g.age(heir)}</span><div class="small">${skills(heir)}</div></div>`;
     pb.append(hc);
   } else if (!['merchant_republic', 'theocracy', 'elective_monarchy'].includes(n.gov)) pb.append(el('div', { class: 'small neg', style: { marginTop: '4px' } }, 'No heir! A succession crisis threatens if the ruler dies.'));
+  // government, rank, laws and estates at a glance
+  const ri = g.rankInfo(n.id), gl = el('div', { class: 'card', style: { marginTop: '6px' } });
+  gl.innerHTML = `<div class="row between"><b>Rank: ${RANKS[ri.rank]}</b><span class="muted small">${GOVS[n.gov].name}</span></div>
+    ${ri.maxed ? '<div class="small muted">Highest rank.</div>' : `<div class="small muted">Next: ${ri.next} — ${ri.checks.map(([k, v, need]) => `<span class="${v >= need ? 'pos' : 'neg'}">${k} ${v}/${need}</span>`).join(', ')}</div>`}
+    <div class="small" style="margin-top:4px">${Object.entries(n.laws).map(([cat, opt]) => `<span class="chip" data-tip="${LAWS[cat]?.name}: ${LAWS[cat]?.options[opt]?.name}">${LAWS[cat]?.options[opt]?.name}</span>`).join(' ')}</div>
+    <div style="margin-top:6px">${Object.entries(n.estates).map(([e, v]) => `<div class="small row between"><span>${estName(n, e)}</span><span class="muted">influence ${Math.round(v.influence)}% · loyalty <b class="${v.loyalty < 35 ? 'neg' : v.loyalty > 65 ? 'pos' : ''}">${Math.round(v.loyalty)}</b></span></div>${barHTML(v.loyalty / 100, v.loyalty < 35 ? 'red' : 'green')}`).join('')}</div>
+    ${n.religion === 'catholic' && n.tag !== 'PAP' ? `<div class="small" style="margin-top:4px">Papal favour <b>${Math.round(n.papalFavor ?? 50)}</b>${n.excommunicated ? ' — <b class="neg">excommunicated</b>' : ''}</div>` : ''}`;
+  pb.append(gl);
   pb.append(el('div', { class: 'section' }, 'State of the Realm'));
   const regs = g.armiesOf(n.id).reduce((t, a) => t + a.regs.length, 0);
   const grid = el('div', { class: 'stat-grid' });

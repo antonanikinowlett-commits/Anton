@@ -248,6 +248,13 @@ export const EVENTS = [
   { id: 'jihad_called', system: true, title: 'A Call to Jihad', icon: '☪', chance: 0,
     desc: 'The ulema and the caliph’s envoys call on all Muslim princes to defend the lands of Islam against the Franks and their allies, and promise the reward of the martyrs.',
     options: [{ text: 'Answer the call with the army', effects: [{ holy: { join: 'jihad' } }] }, { text: 'Donate to the war chest (60 gold)', effects: [{ holy: { donate: { kind: 'jihad', gold: 60 } } }] }, { text: 'Our own affairs come first', effects: [{ legitimacy: -2 }] }] },
+  // ── dynastic fallout, scheduled by succession() in characters.js
+  { id: 'regency_intrigue', system: true, title: 'Intrigue Around the Child King', icon: '👑', chance: 0,
+    desc: 'With a child on the throne, queen mother, uncles and the great barons all claim the regency. Factions form in the corridors of the palace.',
+    options: [{ text: 'Form a council of regency', effects: [{ gold: -30 }, { legitimacy: 8 }, { loyalty: { nobles: 5 } }] }, { text: 'Let the queen mother rule', effects: [{ stability: 1 }, { loyalty: { nobles: -10 } }] }, { text: 'Betroth the child to a powerful house', effects: [{ prestige: 10 }, { opinion: { group: 'christian', v: 8 } }, { legitimacy: 3 }] }] },
+  { id: 'claimant_rises', system: true, title: 'A Pretender Appears', icon: '🗡', chance: 0,
+    desc: 'With no clear heir, a cousin with a good claim and a band of followers has taken up residence in a hill castle and proclaims himself the rightful ruler.',
+    options: [{ text: 'Crush the pretender', effects: [{ revolt: { n: 1, nobles: true } }, { prestige: 8 }] }, { text: 'Grant him lands and titles', effects: [{ gold: -40 }, { loyalty: { nobles: 10 } }, { legitimacy: -3 }] }] },
 ];
 
 // Scripted historical events fire once on (or after) their date for the listed realms.

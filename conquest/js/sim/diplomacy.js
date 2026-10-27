@@ -318,6 +318,7 @@ export const DiplomacyMixin = {
   makeVassal(aid, bid) {
     const a = this.s.nations[aid], b = this.s.nations[bid];
     b.overlord = aid;
+    this.vassalStart(b, a);
     b.allies = b.allies.filter((x) => x !== aid); a.allies = a.allies.filter((x) => x !== bid);
     for (const w of this.warsOf(bid)) this.leaveWar(w, bid);
     this.log(`The ${b.name} swears fealty to the ${a.name}.`, { nation: aid, type: 'diplo' });

@@ -17,6 +17,8 @@ import { EstatesMixin } from './estates.js';
 import { ProgressionMixin } from './progression.js';
 import { PapacyMixin } from './papacy.js';
 import { ReligionMixin } from './religion.js';
+import { TradeSimMixin } from './trade_sim.js';
+import { VassalsMixin } from './vassals.js';
 import { ProjectsMixin } from './projects.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
@@ -117,6 +119,7 @@ export class Game {
     this.setPlayer(playerTag);
     this.initProgression();
     this.initPapacy();
+    this.initTrade();
     for (const n of s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
@@ -261,6 +264,8 @@ export class Game {
     this.monthlyProgression();
     this.monthlyPapacy();
     this.monthlyReligion();
+    this.monthlyTrade();
+    this.monthlyVassals();
     this.monthlyEvents();
     this.emit('month');
   }
@@ -293,9 +298,10 @@ export class Game {
     this._owned = null; this._ft = null; this._wp = null;
     this.initProgression();
     this.initPapacy();
+    this.initTrade();
     for (const n of this.s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, EconomyMixin, EstatesMixin, ProjectsMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

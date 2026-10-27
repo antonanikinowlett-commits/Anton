@@ -64,9 +64,10 @@ export const EconomyMixin = {
     B.court = 0.4 * COUNCIL_ROLES.filter((r) => n.council[r]).length + 0.3 * this.charsOf(nid, 'general').length;
     if (n.gold < 0) B.interest = -n.gold * 0.02;
     // vassal tribute
-    for (const v of this.s.nations) if (v.alive && v.overlord === nid) B.tribute += 1 + this.ownedProvinces(v.id).length * 0.08;
-    if (n.overlord >= 0) B.tribute -= 1 + this.ownedProvinces(nid).length * 0.08;
-    B.income = B.tax + B.trade + B.mines + Math.max(0, B.tribute);
+    for (const v of this.s.nations) if (v.alive && v.overlord === nid) B.tribute += (1 + this.ownedProvinces(v.id).length * 0.08) * this.tributeFactor(v.id);
+    if (n.overlord >= 0) B.tribute -= (1 + this.ownedProvinces(nid).length * 0.08) * this.tributeFactor(nid);
+    B.nodes = this.tradeIncome(nid);
+    B.income = B.tax + B.trade + B.nodes + B.mines + Math.max(0, B.tribute);
     B.expense = B.armyUpkeep + B.court + B.admin + B.interest + Math.max(0, -B.tribute);
     B.net = B.income - B.expense;
     B.foodNet = B.food - B.armyFood;

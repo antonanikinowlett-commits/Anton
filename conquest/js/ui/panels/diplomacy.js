@@ -62,10 +62,18 @@ registerPanel({ id: 'diplomacy', icon: '🤝', name: 'Diplomacy', key: 'g', orde
     if (!n.naps.includes(t.id)) act('📜 Non-aggression pact', () => g.proposeNAP(n.id, t.id), accTip('nap'));
     if (t.overlord !== n.id) act('🛡 Demand vassalage', () => g.demandVassal(n.id, t.id), accTip('vassal'));
     else act('🔓 Release vassal', () => { g.releaseVassal(n.id, t.id); return null; }, 'Set them free');
+    if (t.overlord === n.id) {
+      pb.append(H(`<div class="small" style="margin:4px 0">Autonomy: <b class="${(t.autonomy ?? 50) > 70 ? 'neg' : ''}">${Math.round(t.autonomy ?? 50)}%</b> <span class="muted">(tribute ×${g.tributeFactor(t.id).toFixed(2)}; above 85% they may rebel)</span>${t.integrating ? ` — <b class="pos">integrating, ${t.integrating.left} months left</b>` : ''}</div>`));
+      act('🗝 Strengthen control (40 gold)', () => g.strengthenControl(n.id, t.id), 'Autonomy −15, but they resent it (−10 opinion).');
+      act('🏛 Integrate', () => g.integrateVassal(n.id, t.id), () => { const w = g.integrationStatus(n.id, t.id); return w ? `<span class="neg">${w}</span>` : 'Absorb them into our realm over 12 months (costs 30 prestige).'; });
+    }
     if (g.tributeFor(n.id, t.id)) pb.append(el('div', { class: 'small pos' }, `They pay us ${g.tributeFor(n.id, t.id).amt} gold a month until ${dateStr(g.tributeFor(n.id, t.id).until)}.`));
     else act('💰 Demand tribute', () => g.demandTribute(n.id, t.id), accTip('tribute'));
     if ((n.guarantees || []).includes(t.id)) act('🛡 Revoke guarantee', () => { g.revokeGuarantee(n.id, t.id); return null; }, '−25 opinion, −3 prestige', 'danger');
     else act('🛡 Guarantee independence', () => g.guaranteeIndependence(n.id, t.id), () => accTip('guarantee')() + '<br>We will be called to defend them if they are attacked.');
+    if (n.embargoes.some((e) => e.id === t.id)) act('⚓ Lift embargo', () => { g.liftEmbargo(n.id, t.id); return null; }, 'Resume trade with them.');
+    else act('⚓ Trade embargo', () => g.embargo(n.id, t.id), 'They lose half their trade power in every node where we are present (5 years). −50 opinion unless at war.', 'danger');
+    if (!n.tradeAgreements.includes(t.id)) act('📦 Trade agreement', () => g.tradeAgreement(n.id, t.id), 'Both realms gain +10% trade power in shared nodes. Needs their opinion of us ≥ 10.');
     act('😤 Insult', () => g.insult(n.id, t.id), 'They will hate us (−50) and gain a casus belli against us. +3 prestige.', 'danger');
   }
   pb.append(acts);
