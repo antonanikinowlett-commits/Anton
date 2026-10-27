@@ -6,9 +6,9 @@ import { fbm, hash2, clamp } from '../util.js';
 export const UP = 2; // province texture upsampling factor
 
 const BC = {
-  [BIOME.FARM]: [150, 160, 86], [BIOME.PLAINS]: [138, 154, 84], [BIOME.FOREST]: [70, 104, 52], [BIOME.TAIGA]: [56, 86, 58],
-  [BIOME.HILLS]: [136, 130, 84], [BIOME.MOUNT]: [128, 118, 102], [BIOME.MARSH]: [86, 104, 72], [BIOME.STEPPE]: [182, 168, 104],
-  [BIOME.DESERT]: [216, 190, 136], [BIOME.LAKE]: [60, 100, 130], [BIOME.SEA]: [30, 70, 100],
+  [BIOME.FARM]: [150, 162, 92], [BIOME.PLAINS]: [112, 148, 82], [BIOME.FOREST]: [70, 108, 58], [BIOME.TAIGA]: [50, 84, 62],
+  [BIOME.HILLS]: [140, 132, 80], [BIOME.MOUNT]: [136, 124, 108], [BIOME.MARSH]: [80, 108, 74], [BIOME.STEPPE]: [188, 170, 100],
+  [BIOME.DESERT]: [222, 192, 130], [BIOME.LAKE]: [60, 100, 130], [BIOME.SEA]: [30, 70, 100],
 };
 
 export function bakeTerrain(map) {
@@ -22,12 +22,23 @@ export function bakeTerrain(map) {
     if (land[i] === 1) {
       const e = height[i];
       const n = fbm(x / 9, y / 9, 3, 51) - 0.5, n2 = fbm(x / 40, y / 40, 3, 52) - 0.5;
-      let k = 1 + n * 0.22 + n2 * 0.18;
+      let k = 1 + n * 0.26 + n2 * 0.2;
+      // fine grain + patches of a second tone per biome (meadow/forest floor/scrub/tundra moss)
+      const grain = hash2(x, y, 77) - 0.5, patch = fbm(x / 14 + 7, y / 14 - 3, 2, 61) - 0.5;
+      k += grain * 0.04;
+      if (b === BIOME.FOREST || b === BIOME.TAIGA) { r += patch * -14; g += patch * -6; bl += patch * 10; }
+      else if (b === BIOME.PLAINS) { r += patch * 22; g += patch * 10; bl -= patch * 6; }
+      else if (b === BIOME.STEPPE || b === BIOME.HILLS) { r += patch * 34; g += patch * 22; bl += patch * 4; }
+      const lat = map.lat?.[y] ?? 45;
+      if (lat > 56 && b !== BIOME.MOUNT) { // tundra: moss and bare ground in the far north
+        const t = clamp((lat - 56) / 12, 0, 0.7);
+        r = r * (1 - t) + 150 * t; g = g * (1 - t) + 150 * t; bl = bl * (1 - t) + 118 * t;
+      }
       if (b === BIOME.FARM) {
         // patchwork of fields
         const h = hash2(Math.floor(x / 2.2), Math.floor(y / 2.2), 9);
-        k *= 0.9 + h * 0.22;
-        if (h > 0.75) { r += 22; g += 14; bl -= 6; }
+        k *= 0.95 + h * 0.12;
+        if (h > 0.75) { r += 10; g += 6; bl -= 2; }
       }
       if (b === BIOME.DESERT) { const dn = Math.sin((x + fbm(x / 20, y / 20, 2, 3) * 40) * 0.35) * 0.04; k += dn; }
       r *= k; g *= k; bl *= k;
@@ -44,16 +55,18 @@ export function bakeTerrain(map) {
       // beaches
       if (dist[i] <= 1 && e < 300 && b !== BIOME.MARSH) { r = r * 0.55 + 214 * 0.45; g = g * 0.55 + 200 * 0.45; bl = bl * 0.55 + 150 * 0.45; }
       // baked hillshade
-      const hx = (height[Math.min(i + 1, W * H - 1)] - height[Math.max(i - 1, 0)]) / 3500;
-      const hy = (height[Math.min(i + W, W * H - 1)] - height[Math.max(i - W, 0)]) / 3500;
+      const hx = (height[Math.min(i + 1, W * H - 1)] - height[Math.max(i - 1, 0)]) / 2300;
+      const hy = (height[Math.min(i + W, W * H - 1)] - height[Math.max(i - W, 0)]) / 2300;
       const nx = -hx, ny = 1, nz = -hy, nl = Math.hypot(nx, ny, nz);
       const sh = clamp((nx * sun[0] + ny * sun[1] + nz * sun[2]) / nl, 0, 1);
-      const shade = 0.62 + sh * 0.55;
+      const shade = 0.58 + sh * 0.6;
       r *= shade; g *= shade; bl *= shade;
     } else if (land[i] === 2) { r = 60; g = 100; bl = 128; }
     else {
-      const dep = clamp(-height[i] / 2000, 0, 1);
+      const dep = clamp(-height[i] / 2000, 0, 1), sh = Math.pow(1 - clamp(-height[i] / 350, 0, 1), 2);
       r = 70 - dep * 50; g = 120 - dep * 70; bl = 130 - dep * 60;
+      // turquoise shallows hugging the coast
+      r += sh * 18; g += sh * 42; bl += sh * 24;
     }
     d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = bl; d[i * 4 + 3] = 255;
   }
