@@ -27,3 +27,10 @@ Every role is a separate, long-running Claude Code session working in the same r
 ## Merging rules
 - Branch from and regularly merge in `origin/dev` (`git fetch origin dev && git merge origin/dev`). Never rebase or force-push shared branches.
 - Never commit `CrownAndConquest.html`; the orchestrator rebuilds it on `dev`.
+
+## Protocol v2 (autonomous loop)
+- **Everyone ships to `dev` themselves.** Work on your own branch; when `npm run check` + `npm run smoke` pass, `git fetch origin dev && git merge origin/dev`, re-run both, then `git push origin HEAD:dev`. Never push a failing `dev`. Never commit `CrownAndConquest.html` (the orchestrator rebuilds it).
+- **Debugger (`qa/sim`)** re-tests `dev` every time it changes (an hourly scheduled check plus a direct message from whoever just pushed): `tools/qa/longrun.cjs`, invariants, smoke. New problems go to the **fixer** by `send_message` (one short message per bug: repro + file hint) and are logged in `docs/qa/`. After the fixer reports a fix, the debugger re-runs the repro and replies "verified" or "still failing".
+- **Fixer (`fix/conquest`)** fixes debugger bugs immediately, pushes to `dev`, then messages the debugger to re-check.
+- **Art director** owns all visuals, including `js/render/*` (terrain, map texture, trees, mountains, water, effects) and `js/render/models.js`.
+- Nobody asks the owner for confirmation. Decide, do, and report in one line.
