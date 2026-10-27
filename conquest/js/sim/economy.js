@@ -83,6 +83,7 @@ export const EconomyMixin = {
       if (pr.culture !== n.culture && groupOf(pr.culture) !== n.group) target += 8;
       else if (pr.culture !== n.culture) target += 3;
       if (pr.religion !== n.religion) target += 10 + this.mod(n.id, 'unrestInfidel') * 4;
+      if (pr.heresy) target += 12;
       if (pr.controller !== pr.owner) target += 15;
       target += this.mod(n.id, 'unrest') * 3 + pr.devast * 0.2 - (pr.buildings.church || 0) * 4 + (n.food < 0 ? 10 : 0);
       target += (3 - (n.estates.peasants?.loyalty ?? 50) / 20);

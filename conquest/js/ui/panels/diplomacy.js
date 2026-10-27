@@ -57,11 +57,15 @@ registerPanel({ id: 'diplomacy', icon: '🤝', name: 'Diplomacy', key: 'g', orde
   if (!war) {
     act('🕊 Improve relations', () => g.improveRelations(n.id, t.id), 'Send envoys: +20 opinion (15 gold, once per 60 days).');
     act('🎁 Gift 50 gold', () => g.sendGift(n.id, t.id, 50), '+25 opinion');
-    if (!n.allies.includes(t.id)) act('🤝 Alliance', () => g.proposeAlliance(n.id, t.id), accTip('alliance')); else act('💔 Break alliance', () => { g.breakAlliance(n.id, t.id); return null; }, '−40 opinion, −5 prestige', 'danger');
+    if (!n.allies.includes(t.id)) act('🤝 Alliance', () => g.proposeAlliance(n.id, t.id), accTip('alliance')); else act('💔 Break alliance', () => { g.breakAlliance(n.id, t.id); return null; }, () => g.breakAlliancePenalty(n.id, t.id), 'danger');
     if (!n.marriages.includes(t.id)) act('💍 Royal marriage', () => g.proposeMarriage(n.id, t.id), accTip('marriage'));
     if (!n.naps.includes(t.id)) act('📜 Non-aggression pact', () => g.proposeNAP(n.id, t.id), accTip('nap'));
     if (t.overlord !== n.id) act('🛡 Demand vassalage', () => g.demandVassal(n.id, t.id), accTip('vassal'));
     else act('🔓 Release vassal', () => { g.releaseVassal(n.id, t.id); return null; }, 'Set them free');
+    if (g.tributeFor(n.id, t.id)) pb.append(el('div', { class: 'small pos' }, `They pay us ${g.tributeFor(n.id, t.id).amt} gold a month until ${dateStr(g.tributeFor(n.id, t.id).until)}.`));
+    else act('💰 Demand tribute', () => g.demandTribute(n.id, t.id), accTip('tribute'));
+    if ((n.guarantees || []).includes(t.id)) act('🛡 Revoke guarantee', () => { g.revokeGuarantee(n.id, t.id); return null; }, '−25 opinion, −3 prestige', 'danger');
+    else act('🛡 Guarantee independence', () => g.guaranteeIndependence(n.id, t.id), () => accTip('guarantee')() + '<br>We will be called to defend them if they are attacked.');
     act('😤 Insult', () => g.insult(n.id, t.id), 'They will hate us (−50) and gain a casus belli against us. +3 prestige.', 'danger');
   }
   pb.append(acts);
@@ -84,4 +88,17 @@ registerPanel({ id: 'diplomacy', icon: '🤝', name: 'Diplomacy', key: 'g', orde
       pb.append(el('div', { class: 'row' }, sel, el('div', { class: 'btn danger', onclick: () => ui.confirm('Declare War', `Declare war on the ${t.name}?`, () => { const r = g.declareWar(n.id, t.id, { kind: sel.value }); if (r) ui.toast('War', r, '🚫'); ui.renderPanel(true); }) }, '⚔ Declare war')), info);
     }
   } else pb.append(el('div', { class: 'btn', onclick: () => ui.openTab('wars') }, '🔥 Go to war overview'));
+  // allies that have not joined our wars can be called to arms
+  const calls = [];
+  for (const w of g.warsOf(n.id)) for (const al of n.allies) if (s.nations[al]?.alive && !w.att.includes(al) && !w.def.includes(al)) calls.push([w, al]);
+  if (calls.length) {
+    pb.append(el('div', { class: 'section' }, 'Call Allies to Arms'));
+    const row = el('div', { class: 'row wrap' });
+    for (const [w, al] of calls) {
+      const b = el('div', { class: 'btn small', onclick: () => { const r = g.callToArms(n.id, al, w.id); ui.toast('Call to arms', r || `${s.nations[al].name} joins the war.`, r ? '🚫' : '⚔'); ui.renderPanel(true); } }, `${s.nations[al].name} → ${w.name}`);
+      b._tip = () => { const [sc, R] = g.acceptance(n.id, al, 'arms'); return `<b>Acceptance: <span class="${sc >= 0 ? 'pos' : 'neg'}">${signed(sc)}</span></b><hr>${R.map(([k, v]) => `<div class="tt-line"><span>${k}</span><span>${v <= -1000 ? '✕' : signed(v)}</span></div>`).join('')}`; };
+      row.append(b);
+    }
+    pb.append(row);
+  }
 } });

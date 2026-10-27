@@ -46,6 +46,14 @@ export const ProvinceMixin = {
       sp.river > 0.03 ? chip('〰 River', 'Rivers: attackers crossing suffer −25% attack and charge.') : null,
     ].filter(Boolean));
     pb.append(stats);
+    if (own && own.id === s.player && (pr.religion !== own.religion || pr.heresy || pr.conv)) {
+      const rb = el('div', { class: 'row wrap', style: { marginTop: '6px' } });
+      const rbtn = (label, tip, fn, cls = '') => { const b = el('div', { class: 'btn small ' + cls, onclick: () => { const r = fn(); if (r) this.toast('Religion', r, '🚫'); this.renderProvince(); } }, label); b._tip = () => tip; rb.append(b); };
+      if (pr.conv) rb.append(el('span', { class: 'chip' }, `✝ Missionaries: ${pr.conv.left} months left`));
+      else if (pr.religion !== own.religion) rbtn('✝ Convert (40 gold)', `Send missionaries. About ${g.conversionMonths(own.id, p)} months; churches and a loyal clergy speed it up.`, () => g.startConversion(own.id, p), 'primary');
+      if (pr.heresy) rbtn('🔥 Suppress heresy (30 gold)', '<b>Heresy</b>: +12 unrest target here, and it can spread. An inquisition removes it.', () => g.suppressHeresy(own.id, p), 'danger');
+      pb.append(rb);
+    }
     if (pr.controller !== pr.owner) {
       const c = s.nations[pr.controller];
       pb.append(el('div', { class: 'card', style: { marginTop: '6px', borderColor: '#8a3a2a' } }, `⚔ Occupied by ${c ? c.name : 'rebels'}`));
