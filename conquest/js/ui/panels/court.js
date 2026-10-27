@@ -54,7 +54,7 @@ registerPanel({ id: 'court', icon: '🏛', name: 'Court & Estates', key: 'c', or
       const card = el('div', { class: 'card row', style: { marginTop: '5px' } });
       card.innerHTML = `<span class="portrait">${portraitSVG(c, g, 44)}</span><div class="grow"><b>${g.charName(c)}</b> <span class="muted small">age ${g.age(c)}</span>
         <div class="small">⚔ Attack ${c.gen.atk} · 🛡 Defence ${c.gen.def} · ♟ Tactics ${c.gen.tactics} · 🏰 Siege ${c.gen.siege} · 🛒 Logistics ${c.gen.logistics}</div><div class="row wrap">${traitChips(c)}</div>
-        <div class="small ${a ? '' : 'muted'}">${a ? 'Commands ' + a.name : 'Unassigned'}</div></div>`;
+        <div class="small muted">Battles ${c.battles || 0} (won ${c.wins || 0}) · kills ${(c.kills || 0).toLocaleString()} · sieges ${c.sieges || 0} · XP ${Math.round(c.xp || 0)}/30${(c.woundedUntil || 0) > s.day ? ' · <span class="neg">wounded</span>' : ''}</div><div class="small ${a ? '' : 'muted'}">${a ? 'Commands ' + a.name : 'Unassigned'}</div></div>`;
       const btns = el('div', { class: 'col' });
       if (a) btns.append(el('div', { class: 'btn small', onclick: () => ui.selectArmies([a.id], true) }, 'Show'));
       btns.append(el('div', { class: 'btn small danger', onclick: () => { g.dismissGeneral(c.id); ui.renderPanel(true); } }, 'Dismiss'));

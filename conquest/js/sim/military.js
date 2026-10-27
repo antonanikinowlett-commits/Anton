@@ -157,7 +157,7 @@ export const MilitaryMixin = {
   },
   unassignGeneral(aid) { const a = this.s.armies[aid]; if (a && a.general) { const c = this.s.chars[a.general]; if (c) c.army = null; a.general = null; } },
   generalOf(a) { return this.s.chars[a.general] || null; },
-  genStat(a, k) { const g = this.generalOf(a); return g && g.gen ? g.gen[k] + (k === 'tactics' ? this.mod(a.nation, 'generalTactics') : 0) : 0; },
+  genStat(a, k) { const g = this.generalOf(a); return g && g.gen ? Math.max(0, g.gen[k] - ((g.woundedUntil || 0) > this.s.day ? 2 : 0)) + (k === 'tactics' ? this.mod(a.nation, 'generalTactics') : 0) : 0; },
 
   disband(aid) {
     const a = this.s.armies[aid];
@@ -579,6 +579,8 @@ export const MilitaryMixin = {
       pr.controller = this.isAlly(nid, pr.owner) && this.atWar(nid, prevCtl) ? pr.owner : nid;
     }
     pr.garrison = 0.2;
+    const sg = army && this.generalOf(army);
+    if (sg && sg.gen && this.fortLevel(p) > 0) { sg.xp = (sg.xp || 0) + 6; sg.sieges = (sg.sieges || 0) + 1; if (this.rng() < 0.2) { sg.gen.siege++; if (army.nation === s.player) this.log(`${this.charName(sg)} masters the art of siegecraft at ${this.provName(p)}: siege skill ${sg.gen.siege}.`, { nation: army.nation, type: 'mil', army: army.id }); } }
     if (sacked && army && army.nation >= 0) {
       const loot = pr.dev * 0.8 * (1 + this.mod(army.nation, 'lootMult'));
       s.nations[army.nation].gold += loot;

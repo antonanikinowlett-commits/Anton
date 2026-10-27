@@ -281,6 +281,32 @@ export const BattleMixin = {
       if (s.prov[p].owner === s.player || nid === s.player) this.log(`${s.nations[nid].name} blockades ${P[p].name}: trade is choked and no troops can be raised there.`, { nation: s.player, type: 'mil', prov: p, important: true });
     }
   },
+  // Generals learn from fighting: XP, skills, and a chance at a battlefield trait after a few wins.
+  generalGainsFromBattle(g, a, enemyCas, ownCas, defended, prov) {
+    if (!g || !g.gen) return;
+    g.battles = (g.battles || 0) + 1; g.wins = (g.wins || 0) + 1; g.kills = Math.round((g.kills || 0) + enemyCas);
+    g.xp = (g.xp || 0) + 10 + Math.min(10, enemyCas / 800);
+    const mine = a.nation === this.s.player;
+    if (g.xp >= 30) {
+      g.xp = 0;
+      const k = ['atk', 'def', 'tactics', 'tactics', 'siege', 'logistics'][Math.floor(this.rng() * 6)];
+      g.gen[k]++;
+      if (mine) this.log(`${this.charName(g)} gains experience at ${prov}: ${{ atk: 'attack', def: 'defence', tactics: 'tactics', siege: 'siege', logistics: 'logistics' }[k]} is now ${g.gen[k]}.`, { nation: a.nation, type: 'mil', army: a.id });
+    }
+    if (g.wins >= 3 && g.traits.length < 4 && this.rng() < 0.2) {
+      const comp = { cav: 0, rng: 0, all: 0 };
+      for (const r of a.regs) { const c = UNITS[r.type].cls; comp.all += r.men; if (c === 'cav') comp.cav += r.men; if (c === 'rng') comp.rng += r.men; }
+      const pool = [comp.cav > comp.all * 0.4 && 'cavalry_commander', comp.rng > comp.all * 0.35 && 'archer_lord', defended && 'defensive_expert', 'inspiring', 'aggressive'].filter((t) => t && TRAITS[t] && !g.traits.includes(t));
+      const t = pool[0];
+      if (t) { g.traits.push(t); if (mine) this.log(`${this.charName(g)} has earned a name as ${TRAITS[t].name} after the Battle of ${prov}.`, { nation: a.nation, type: 'mil', army: a.id, important: true }); }
+    }
+    if (this.rng() < 0.04) this.woundGeneral(g, a, prov);
+  },
+  woundGeneral(g, a, prov) {
+    if (!g.gen || (g.woundedUntil || 0) > this.s.day) return;
+    g.woundedUntil = this.s.day + 40;
+    if (a.nation === this.s.player) this.notify({ title: 'General wounded', icon: '🩹', text: `${this.charName(g)} was wounded at ${prov}: their skills are reduced for 40 days.`, army: a.id });
+  },
   dailyBattles() {
     if (this.s.day % 5 === 0) this.dailyBlockades();
     for (const b of Object.values(this.s.battles)) {
@@ -459,8 +485,7 @@ export const BattleMixin = {
     if (nidW >= 0) s.nations[nidW].warExhaustion += casW / 6000;
     for (const a of winArmies) {
       for (const r of a.regs) { r.routed = false; r.xp = Math.min(1, (r.xp || 0) + 0.06); r.morale = Math.max(r.morale, 0.25); }
-      const g = this.generalOf(a);
-      if (g) { g.xp = (g.xp || 0) + 10; if (g.xp >= 30 && g.gen) { g.xp = 0; const k = ['atk', 'def', 'tactics'][Math.floor(this.rng() * 3)]; g.gen[k]++; } }
+      this.generalGainsFromBattle(this.generalOf(a), a, casL, casW, winner === 'def', prov);
     }
     // battle score for the war
     const w = nidW >= 0 && nidL >= 0 ? this.warBetween(nidW, nidL) : null;
@@ -476,6 +501,8 @@ export const BattleMixin = {
       for (const r of a.regs) { r.routed = false; r.morale = Math.max(0.02, r.morale * 0.5); }
       a.regs = a.regs.filter((r) => r.men >= 40);
       const g = this.generalOf(a);
+      if (g) { g.battles = (g.battles || 0) + 1; g.losses = (g.losses || 0) + 1; }
+      if (g && this.rng() < 0.2) this.woundGeneral(g, a, prov);
       if (g && this.rng() < 0.06) { this.blog(b, `${this.charName(g)} is slain on the field!`); this.killChar(g, `was slain at the Battle of ${prov}`); }
       else if (g && nidW >= 0 && nidL >= 0 && this.rng() < 0.12) {
         const ransom = Math.round(40 + 8 * (g.gen ? (g.gen.atk || 0) + (g.gen.def || 0) + (g.gen.tactics || 0) : 0));
