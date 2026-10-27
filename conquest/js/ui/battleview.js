@@ -54,6 +54,7 @@ export class BattleViewer {
     const tcTip = tcm ? `Terrain effects — infantry ×${tcm.inf}, missiles ×${tcm.rng}, cavalry ×${tcm.cav}, frontage ${tcm.width}.` + (['forest', 'taiga', 'hills', 'mountains', 'marsh'].includes(sp.terrain) ? ' Favours ambushes (Ambush tactic).' : '') + (sp.terrain === 'hills' ? ' Archers on a slope: Arrow Storm bonus.' : '') + (['steppe', 'desert', 'plains'].includes(sp.terrain) ? ' Open ground favours horse archers.' : '') : '';
     const tags = [`<span class="chip" data-tip="${tcTip}">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
     if (b.river) tags.push('<span class="chip bad" data-tip="Attacker crossing a river: −25% attack, −30% charge, narrower front">〰 River crossing</span>');
+    if (b.naval) tags.push('<span class="chip" data-tip="Fought on the water: cavalry charges are useless, missiles +15%, casualties +10%">⚓ Naval battle</span>');
     if (b.night) tags.push('<span class="chip bad" data-tip="Night battle: missiles −35%, charges −20%, attacker −8% attack">🌙 Night</span>');
     if (b.highGround) tags.push('<span class="chip" data-tip="Defender on higher ground: +12% defence; attacker −12% attack and −15% missiles">⛰ High ground</span>');
     if (b.fort) tags.push('<span class="chip" data-tip="Defending under their own walls: +15% defence and steadier morale">🏰 Fortified</span>');

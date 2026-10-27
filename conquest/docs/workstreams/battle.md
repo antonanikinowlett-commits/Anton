@@ -16,4 +16,4 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 - Done: viewer formations (schiltron ring, wedge, shield-wall ranks, circling horse archers).
 - Done: replay (game.s.pastBattles keeps 25 compact records; BattleViewer.replay(id), Replay button on result panel). UI could add a battle-history list calling ui.battleViewer.replay(id).
 - Done: terrain chip tooltip lists terrain multipliers and favoured tactics.
-- Todo: naval battles.
+- Done (partial): battle.js handles battles in sea provinces (b.naval: no charges, missiles +15%, casualties +10%; viewer chip). NEEDS ws:military: checkContact in military.js returns early for a.atSea, so fleets never meet; drop that bail for hostile armies in the same sea province. No ship units exist yet, armies cross sea directly.
