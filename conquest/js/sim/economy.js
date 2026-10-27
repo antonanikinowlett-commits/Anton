@@ -34,7 +34,7 @@ export const EconomyMixin = {
     const sameFaith = pr.religion === this.s.nations[nid].religion ? 1 : 0.85;
     const devast = 1 - pr.devast / 100;
     const tax = pr.dev * 0.08 * (1 + 0.15 * (b.market || 0)) * ctl * unrestF * sameFaith * devast;
-    const trade = ((b.market || 0) * 0.3 + (b.port || 0) * 0.45 + (sp.imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * ctl * devast;
+    const trade = ((b.market || 0) * 0.3 + (b.port || 0) * 0.45 + (sp.imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * ctl * devast * (pr.blockadedBy !== undefined ? 0.2 : 1);
     const food = ((te.food * 0.35 * (1 + 0.6 * (b.farm || 0)) + (sp.river > 0.03 ? 0.2 : 0)) * ctl * devast - pr.dev * 0.03) * 0.45;
     const iron = ((te.iron || 0) * 0.2 + (b.mine || 0) * (0.8 + (te.iron || 0) * 0.6)) * ctl;
     const timber = ((te.timber || 0) * 0.3 + (b.lumber || 0) * 1.2) * ctl;

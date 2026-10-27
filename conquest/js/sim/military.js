@@ -114,6 +114,7 @@ export const MilitaryMixin = {
   canRecruit(nid, p, t) {
     const n = this.s.nations[nid], pr = this.s.prov[p];
     if (!pr || pr.owner !== nid || pr.controller !== nid) return 'Must recruit in a province you control';
+    if (pr.blockadedBy !== undefined) return 'Province is blockaded by an enemy fleet';
     for (const type of Object.keys(t.regs)) if (t.regs[type] > 0 && !unitAvailable(type, n, this)) return `${UNITS[type].name} not available`;
     if (Object.keys(t.regs).some((k) => t.regs[k] > 0 && UNITS[k].ship) && !(this.map.provinces[p].coastal && (pr.buildings.port || 0) >= 1)) return 'Ships need a coastal province with a Harbour';
     const c = this.templateCost(nid, t);
@@ -395,22 +396,26 @@ export const MilitaryMixin = {
     const sp = this.map.provinces[a.loc];
     const g = this.generalOf(a);
     let attr = 0;
-    if (sp.sea) attr += 0.003;
+    const why = [];
+    a.supply = null;
+    if (sp.sea) { attr += 0.003; why.push(['At sea: ships and rations wear men down', 0.003]); }
     else {
       const regs = this.armiesAt(a.loc).filter((b) => b.nation === a.nation).reduce((t, b) => t + b.regs.length, 0);
       const lim = this.supplyLimit(a.loc, a.nation) * (1 + (g?.gen?.logistics || 0) * 0.1);
-      if (regs > lim) attr += 0.0015 * (regs / lim - 1) * 3;
+      a.supply = { regs, lim: Math.round(lim * 10) / 10 };
+      if (regs > lim) { const x = 0.0015 * (regs / lim - 1) * 3; attr += x; why.push([`Overcrowded: ${regs} regiments here, the land supports ${a.supply.lim}`, x]); }
       const se = this.season();
-      if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain)) && !(g && g.traits.includes('winter_soldier'))) attr += 0.001;
-      if (se === 'summer' && sp.terrain === 'desert') attr += 0.0008;
-      if (n && n.food < 0) attr += 0.001;
-      if (g && g.traits.includes('logistician')) attr *= 0.5;
+      if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain)) && !(g && g.traits.includes('winter_soldier'))) { attr += 0.001; why.push(['Winter in mountains, taiga or the far north', 0.001]); }
+      if (se === 'summer' && sp.terrain === 'desert') { attr += 0.0008; why.push(['Summer heat and thirst in the desert', 0.0008]); }
+      if (n && n.food < 0) { attr += 0.001; why.push(['The realm is starving: no food for the army', 0.001]); }
+      if (g && g.traits.includes('logistician')) { attr *= 0.5; why.push(['Logistician general halves attrition', 0]); }
       // foraging devastates enemy land
       const pr = s.prov[a.loc];
       if (pr.owner !== a.nation) pr.devast = Math.min(100, pr.devast + 0.15 * a.regs.length / 5);
     }
     if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
+    a.attrWhy = why;
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
@@ -485,9 +490,22 @@ export const MilitaryMixin = {
       if (men < garrison * 1.5) { sg.blockade = false; continue; }
       sg.blockade = true;
       const ownerN = s.nations[pr.owner];
-      let rate = 1.5 * (1 + power / (fort * 2)) * (1 + siegeGen * 0.12 + (nid >= 0 ? this.mod(nid, 'siege') : 0)) / (1 + fort * 0.8 * (1 + (ownerN ? this.mod(ownerN.id, 'fortDefense') : 0)));
+      // engines: rams shine against small forts, towers against big ones; any engine slowly breaches the walls
+      let rams = 0, towers = 0;
+      for (const a of armies) for (const r of a.regs) { const u = UNITS[r.type]; if (u.ram) rams += r.men / r.max; if (u.tower) towers += r.men / r.max; }
+      power += (fort <= 2 ? rams * 0.6 : 0) + (fort >= 3 ? towers * 0.8 : 0);
+      if (power > 0) sg.breach = Math.min(0.4, (sg.breach || 0) + power / (fort * 800)); // sapped wall: up to -40% defence
+      const effFort = fort * (1 - (sg.breach || 0));
+      let rate = 1.5 * (1 + power / (fort * 2)) * (1 + siegeGen * 0.12 + (nid >= 0 ? this.mod(nid, 'siege') : 0)) / (1 + effFort * 0.8 * (1 + (ownerN ? this.mod(ownerN.id, 'fortDefense') : 0)));
       rate *= 1 + sg.days / 250; // starvation
       if (this.map.provinces[p].coastal && ownerN && ownerN.gov === 'merchant_republic') rate *= 0.7; // resupplied by sea
+      // starvation: a realm with no food or a blockaded port cannot feed its garrison
+      if ((ownerN && ownerN.food < 0) || pr.blockadedBy !== undefined) {
+        pr.garrison = Math.max(0.2, pr.garrison - 0.004);
+        sg.starving = true;
+        rate *= 1.25;
+      } else sg.starving = false;
+      sg.rate = rate;
       sg.prog += rate * (0.4 + this.rng() * 1.2);
       // siege events
       if (this.rng() < 0.012) { sg.events.unshift({ day: s.day, t: 'Disease in the siege camp' }); for (const a of armies) for (const r of a.regs) r.men *= 0.97; }

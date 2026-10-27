@@ -8,6 +8,13 @@ import { BIOME } from '../world/mapgen.js';
 import { UNITS } from '../data/units.js';
 import { hexToRgb, clamp, hash2, mulberry32, fmt } from '../util.js';
 
+// regiment type -> 3D figure; figures are ordered front (cavalry) to back (siege)
+const UNIT_MODEL = { levy_spear: 'spear', men_at_arms: 'manatarms', pikemen: 'pike', varangians: 'axeman', almogavars: 'spear', archers: 'archer', longbowmen: 'archer', crossbowmen: 'crossbow',
+  light_cav: 'lightcav', knights: 'knight', horse_archers: 'horsearcher', mamluks: 'mamluk', templars: 'templar', cog: 'cog', galley: 'galley', longship: 'longship', mangonel: 'trebuchet', trebuchet: 'trebuchet' };
+const MODEL_RANK = { knight: 0, templar: 0, mamluk: 0, lightcav: 1, horsearcher: 1, manatarms: 2, axeman: 2, pike: 2, spear: 3, crossbow: 4, archer: 4, trebuchet: 6 };
+const MOUNTED = new Set(['knight', 'templar', 'mamluk', 'lightcav', 'horsearcher']);
+const fleetKinds = new Set(['cog', 'galley', 'longship']);
+const ARMY_MODELS = ['spear', 'pike', 'manatarms', 'axeman', 'archer', 'crossbow', 'lightcav', 'horsearcher', 'knight', 'templar', 'mamluk', 'cog', 'galley', 'longship', 'banner', 'trebuchet'];
 export const HS = 0.0028; // metres → world units (vertical exaggeration)
 const TW = 4096;      // colour table width; provinces wrap onto further 4-row bands
 const BANDS = 4;      // up to 16 384 provinces
@@ -205,6 +212,7 @@ export class MapView {
     progress('Planting forests', 0.97);
     await tick();
     this.buildTrees();
+    this.buildPeaks();
     this.buildBuildingMeshes();
     this.buildArmyMeshes();
     this.labelGroup = new THREE.Group();
@@ -252,7 +260,7 @@ export class MapView {
   buildTrees() {
     const { W, H, biome, land, height, provinces, pid } = this.map;
     const rng = mulberry32(5);
-    const decid = [], pine = [], palm = [];
+    const decid = [], pine = [], palm = [], cyp = [];
     const anchors = new Set();
     for (const p of provinces) if (!p.sea) anchors.add(Math.round(p.y) * W + Math.round(p.x));
     for (let y = 1; y < H - 1; y += 1) for (let x = 1; x < W - 1; x += 1) {
@@ -270,6 +278,7 @@ export class MapView {
       const ent = [tx, tz, 0.9 + rng() * 0.7, rng()];
       if (b === BIOME.DESERT || (b === BIOME.STEPPE && this.map.lat[y] < 34)) palm.push(ent);
       else if (b === BIOME.TAIGA || b === BIOME.MOUNT || (b === BIOME.FOREST && (this.map.lat[y] > 55 || rng() < 0.25))) pine.push(ent);
+      else if (b !== BIOME.FOREST && this.map.lat[y] < 44 && rng() < 0.35) cyp.push(ent);
       else decid.push(ent);
     }
     const CH = 160;
@@ -302,7 +311,35 @@ export class MapView {
       mk(MODELS.tree(), decid, ['#4f7a34', '#5e8a3c', '#46702e', '#6b8f42', '#557d36'], 60000),
       mk(MODELS.pine(), pine, ['#2f5532', '#355e38', '#2a4d2e', '#3c6a3e'], 60000),
       mk(MODELS.palm(), palm, ['#5d8a3a', '#6e9a40'], 8000),
+      mk(MODELS.cypress(), cyp, ['#3f5e34', '#4a6a38'], 12000),
     ];
+  }
+  // ── mountain ranges: rocky peaks scaled by altitude, snow-capped above the snow line
+  buildPeaks() {
+    const { W, H, biome, land, height, lat } = this.map;
+    const rng = mulberry32(11), rock = [], snow = [];
+    for (let y = 2; y < H - 3; y += 3) for (let x = 2; x < W - 3; x += 3) {
+      const i = y * W + x;
+      if (land[i] !== 1 || biome[i] !== BIOME.MOUNT) continue;
+      const e = height[i];
+      if (e < 900 || rng() > 0.5) continue;
+      const k = 1 + clamp((e - 900) / 1800, 0, 1.6) * 1.5;
+      const ent = [x + rng() * 3, y + rng() * 3, k * (0.8 + rng() * 0.5), rng()];
+      (e > 2400 - Math.max(0, (lat[y] ?? 45) - 45) * 30 ? snow : rock).push(ent);
+    }
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    this.peaks = [[MODELS.peak(), rock], [MODELS.peakSnow(), snow]].map(([geo, list]) => {
+      const m = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length));
+      list.forEach(([x, z, sc, r], i) => {
+        q.setFromAxisAngle(up, r * 6.28);
+        M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.05, z), q, new THREE.Vector3(sc * 1.7, sc * (1.2 + r * 0.5), sc * 1.7));
+        m.setMatrixAt(i, M);
+      });
+      m.instanceMatrix.needsUpdate = true; m.frustumCulled = false;
+      this.scene.add(m);
+      return m;
+    });
   }
   setSeason() {
     const s = this.game.season();
@@ -412,13 +449,17 @@ export class MapView {
   // ── armies
   buildArmyMeshes() {
     const mk = (geo, cap) => {
-      const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }), cap);
+      const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+      // the realm colour only tints near-white model parts; armour, horses and wood keep their own colour
+      mat.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <color_vertex>', '#include <color_vertex>\n#ifdef USE_INSTANCING_COLOR\nif (min(color.r, min(color.g, color.b)) < 0.9) vColor.xyz /= max(instanceColor.xyz, vec3(0.05));\n#endif'); };
+      const m = new THREE.InstancedMesh(geo, mat, cap);
       m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
       m.count = 0; m.frustumCulled = false;
       this.scene.add(m);
       return m;
     };
-    this.amesh = { soldier: mk(MODELS.soldier(), 6000), archer: mk(MODELS.archer(), 3000), rider: mk(MODELS.rider(), 3000), banner: mk(MODELS.banner(), 800), trebuchet: mk(MODELS.trebuchet(), 400) };
+    this.amesh = {};
+    for (const k of ARMY_MODELS) this.amesh[k] = mk(MODELS[k](), k === 'banner' ? 800 : k === 'trebuchet' ? 400 : fleetKinds.has(k) ? 600 : 2500);
     this.armyEls = new Map();
   }
   armyPos(a) {
@@ -457,26 +498,31 @@ export class MapView {
       if (near && this.inView(pos.x, y, pos.z)) {
         const regs = a.regs;
         const fig = clamp(Math.round(regs.length * 0.9), 3, 16);
-        const comp = { inf: 0, rng: 0, cav: 0, siege: 0 };
-        for (const r of regs) comp[UNITS[r.type].cls]++;
-        const tot = regs.length || 1;
-        const list = [];
-        const nCav = Math.round(fig * comp.cav / tot), nRng = Math.round(fig * comp.rng / tot), nSiege = Math.min(2, comp.siege);
-        for (let i = 0; i < fig - nCav - nRng; i++) list.push('soldier');
-        for (let i = 0; i < nRng; i++) list.push('archer');
-        for (let i = 0; i < nCav; i++) list.push('rider');
-        for (let i = 0; i < nSiege; i++) list.push('trebuchet');
-        const cols = 4, sp = 0.32;
+        const fleet = regs.length && regs.every((r) => UNITS[r.type].ship);
+        // one figure type per regiment type, proportional to regiment count; cavalry in front, siege behind
+        const tally = new Map();
+        for (const r of regs) tally.set(r.type, (tally.get(r.type) || 0) + 1);
+        let list = [];
+        if (fleet) for (const r of regs.slice(0, 6)) list.push(UNIT_MODEL[r.type] || 'cog');
+        else {
+          for (const [type, n] of tally) {
+            const k = type === 'mangonel' || type === 'trebuchet' ? Math.min(2, n) : Math.max(1, Math.round(fig * n / regs.length));
+            for (let i = 0; i < k; i++) list.push(UNIT_MODEL[type] || 'manatarms');
+          }
+          list.sort((x, y) => (MODEL_RANK[x] ?? 3) - (MODEL_RANK[y] ?? 3));
+          if (list.length > 18) list = list.slice(0, 18);
+        }
+        const cols = fleet ? 2 : 4, sp = fleet ? 1.1 : 0.5;
         c.set(col).lerp(white, 0.15);
         q.setFromAxisAngle(up, pos.dir);
         const cosd = Math.cos(pos.dir), sind = Math.sin(pos.dir);
         list.forEach((type, i) => {
           const row = Math.floor(i / cols), cl = i % cols;
-          const lx = (cl - (cols - 1) / 2) * sp * (type === 'rider' ? 1.3 : 1), lz = -row * sp * 1.2 + (type === 'rider' ? -0.2 : 0);
+          const mounted = MOUNTED.has(type), lx = (cl - (cols - 1) / 2) * sp * (mounted ? 1.3 : 1), lz = -row * sp * 1.25 + (mounted ? -0.2 : 0);
           const wx = pos.x + lx * cosd + lz * sind, wz = pos.z - lx * sind + lz * cosd;
           const bob = pos.moving || a.battle ? Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.05 : 0;
           V.set(wx, (this.map.provinces[a.loc].sea ? 0.05 : this.groundY(wx, wz)) + bob, wz);
-          const sc = type === 'trebuchet' ? 1.4 : 1.15;
+          const sc = type === 'trebuchet' ? 1.4 : fleet ? 1.3 : 1.5;
           S.set(sc, sc, sc);
           M.compose(V, q, S);
           const m = this.amesh[type];
@@ -969,6 +1015,7 @@ export class MapView {
     this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
     const showDetail = c.d < 300;
     for (const m of this.trees) m.visible = c.d < 240;
+    for (const m of this.peaks) m.visible = c.d < 520;
     for (const m of Object.values(this.bmesh)) m.visible = showDetail;
     for (const l of this.labelGroup.children) {
       const op = clamp((c.d - 110) / 160, 0, 1) * clamp((l.userData.size * 34 - c.d) / 200 + 0.6, 0.15, 1);
