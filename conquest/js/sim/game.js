@@ -14,6 +14,7 @@ import { FrontsMixin } from './fronts.js';
 import { CharactersMixin } from './characters.js';
 import { EconomyMixin } from './economy.js';
 import { EstatesMixin } from './estates.js';
+import { ProgressionMixin } from './progression.js';
 import { kmPerPx } from '../world/proj.js';
 
 import { TERRAIN_ECON } from './economy.js';
@@ -110,6 +111,7 @@ export class Game {
     // initial armies
     for (const n of s.nations) if (n.alive) this.spawnStartingArmies(n);
     this.setPlayer(playerTag);
+    this.initProgression();
     for (const n of s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
@@ -251,6 +253,7 @@ export class Game {
       this.monthlyDiplomacy(n);
     }
     this.monthlyProvinces();
+    this.monthlyProgression();
     this.monthlyEvents();
     this.emit('month');
   }
@@ -279,9 +282,10 @@ export class Game {
     this.s = d.s;
     this.uiState = d.ui;
     this._owned = null; this._ft = null; this._wp = null;
+    this.initProgression();
     for (const n of this.s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
 }
 
-for (const mixin of [CharactersMixin, EconomyMixin, EstatesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, EconomyMixin, EstatesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
