@@ -50,6 +50,7 @@ export const ProvinceMixin = {
       const c = s.nations[pr.controller];
       pb.append(el('div', { class: 'card', style: { marginTop: '6px', borderColor: '#8a3a2a' } }, `⚔ Occupied by ${c ? c.name : 'rebels'}`));
     }
+    if (pr.blockadedBy !== undefined) pb.append(el('div', { class: 'card', style: { marginTop: '6px', borderColor: '#2a5a8a' } }, `⚓ Blockaded by ${s.nations[pr.blockadedBy].name}: trade −80%, no recruitment. Sink the fleet to break it.`));
     if (pr.siege) {
       const sg = pr.siege;
       const besieger = sg.by >= 0 ? s.nations[sg.by] : null;

@@ -257,7 +257,32 @@ export const BattleMixin = {
     return t;
   },
 
+  // Blockades: a fleet in a sea zone beside an enemy coastal province chokes its trade and harbour
+  // until the blockader is driven off or sunk. pr.blockadedBy holds the blockading nation id.
+  dailyBlockades() {
+    const s = this.s, P = this.map.provinces;
+    const prev = new Set();
+    for (let p = 0; p < this.L; p++) if (s.prov[p].blockadedBy !== undefined) prev.add(p);
+    const now = new Map();
+    for (const a of Object.values(s.armies)) {
+      if (a.nation < 0 || a.loc < this.L || a.battle || a.retreating || !a.regs.some((r) => UNITS[r.type].ship)) continue;
+      if (this.armiesAt(a.loc).some((b) => b !== a && this.hostileArmies(a, b) && b.regs.some((r) => UNITS[r.type].ship))) continue; // contested sea
+      for (const e of P[a.loc].adj) {
+        if (e.id >= this.L || !P[e.id].coastal) continue;
+        const pr = s.prov[e.id];
+        if (pr.controller < 0 || pr.controller === a.nation || !this.atWar(a.nation, pr.controller)) continue;
+        now.set(e.id, a.nation);
+      }
+    }
+    for (const p of prev) if (!now.has(p)) { delete s.prov[p].blockadedBy; if (s.prov[p].owner === s.player) this.log(`The blockade of ${P[p].name} is lifted.`, { nation: s.player, type: 'mil', prov: p }); }
+    for (const [p, nid] of now) {
+      if (s.prov[p].blockadedBy === nid) continue;
+      s.prov[p].blockadedBy = nid;
+      if (s.prov[p].owner === s.player || nid === s.player) this.log(`${s.nations[nid].name} blockades ${P[p].name}: trade is choked and no troops can be raised there.`, { nation: s.player, type: 'mil', prov: p, important: true });
+    }
+  },
   dailyBattles() {
+    if (this.s.day % 5 === 0) this.dailyBlockades();
     for (const b of Object.values(this.s.battles)) {
       if (b.over) { if (this.s.day - b.endDay > 3) delete this.s.battles[b.id]; continue; }
       for (let i = 0; i < ROUNDS_PER_DAY && !b.over; i++) this.battleRound(b);

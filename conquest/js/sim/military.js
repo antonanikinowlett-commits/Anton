@@ -114,6 +114,7 @@ export const MilitaryMixin = {
   canRecruit(nid, p, t) {
     const n = this.s.nations[nid], pr = this.s.prov[p];
     if (!pr || pr.owner !== nid || pr.controller !== nid) return 'Must recruit in a province you control';
+    if (pr.blockadedBy !== undefined) return 'Province is blockaded by an enemy fleet';
     for (const type of Object.keys(t.regs)) if (t.regs[type] > 0 && !unitAvailable(type, n, this)) return `${UNITS[type].name} not available`;
     if (Object.keys(t.regs).some((k) => t.regs[k] > 0 && UNITS[k].ship) && !(this.map.provinces[p].coastal && (pr.buildings.port || 0) >= 1)) return 'Ships need a coastal province with a Harbour';
     const c = this.templateCost(nid, t);

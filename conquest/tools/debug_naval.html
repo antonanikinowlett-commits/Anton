@@ -7,15 +7,21 @@ const o = document.getElementById('o');
 try {
   const m = await generateMap(() => {});
   const g = new Game(m); g.newGame('FRA'); g.s.player = -1;
-  const sea = g.map.provinces.findIndex((p, i) => i >= g.L && p.sea);
+  const sea = g.map.provinces.findIndex((p, i) => i >= g.L && p.sea && i !== 0);
   const A = g.nationByTag('FRA').id, B = g.nationByTag('ENG').id;
   g.declareWar(A, B, { kind: 'conquest' }, true);
   const reg = (type, men) => ({ type, men, max: men, morale: 1, xp: 0, routed: false });
+  // blockade: a fleet beside an enemy coast
+  const eng = g.ownedProvinces(B).find((p) => g.map.provinces[p].coastal && g.map.provinces[p].adj.some((e) => e.id >= g.L));
+  const bz = g.map.provinces[eng].adj.find((e) => e.id >= g.L).id;
+  g.createArmy(A, bz, [reg('galley', 500), reg('galley', 500)], 'Blockade Fleet');
+  g.dailyBlockades();
+  const blk = `blockade: ${g.map.provinces[eng].name} blockadedBy=${g.s.prov[eng].blockadedBy} (France=${A}), recruit says: ${g.canRecruit(B, eng, { regs: { levy_spear: 1 } })}, income trade ${g.provinceIncome(eng, B).trade.toFixed(3)}`;
   const a = g.createArmy(A, sea, [reg('galley', 500), reg('galley', 500), reg('cog', 500)], 'French Fleet');
   const b = g.createArmy(B, sea, [reg('longship', 500), reg('cog', 500)], 'English Fleet');
   g.checkContact(a);
   const bt = Object.values(g.s.battles)[0];
-  let out = [`sea=${sea} atSea=${a.atSea} battle started: ${!!bt} naval=${bt && bt.naval}`];
+  let out = [blk, `sea=${sea} atSea=${a.atSea} battle started: ${!!bt} naval=${bt && bt.naval}`];
   for (let d = 0; d < 20 && bt && !bt.over; d++) g.dailyBattles();
   out.push(bt ? `over=${bt.over} winner=${bt.winner} cas=${JSON.stringify(bt.cas)}` : 'no battle');
   out.push(bt ? bt.log.map((l) => l.t).slice(0, 6).join('\n') : '');
