@@ -21,3 +21,5 @@ Next
 
 
 Update 2026-10-27: ROADMAP.md written; issues #2–#59 filed (labels auto-created; ws:progression and qa have none yet). Remaining work: triage QA bugs as they arrive, update ROADMAP Progress.
+
+Update 2026-10-27 (round 1 playtest): role is now "the player" — docs/PLAYTEST.md (20 gaps), issues #60–#69. Repeat each time dev changes; message orchestrator top 3 gaps.

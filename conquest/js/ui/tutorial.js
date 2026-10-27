@@ -65,6 +65,11 @@ export class Tutorial {
     this.place(st);
   }
   place(st) {
+    // never sit on top of an event dialog; stay clear of an open side panel
+    const modal = document.querySelector('.modal-back');
+    const pan = document.querySelector('#panel:not(.hidden)');
+    this.card.style.visibility = modal ? 'hidden' : '';
+    if (modal) this.ring?.remove();
     const tgt = st.target && document.querySelector(st.target);
     if (tgt && tgt.offsetParent !== null) {
       const r = tgt.getBoundingClientRect();
@@ -78,7 +83,10 @@ export class Tutorial {
       Object.assign(this.card.style, { left: x + 'px', top: Math.max(64, y) + 'px' });
     } else {
       this.ring?.remove();
-      Object.assign(this.card.style, { left: '50%', top: '110px', transform: 'translateX(-50%)' });
+      const pr = pan && pan.getBoundingClientRect();
+      if (pr && pr.right + 376 < innerWidth - 270) Object.assign(this.card.style, { left: pr.right + 16 + 'px', top: '110px', transform: '' });
+      else if (pr) this.card.style.visibility = 'hidden';
+      else Object.assign(this.card.style, { left: '50%', top: '110px', transform: 'translateX(-50%)' });
     }
   }
   check() {
