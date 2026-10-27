@@ -15,7 +15,7 @@ export const AIMixin = {
       if ((day + n.id * 3) % 15 === 0) this.aiStrategic(n);
     }
     for (const a of Object.values(s.armies)) {
-      if (a.nation === s.player) continue;
+      if (a.nation >= 0 && a.nation === s.player) continue; // rebels are nation -1, which is also the "no player" value in all-AI runs
       if ((day + a.id) % 3 === 0) this.aiArmy(a);
     }
     if (day % 10 === 0) this.aiPeace();
