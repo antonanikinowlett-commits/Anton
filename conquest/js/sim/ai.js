@@ -5,6 +5,7 @@ import { UNITS, unitAvailable } from '../data/units.js';
 import { LAWS, LAW_ORDER, COUNCIL_ROLES, ROLE_INFO } from '../data/government.js';
 import { clamp } from '../util.js';
 
+const MARITIME = ['VEN', 'GEN', 'ENG', 'NOR', 'DEN', 'SWE', 'BYZ', 'ALM', 'AYY'];
 export const AIMixin = {
   dailyAI() {
     const s = this.s;
@@ -132,14 +133,58 @@ export const AIMixin = {
     }
   },
 
-  // Maritime realms keep a small war fleet in a harbour; it defends the coast and catches enemy transports.
+  isFleet(a) { return a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship); },
+  // Maritime realms keep a few fleets (others at most one) built in harbours.
   aiFleet(n) {
-    if (n.ai.horde || n.gold < 120 || this.rng() > 0.25) return;
-    if (this.armiesOf(n.id).some((a) => a.regs.some((r) => UNITS[r.type].ship)) || this.s.recruit.some((r) => r.nation === n.id && Object.keys(r.template.regs).some((k) => UNITS[k].ship))) return;
-    const port = this.ownedProvinces(n.id).find((p) => this.map.provinces[p].coastal && (this.s.prov[p].buildings.port || 0) >= 1);
-    if (port === undefined) return;
-    const ship = n.group === 'norse' || n.tag === 'NOR' || n.tag === 'DEN' || n.tag === 'SWE' ? 'longship' : n.gov === 'merchant_republic' ? 'galley' : 'cog';
+    const maritime = MARITIME.includes(n.tag);
+    if (n.ai.horde || n.gold < (maritime ? 45 : 110)) return;
+    const want = maritime ? 3 : 1;
+    const have = this.armiesOf(n.id).filter((a) => this.isFleet(a)).length + this.s.recruit.filter((r) => r.nation === n.id && Object.keys(r.template.regs).some((k) => UNITS[k].ship)).length;
+    if (have >= want || this.rng() > (maritime ? 0.5 : 0.1)) return;
+    const mine = this.ownedProvinces(n.id).filter((p) => this.map.provinces[p].coastal && this.s.prov[p].controller === n.id);
+    const port = mine.find((p) => (this.s.prov[p].buildings.port || 0) >= 1);
+    if (port === undefined) { if (maritime && mine.length) this.build(n.id, mine[Math.floor(this.rng() * mine.length)], 'port'); return; }
+    const ship = ['NOR', 'DEN', 'SWE'].includes(n.tag) ? 'longship' : ['VEN', 'GEN', 'BYZ', 'ALM', 'AYY'].includes(n.tag) ? 'galley' : 'cog';
     this.recruit(n.id, port, { id: this.newId(), name: 'War Fleet', regs: { [ship]: 3, cog: 1 }, doctrine: 'balanced' });
+  },
+  // Fleet behaviour: flee when beaten, hunt enemy fleets/transports at sea in wartime, otherwise patrol the home coast.
+  aiFleetMove(a) {
+    const s = this.s, P = this.map.provinces, n = s.nations[a.nation];
+    if (a.battle || a.retreating || a.path.length) return;
+    const homePorts = this.ownedProvinces(a.nation).filter((p) => P[p].coastal && (s.prov[p].buildings.port || 0) >= 1 && s.prov[p].controller === a.nation);
+    if (this.armyMen(a) < this.armyMax(a) * 0.5) { // damaged: return to harbour to recover
+      if (homePorts.length && !homePorts.includes(a.loc)) this.orderMove(a.id, homePorts[0]);
+      return;
+    }
+    const enemies = this.enemiesOf(a.nation);
+    const seaOf = (p) => P[p].adj.map((e) => e.id).filter((q) => P[q].sea);
+    const start = P[a.loc].sea ? [a.loc] : seaOf(a.loc);
+    // breadth-first over sea zones for hostile ships/transports
+    if (enemies.length) {
+      const seen = new Set(start); let frontier = start;
+      for (let d = 0; d < 6 && frontier.length; d++) {
+        for (const q of frontier) {
+          const foe = this.armiesAt(q).find((b) => enemies.includes(b.nation) && !b.battle);
+          if (foe && (this.armyPower(foe) < this.armyPower(a) * 1.3 || !this.isFleet(foe))) { if (q !== a.loc) this.orderMove(a.id, q); return; }
+          // enemy fleets moored in a port beside this sea zone
+          for (const e of P[q].adj) {
+            if (e.id >= this.L) continue;
+            const moored = this.armiesAt(e.id).find((b) => enemies.includes(b.nation) && !b.battle && this.isFleet(b));
+            if (moored && this.armyPower(moored) < this.armyPower(a) * 1.1) { this.orderMove(a.id, e.id); return; }
+          }
+        }
+        const next = [];
+        for (const q of frontier) for (const r of seaOf(q)) if (!seen.has(r)) { seen.add(r); next.push(r); }
+        frontier = next;
+      }
+    }
+    // patrol: sit in a sea zone beside the home coast, rotating slowly
+    if (!P[a.loc].sea) {
+      const z = seaOf(a.loc);
+      if (z.length && (s.day + a.id) % 30 < 3) this.orderMove(a.id, z[Math.floor(this.rng() * z.length)]);
+    } else if ((s.day + a.id) % 45 < 3 && homePorts.length) {
+      this.orderMove(a.id, homePorts[Math.floor(this.rng() * homePorts.length)]);
+    }
   },
 
   aiRecruit(n) {
@@ -250,6 +295,7 @@ export const AIMixin = {
     if (a.nation < 0) return this.aiRebel(a);
     const n = s.nations[a.nation];
     if (!n || !n.alive) return;
+    if (this.isFleet(a)) return this.aiFleetMove(a);
     this.aiAssault(a);
     if (this.frontOfArmy(a.id)) return;
     const P = this.map.provinces;
@@ -257,7 +303,7 @@ export const AIMixin = {
     const men = this.armyMen(a), max = this.armyMax(a);
     const myPow = this.armyPower(a);
     // merge with friendly armies here
-    const friends = this.armiesAt(a.loc).filter((b) => b !== a && b.nation === a.nation && !b.battle && !b.path.length && !b.retreating && !this.frontOfArmy(b.id));
+    const friends = this.armiesAt(a.loc).filter((b) => b !== a && b.nation === a.nation && !b.battle && !b.path.length && !b.retreating && !this.isFleet(b) && !this.frontOfArmy(b.id));
     if (friends.length && a.regs.length + friends[0].regs.length <= 30) { this.merge([a.id, friends[0].id]); return; }
     if (!enemies.length) {
       if (a.path.length) return;
@@ -367,7 +413,7 @@ export const AIMixin = {
     if (!war) {
       // peace: dissolve fronts and gather the divisions back into one host at the capital
       for (const f of mine) this.deleteFront(f.id);
-      const field = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating);
+      const field = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating && !this.isFleet(a));
       if (field.length > 2 && n.capital >= 0) for (const a of field) if (a.loc !== n.capital && !a.path.length) this.orderMove(a.id, n.capital);
       return;
     }
@@ -384,7 +430,7 @@ export const AIMixin = {
     for (const f of mine) if (f.enemy !== enemy) this.deleteFront(f.id);
     if (enemy < 0 || best < 3) return;
     let f = this.frontsOf(n.id)[0];
-    const armies = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating && !a.atSea);
+    const armies = this.armiesOf(n.id).filter((a) => !a.battle && !a.retreating && !a.atSea && !this.isFleet(a));
     const free = armies.filter((a) => !this.frontOfArmy(a.id));
     if (armies.reduce((t, a) => t + a.regs.length, 0) < 6) return;
     // keep the largest free army as a strike force for battles and sieges; the rest man the line
