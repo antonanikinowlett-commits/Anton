@@ -8,8 +8,19 @@ import { NATIONS } from '../data/nations.js';
 const SEA_KMPD = 75;
 
 export const MilitaryMixin = {
-  armiesOf(nid) { return Object.values(this.s.armies).filter((a) => a.nation === nid); },
-  armiesAt(p) { return Object.values(this.s.armies).filter((a) => a.loc === p); },
+  // Army lookups are hot (hundreds of thousands of calls per sim year), so index armies by nation and by
+  // location; the index is rebuilt lazily after anything adds, removes or moves an army (_armyVer bump).
+  armyIndex() {
+    if (this._ai && this._aiFor === this.s.armies && this._aiVer === this._armyVer) return this._ai;
+    const byNation = new Map(), byLoc = new Map();
+    for (const a of Object.values(this.s.armies)) {
+      let l = byNation.get(a.nation); if (!l) byNation.set(a.nation, l = []); l.push(a);
+      l = byLoc.get(a.loc); if (!l) byLoc.set(a.loc, l = []); l.push(a);
+    }
+    this._aiFor = this.s.armies; this._aiVer = this._armyVer; return this._ai = { byNation, byLoc };
+  },
+  armiesOf(nid) { return (this.armyIndex().byNation.get(nid) || []).slice(); },
+  armiesAt(p) { return (this.armyIndex().byLoc.get(p) || []).slice(); },
   armyMen(a) { let m = 0; for (const r of a.regs) m += r.men; return m; },
   armyMax(a) { let m = 0; for (const r of a.regs) m += r.max; return m; },
   armyMorale(a) { let m = 0, w = 0; for (const r of a.regs) { m += r.morale * r.men; w += r.men; } return w ? m / w : 0; },
@@ -71,7 +82,7 @@ export const MilitaryMixin = {
   createArmy(nid, loc, regs, name, opts = {}) {
     const a = { id: this.newId(), nation: nid, name: name || this.armyName(nid), loc, path: [], prog: 0, regs, general: null, doctrine: opts.doctrine || 'balanced',
       battle: null, retreating: false, entrench: 0, rebelOf: opts.rebelOf ?? -1, ai: {}, atSea: loc >= this.L, home: loc };
-    this.s.armies[a.id] = a;
+    this.s.armies[a.id] = a; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('army', a.id);
     return a;
   },
@@ -106,9 +117,15 @@ export const MilitaryMixin = {
     }
   },
   borderProvinces(nid) {
-    const r = [];
-    for (const p of this.ownedProvinces(nid)) if (this.map.provinces[p].adj.some((e) => e.id < this.L && this.s.prov[e.id].owner !== nid)) r.push(p);
-    return r;
+    this.ownedProvinces(nid); // makes sure this._owned exists; the cache lives exactly as long as it does
+    if (this._borderFor !== this._owned) { this._borderFor = this._owned; this._border = new Map(); }
+    let r = this._border.get(nid);
+    if (!r) {
+      r = [];
+      for (const p of this.ownedProvinces(nid)) if (this.map.provinces[p].adj.some((e) => e.id < this.L && this.s.prov[e.id].owner !== nid)) r.push(p);
+      this._border.set(nid, r);
+    }
+    return r.slice();
   },
 
   // ── recruitment
@@ -196,7 +213,7 @@ export const MilitaryMixin = {
     const n = this.s.nations[a.nation];
     if (n) n.manpower = Math.min(n.maxManpower, n.manpower + this.armyMen(a) * 0.6);
     this.unassignGeneral(aid);
-    delete this.s.armies[aid];
+    delete this.s.armies[aid]; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('armyGone', aid);
   },
   merge(ids) {
@@ -208,7 +225,7 @@ export const MilitaryMixin = {
       main.regs.push(...a.regs);
       if (!main.general && a.general) { const g = a.general; this.unassignGeneral(a.id); this.assignGeneral(main.id, g); }
       this.unassignGeneral(a.id);
-      delete this.s.armies[a.id];
+      delete this.s.armies[a.id]; this._armyVer = (this._armyVer || 0) + 1;
       this.emit('armyGone', a.id);
     }
     this.emit('army', main.id);
@@ -292,6 +309,8 @@ export const MilitaryMixin = {
     const nid = a.nation, speed = this.armySpeed(a), seaMult = 1 + this.mod(nid, 'seaSpeed');
     if (!this.canEnter(nid, to, a.rebelOf)) return null;
     const g = new Float64Array(P.length).fill(Infinity), prev = new Int32Array(P.length).fill(-1);
+    // per-search memo of the diplomatic/fort checks (1 = allowed, 2 = refused); they cannot change mid-search
+    const enter = new Uint8Array(P.length), block = new Uint8Array(P.length);
     const h = new Heap(256);
     const tx = P[to].x, ty = P[to].y;
     const heur = (p) => Math.hypot(P[p].x - tx, P[p].y - ty) * P[p].kmpx / SEA_KMPD / seaMult;
@@ -305,9 +324,9 @@ export const MilitaryMixin = {
       for (const e of sp.adj) {
         const q = e.id;
         if (P[q].sea && !sp.sea && !sp.coastal) continue;
-        if (q < L && !this.canEnter(nid, q, a.rebelOf)) continue;
+        if (q < L) { if (!enter[q]) enter[q] = this.canEnter(nid, q, a.rebelOf) ? 1 : 2; if (enter[q] === 2) continue; }
         // enemy forts block passage: you can enter them but not move through
-        if (c !== from && c < L && this.blocksPassage(a, c)) continue;
+        if (c !== from && c < L) { if (!block[c]) block[c] = this.blocksPassage(a, c) ? 2 : 1; if (block[c] === 2) continue; }
         const nd = g[c] + this.stepDays(nid, c, e, speed, seaMult);
         if (nd < g[q]) { g[q] = nd; prev[q] = c; h.push(nd + heur(q), q); }
       }
@@ -387,7 +406,7 @@ export const MilitaryMixin = {
         if (n) n.gold -= a.regs.length * 0.15 * (this.s.prov[leaving]?.buildings.port ? 0.5 : 1);
       }
       a.lastFrom = leaving;
-      a.loc = next; a.prog = 0; a.path.shift(); a.entrench = 0;
+      a.loc = next; this._armyVer = (this._armyVer || 0) + 1; a.prog = 0; a.path.shift(); a.entrench = 0;
       a.atSea = P[next].sea;
       a.landed = !P[next].sea && P[leaving].sea ? this.s.day : a.landed;
       if (a.retreating && !a.path.length) a.retreating = false;
@@ -505,7 +524,7 @@ export const MilitaryMixin = {
   },
   destroyArmy(a, why) {
     this.unassignGeneral(a.id);
-    delete this.s.armies[a.id];
+    delete this.s.armies[a.id]; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('armyGone', a.id);
     if (a.nation === this.s.player && why) this.log(`${a.name} ${why}.`, { nation: a.nation, type: 'mil' });
   },
