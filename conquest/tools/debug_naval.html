@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><pre id="o"></pre>
+<script type="module">
+// Forces two hostile fleets into one sea zone and checks that a naval battle starts and resolves.
+import { generateMap } from '../js/world/mapgen.js';
+import { Game } from '../js/sim/game.js';
+const o = document.getElementById('o');
+try {
+  const m = await generateMap(() => {});
+  const g = new Game(m); g.newGame('FRA'); g.s.player = -1;
+  const sea = g.map.provinces.findIndex((p, i) => i >= g.L && p.sea);
+  const A = g.nationByTag('FRA').id, B = g.nationByTag('ENG').id;
+  g.declareWar(A, B, { kind: 'conquest' }, true);
+  const reg = (type, men) => ({ type, men, max: men, morale: 1, xp: 0, routed: false });
+  const a = g.createArmy(A, sea, [reg('galley', 500), reg('galley', 500), reg('cog', 500)], 'French Fleet');
+  const b = g.createArmy(B, sea, [reg('longship', 500), reg('cog', 500)], 'English Fleet');
+  g.checkContact(a);
+  const bt = Object.values(g.s.battles)[0];
+  let out = [`sea=${sea} atSea=${a.atSea} battle started: ${!!bt} naval=${bt && bt.naval}`];
+  for (let d = 0; d < 20 && bt && !bt.over; d++) g.dailyBattles();
+  out.push(bt ? `over=${bt.over} winner=${bt.winner} cas=${JSON.stringify(bt.cas)}` : 'no battle');
+  out.push(bt ? bt.log.map((l) => l.t).slice(0, 6).join('\n') : '');
+  o.textContent = out.join('\n');
+} catch (e) { o.textContent = 'ERR ' + e.stack; }
+window.done = true;
+</script>

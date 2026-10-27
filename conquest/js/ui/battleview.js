@@ -3,7 +3,7 @@
 import { el, fmt, pct, clamp, mulberry32, hexToRgb } from '../util.js';
 import { coaSVG, rebelCoa } from './heraldry.js';
 import { portraitSVG } from './portrait.js';
-import { UNITS } from '../data/units.js';
+import { UNITS, TERRAIN_COMBAT } from '../data/units.js';
 import { TACTICS, PHASES, PHASE_NAMES, DOCTRINES } from '../data/tactics.js';
 import { TRAITS } from '../data/traits.js';
 
@@ -18,6 +18,7 @@ export class BattleViewer {
     const b = this.g.s.battles[id];
     if (!b) return;
     if (this.isOpen) this.close();
+    this.replaying = false;
     this.b = b; this.isOpen = true;
     this.vis = new WeakMap(); this.parts = []; this.arrows = [];
     this.lastRound = -1; this.bg = null;
@@ -40,7 +41,7 @@ export class BattleViewer {
   }
   close() {
     if (!this.isOpen) return;
-    this.isOpen = false;
+    this.isOpen = false; this.replaying = false;
     this.root.remove();
     this.ui.emit('battleViewerClosed');
   }
@@ -49,8 +50,11 @@ export class BattleViewer {
     const b = this.b, g = this.g;
     const sp = g.map.provinces[b.prov];
     const W = { clear: '☀ Clear', rain: '🌧 Rain', fog: '🌫 Fog', snow: '❄ Snow', heat: '🔥 Heat' }[b.weather];
-    const tags = [`<span class="chip">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
+    const tcm = TERRAIN_COMBAT[sp.terrain];
+    const tcTip = tcm ? `Terrain effects — infantry ×${tcm.inf}, missiles ×${tcm.rng}, cavalry ×${tcm.cav}, frontage ${tcm.width}.` + (['forest', 'taiga', 'hills', 'mountains', 'marsh'].includes(sp.terrain) ? ' Favours ambushes (Ambush tactic).' : '') + (sp.terrain === 'hills' ? ' Archers on a slope: Arrow Storm bonus.' : '') + (['steppe', 'desert', 'plains'].includes(sp.terrain) ? ' Open ground favours horse archers.' : '') : '';
+    const tags = [`<span class="chip" data-tip="${tcTip}">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
     if (b.river) tags.push('<span class="chip bad" data-tip="Attacker crossing a river: −25% attack, −30% charge, narrower front">〰 River crossing</span>');
+    if (b.naval) tags.push('<span class="chip" data-tip="Fought on the water: cavalry charges are useless, missiles +15%, casualties +10%">⚓ Naval battle</span>');
     if (b.night) tags.push('<span class="chip bad" data-tip="Night battle: missiles −35%, charges −20%, attacker −8% attack">🌙 Night</span>');
     if (b.highGround) tags.push('<span class="chip" data-tip="Defender on higher ground: +12% defence; attacker −12% attack and −15% missiles">⛰ High ground</span>');
     if (b.fort) tags.push('<span class="chip" data-tip="Defending under their own walls: +15% defence and steadier morale">🏰 Fortified</span>');
@@ -111,7 +115,7 @@ export class BattleViewer {
   }
 
   update() {
-    if (!this.isOpen) return;
+    if (!this.isOpen || this.replaying) return;
     const b = this.b, g = this.g;
     const now = performance.now();
     if (b.round !== this.lastRound) {
@@ -134,10 +138,39 @@ export class BattleViewer {
     const col = mySide ? (mySide === win ? '#8ad070' : '#e06a50') : '#f0d48a';
     this.resultEl.classList.remove('hidden');
     this.resultEl.innerHTML = `<div class="big" style="color:${col}">${title}</div><div style="margin-top:6px">Casualties — attacker ${fmt(b.cas.att)} · defender ${fmt(b.cas.def)}</div>
-      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div>${this.reportHtml()}<div class="btn" style="margin-top:10px" onclick="this.closest('#battle').dispatchEvent(new PointerEvent('pointerdown'))">Close</div>`;
-    this.resultEl.querySelector('.btn').onclick = () => this.close();
+      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div>${this.reportHtml()}<div class="row" style="margin-top:10px;gap:8px"><div class="btn" id="bv-replay">Replay</div><div class="btn" id="bv-close">Close</div></div>`;
+    this.resultEl.querySelector('#bv-close').onclick = () => this.close();
+    this.resultEl.querySelector('#bv-replay').onclick = () => { const id = b.id; this.replay(id); };
   }
 
+  // Replay a finished battle from its stored record (game.s.pastBattles, or the live battle if still present).
+  replay(id) {
+    const g = this.g, rec = (g.s.pastBattles || []).find((x) => x.id === id) || g.s.battles[id];
+    if (!rec) return;
+    if (this.isOpen) this.close();
+    this.isOpen = true; this.replaying = true; this.b = rec; this.vis = new WeakMap(); this.parts = []; this.arrows = [];
+    const sp = g.map.provinces[rec.prov], nm = (n) => (n >= 0 ? g.s.nations[n].name : 'Rebels');
+    this.root = el('div', { id: 'battle' });
+    const box = el('div', { class: 'bresult frame', style: { position: 'relative', maxWidth: '520px', margin: '60px auto' } });
+    const h = rec.hist || [], logs = rec.log || [];
+    const out = el('div', {}), slider = el('input', { type: 'range', min: 0, max: Math.max(0, h.length - 1), value: 0, style: { width: '100%' } });
+    const show = (k) => {
+      const cut = h.slice(0, k + 1), r = h.length ? h[k].r : 0;
+      const mx = Math.max(...h.map((p) => Math.max(p.a, p.d)), 1), W = 480, H = 80;
+      const pts = (key2) => cut.map((p, i) => `${(i / Math.max(1, h.length - 1) * W).toFixed(1)},${(H - p[key2] / mx * H).toFixed(1)}`).join(' ');
+      out.innerHTML = `<svg width="${W}" height="${H}"><polyline points="${pts('a')}" fill="none" stroke="#e06a50" stroke-width="2"/><polyline points="${pts('d')}" fill="none" stroke="#6aa0e0" stroke-width="2"/></svg>
+        <div class="small muted">Round ${r}: attacker ${fmt(h[k] ? h[k].a : 0)} men · defender ${fmt(h[k] ? h[k].d : 0)} men</div>
+        <div class="small" style="margin-top:6px">${logs.filter((l) => l.r <= r).slice(-6).map((l) => l.t).join('<br>')}</div>`;
+    };
+    slider.oninput = () => show(+slider.value);
+    let k = 0; const timer = setInterval(() => { if (!this.isOpen || this.b !== rec || k >= h.length - 1) return clearInterval(timer); slider.value = ++k; show(k); }, 350);
+    box.append(el('div', { class: 'frame-title' }, `Replay: Battle of ${sp.name} — ${nm(rec.attN)} vs ${nm(rec.defN)}`), el('div', { class: 'small muted' }, `${rec.terrain}${rec.night ? ' · night' : ''}${rec.river ? ' · river crossing' : ''} · ${rec.winner === 'att' ? 'attackers' : 'defenders'} won`), out, slider,
+      el('div', { class: 'btn', style: { marginTop: '10px' }, onclick: () => { clearInterval(timer); this.close(); } }, 'Close'));
+    this.root.append(box);
+    this.root.addEventListener('pointerdown', (e) => { if (e.target === this.root) { clearInterval(timer); this.close(); } });
+    document.body.append(this.root);
+    show(0);
+  }
   // Post-battle report: tactics each side chose per phase, plus a strength graph.
   reportHtml() {
     const b = this.b;
@@ -295,6 +328,8 @@ export class BattleViewer {
       for (let i = 0; i < dots; i++) {
         const c2 = i % cols, rr = Math.floor(i / cols);
         let px = cx + (c2 - (cols - 1) / 2) * (bw * sx / cols), py = cy + (rr - (rows - 1) / 2) * (bh * sy / Math.max(1, rows));
+        const f = formationDot(r.type, i, dots, tg.side === 'att' ? 1 : -1, t);
+        if (f) { px = cx + f[0] * bw * sx; py = cy + f[1] * bh * sy; }
         if (tg.routed) { px += (rng() - 0.5) * 30 * sx; py += (rng() - 0.5) * 40 * sy; }
         else if (v.moving) py += Math.sin(t * 10 + i) * 0.8;
         ctx.fillStyle = `rgb(${col[0] * 0.85 | 0},${col[1] * 0.85 | 0},${col[2] * 0.85 | 0})`;
@@ -361,5 +396,21 @@ export class BattleViewer {
     ctx.fillStyle = nationCol('att'); ctx.fillRect(10 * dpr, h - 14 * dpr, (w - 20 * dpr) * ma / Math.max(1, ma + md), 8 * dpr);
     ctx.fillStyle = nationCol('def'); ctx.fillRect(10 * dpr + (w - 20 * dpr) * ma / Math.max(1, ma + md), h - 14 * dpr, (w - 20 * dpr) * md / Math.max(1, ma + md), 8 * dpr);
   }
+}
+// Per-unit-type formation: offsets in -0.5..0.5 of the block box, or null for the default grid.
+// dir is +1 when the unit faces right (attacker), -1 facing left.
+function formationDot(type, i, n, dir, t) {
+  if (type === 'pikemen') { const a = i / n * 6.283; return [Math.cos(a) * 0.5, Math.sin(a) * 0.5]; } // schiltron ring
+  if (type === 'horse_archers' || type === 'mamluks') { const a = i / n * 6.283 + t * 1.6; return [Math.cos(a) * 0.55, Math.sin(a) * 0.5]; } // circling riders
+  if (type === 'knights' || type === 'templars' || type === 'varangians') { // wedge, point toward the enemy
+    let row = 0, left = i; while (left > row) { left -= row + 1; row++; }
+    const rows = Math.max(1, Math.ceil((Math.sqrt(8 * n + 1) - 1) / 2));
+    return [dir * (0.5 - row / rows), (left - row / 2) / rows];
+  }
+  if (type === 'levy_spear' || type === 'men_at_arms' || type === 'almogavars') { // shield wall: two tight ranks
+    const half = Math.ceil(n / 2), rank = i < half ? 0 : 1, k = rank ? i - half : i;
+    return [dir * (rank ? -0.12 : 0.12), (k + 0.5) / half - 0.5];
+  }
+  return null;
 }
 function key(x) { return x.a + ':' + x.i; }

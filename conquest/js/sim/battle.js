@@ -31,7 +31,7 @@ export const BattleMixin = {
       attN: this.side(attackers[0]), defN: this.side(defenders[0]),
       terrain: sp.terrain, weather, season: se, river: !!(fromEdge && fromEdge.river), strait: !!(fromEdge && fromEdge.strait),
       landing: a0.landed === s.day, fort: this.fortLevel(p) > 0 && defenders.some((d) => s.prov[p]?.controller === d.nation),
-      night: this.rng() < (se === 'winter' ? 0.2 : 0.1), highGround: false, tac: { att: {}, def: {} }, countered: { att: {}, def: {} }, log: [], cas: { att: 0, def: 0 }, fx: [], lines: { att: null, def: null },
+      naval: !!sp.sea, night: this.rng() < (se === 'winter' ? 0.2 : 0.1), highGround: false, tac: { att: {}, def: {} }, countered: { att: {}, def: {} }, log: [], cas: { att: 0, def: 0 }, fx: [], lines: { att: null, def: null },
       startMen: { att: 0, def: 0 }, over: false, winner: null, hist: [], startDay: s.day,
     };
     if (fromEdge) b.highGround = sp.elev - this.map.provinces[a0.lastFrom].elev > 150;
@@ -41,7 +41,7 @@ export const BattleMixin = {
     b.startMen.def = defenders.reduce((t, a) => t + this.armyMen(a), 0);
     s.battles[id] = b;
     const W = { clear: 'clear skies', rain: 'driving rain', fog: 'thick fog', snow: 'falling snow', heat: 'blistering heat' }[weather];
-    this.blog(b, `Battle of ${sp.name} begins under ${W}. ${this.sideName(b, 'att')} attack ${this.sideName(b, 'def')}${b.river ? ' across the river' : ''}${b.landing ? ' straight from the boats' : ''}.`);
+    this.blog(b, `${b.naval ? 'Naval battle' : 'Battle'} of ${sp.name} begins under ${W}. ${this.sideName(b, 'att')} attack ${this.sideName(b, 'def')}${b.river ? ' across the river' : ''}${b.landing ? ' straight from the boats' : ''}.`);
     if (b.night) this.blog(b, `Battle is joined in the dark; archers cannot see their targets and charges lose cohesion.`);
     if (b.highGround) this.blog(b, `The defenders hold the high ground.`);
     const pl = s.player;
@@ -198,6 +198,7 @@ export const BattleMixin = {
       M.def += Math.min(0.15, ent * 0.01);
     }
     if (b.weather === 'rain') { M.ranged -= 0.3; M.charge -= 0.25; }
+    if (b.naval) { M.charge -= 0.8; M.flank -= 0.3; M.ranged += 0.15; M.casualtiesTaken += 0.1; } // decks: no charges, grappling and missiles
     if (b.night) { M.ranged -= 0.35; M.charge -= 0.2; if (side === 'att') M.atk -= 0.08; }
     if (b.weather === 'rain' && ['marsh', 'plains', 'forest'].includes(b.terrain)) { M.charge -= 0.15; M.atk -= 0.05; } // churned mud
     if (b.weather === 'fog') M.ranged -= 0.45;
@@ -473,6 +474,11 @@ export const BattleMixin = {
       this.log(`${won ? 'Victory' : 'Defeat'} at the Battle of ${prov}! Losses: ours ${Math.round(won ? casW : casL)}, theirs ${Math.round(won ? casL : casW)}.`, { nation: pl, type: won ? 'victory' : 'defeat', prov: b.prov, battle: b.id, important: true });
       this.emit('battleEnd', b.id, won);
     }
+    // compact record kept for replay after the live battle is purged
+    const past = s.pastBattles || (s.pastBattles = []);
+    past.push({ id: b.id, prov: b.prov, day: s.day, startDay: b.startDay, winner, attN: b.attN, defN: b.defN, terrain: b.terrain, weather: b.weather, night: !!b.night, river: !!b.river,
+      cas: { att: Math.round(b.cas.att), def: Math.round(b.cas.def) }, tac: b.tac, countered: b.countered, hist: b.hist.map((h) => ({ r: h.r, a: Math.round(h.a), d: Math.round(h.d) })), log: b.log.slice(-40) });
+    if (past.length > 25) past.shift();
     void playerSide;
     this.emit('battleOver', b.id);
   },

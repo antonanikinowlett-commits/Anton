@@ -264,6 +264,7 @@ export const PoliticsMixin = {
       if (e.unrest) { const ps = this.ownedProvinces(nid); for (let i = 0; i < e.unrest.n && ps.length; i++) { const p = pick(this.rng, ps); s.prov[p].unrest = clamp(s.prov[p].unrest + e.unrest.v, 0, 100); } }
       if (e.devLoss) { const ps = this.ownedProvinces(nid); for (let i = 0; i < e.devLoss.n && ps.length; i++) { const p = pick(this.rng, ps); s.prov[p].dev = Math.max(1, s.prov[p].dev - 1); } }
       if (e.revolt) { const ps = this.ownedProvinces(nid).filter((p) => p !== n.capital); for (let i = 0; i < e.revolt.n && ps.length; i++) this.spawnRebels(pick(this.rng, ps), e.revolt.nobles); }
+      if (e.followup) (s.eventLater ||= []).push({ id: e.followup.id, nid, day: s.day + e.followup.months * 30 });
       if (e.mercs && n.capital >= 0) {
         const regs = [];
         for (const [t, c] of Object.entries(e.mercs.regs)) for (let i = 0; i < c; i++) regs.push(this.newReg(t));
@@ -393,6 +394,16 @@ export const PoliticsMixin = {
   // ── events
   monthlyEvents() {
     const s = this.s;
+    if (s.eventLater?.length) {
+      // event chains: follow-ups scheduled by a {followup: {id, months}} effect
+      const due = s.eventLater.filter((x) => x.day <= s.day);
+      s.eventLater = s.eventLater.filter((x) => x.day > s.day);
+      for (const d of due) {
+        const n = s.nations[d.nid], ev = this.eventDef(d.id);
+        if (!n?.alive || !ev) continue;
+        if (n.id === s.player) s.eventQueue.push({ id: d.id }); else if (ev.options) this.applyEffects(n.id, ev.options[Math.floor(this.rng() * ev.options.length)].effects, 'event:' + ev.id);
+      }
+    }
     for (const h of HISTORY) {
       if (s.firedHistory.includes(h.id) || s.day < h.day) continue;
       s.firedHistory.push(h.id);

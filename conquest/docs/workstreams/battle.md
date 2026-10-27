@@ -13,4 +13,7 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 - Done: rain-mud penalty (extra charge/attack malus on marsh, plains, forest).
 - Done: night battles (10%, 20% winter: ranged -35%, charge -20%, attacker -8%); reinforcements arriving raise side morale +6%. 730-day smoke OK.
 - Done: viewer night chip; post-battle report (tactics per phase, strength graph) in showResult.
-- Todo: distinct formations per unit type in viewer, replay, naval battles.
+- Done: viewer formations (schiltron ring, wedge, shield-wall ranks, circling horse archers).
+- Done: replay (game.s.pastBattles keeps 25 compact records; BattleViewer.replay(id), Replay button on result panel). UI could add a battle-history list calling ui.battleViewer.replay(id).
+- Done: terrain chip tooltip lists terrain multipliers and favoured tactics.
+- Done: naval. Ships (cog, galley, longship in units.js; cls inf + ship:true) recruitable in a coastal province with a Harbour; checkContact lets fleets (or anyone meeting a fleet) fight at sea; AI maritime realms keep one small War Fleet in port (aiFleet). tools/debug_naval.html forces a fleet clash to verify. AI fleets do not patrol yet (they defend ports and catch landings only), no blockade effect on trade yet.

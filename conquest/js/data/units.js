@@ -29,13 +29,21 @@ export const UNITS = {
     desc: 'Frontier light infantry of the Reconquista: javelins, short sword and no armour, superb in rough country.', req: { cultures: ['catalan', 'castilian', 'portuguese', 'basque'], unlock: 'almogavars' } },
   templars: { name: 'Military Order Knights', icon: '✠', cls: 'cav', men: 500, atk: 3.2, def: 2.6, armor: 0.8, morale: 1.6, charge: 3.6, anti: 0.6, ranged: 0, pursuit: 1.0, screen: 0.8, speed: 26, cost: { gold: 38, iron: 4, horses: 2 }, upkeep: 0.7, days: 140,
     desc: 'Templars, Hospitallers and Santiago knights: warrior-monks sworn never to retreat unless outnumbered three to one.', req: { religions: ['catholic'], unlock: 'templars' } },
+  // Ships: fleets are ordinary armies made of these regiments. cls stays 'inf' so every roster/battle
+  // path keeps working; `ship: true` marks sea units. Recruited only in a coastal province with a Harbour.
+  cog: { name: 'Cogs', icon: '⛵', cls: 'inf', ship: true, men: 500, atk: 0.8, def: 1.6, armor: 0.2, morale: 0.8, charge: 0, anti: 0, ranged: 0.5, pursuit: 0.1, screen: 0.5, speed: 28, cost: { gold: 14, timber: 6 }, upkeep: 0.18, days: 60,
+    desc: 'Tall-sided Hanseatic merchantmen with fighting castles. Sturdy transports that can hold a line at sea.' },
+  galley: { name: 'War Galleys', icon: '🚣', cls: 'inf', ship: true, men: 500, atk: 2.0, def: 1.2, armor: 0.3, morale: 1.0, charge: 0, anti: 0, ranged: 1.0, pursuit: 1.5, screen: 0.8, speed: 34, cost: { gold: 22, timber: 5, iron: 1 }, upkeep: 0.35, days: 80,
+    desc: 'Oared warships with rams and boarding parties. Fast and deadly in a calm Mediterranean, poor in heavy seas.' },
+  longship: { name: 'Longships', icon: '🛶', cls: 'inf', ship: true, men: 500, atk: 2.3, def: 0.9, armor: 0.15, morale: 1.1, charge: 0, anti: 0, ranged: 0.3, pursuit: 1.8, screen: 0.6, speed: 36, cost: { gold: 12, timber: 5 }, upkeep: 0.2, days: 50,
+    desc: 'Clinker-built raiders of the northern seas. Cheap, fast, and fearsome in boarding actions.' },
   mangonel: { name: 'Mangonels', icon: '⚙', cls: 'siege', men: 300, atk: 0.2, def: 0.3, armor: 0, morale: 0.6, charge: 0, anti: 0, ranged: 0.6, pursuit: 0, screen: 0, siege: 1.5, speed: 14, cost: { gold: 10, timber: 4 }, upkeep: 0.15, days: 40,
     desc: 'Traction catapults to batter palisades and lob fire over walls.' },
   trebuchet: { name: 'Trebuchets', icon: '🏰', cls: 'siege', men: 300, atk: 0.1, def: 0.2, armor: 0, morale: 0.6, charge: 0, anti: 0, ranged: 0.3, pursuit: 0, screen: 0, siege: 3.2, speed: 12, cost: { gold: 22, timber: 7, iron: 1 }, upkeep: 0.3, days: 80,
     desc: 'Counterweight engines hurling 100 kg stones. Stone curtain walls finally had an answer.', req: { unlock: 'trebuchet', default: true } },
 };
 
-export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'light_cav', 'horse_archers', 'knights', 'mamluks', 'templars', 'mangonel', 'trebuchet'];
+export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'light_cav', 'horse_archers', 'knights', 'mamluks', 'templars', 'mangonel', 'trebuchet', 'cog', 'galley', 'longship'];
 
 // Terrain multipliers on unit class effectiveness (attack/defence). Cavalry hates broken ground.
 export const TERRAIN_COMBAT = {

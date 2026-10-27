@@ -5,7 +5,10 @@
 // Effect kinds: mods, gold, prestige, legitimacy, stability, manpower, iron, timber, horses,
 // claims {tag, box?}, cb {tag, kind}, unlock (unit/law key), build {type, where, n}, dev {where, v},
 // gov {gov, name?}, religion, law {cat, opt}, opinion {tag|group, v}, loyalty {estate:v}, influence {estate:v}
+import { FOCUS_EXTRA } from './focus_extra.js';
 const F = (id, name, icon, x, y, opt = {}) => ({ id, name, icon, x, y, days: 70, pre: [], excl: [], effects: [], ...opt });
+
+const EXTRA = FOCUS_EXTRA(F);
 
 function rivalOf(n, game) {
   if (n.focusRival && game.nationByTag(n.focusRival)?.alive) return n.focusRival;
@@ -311,7 +314,59 @@ const U = {
   ],
 };
 
+// Second unique branch for the biggest powers (x columns 24+), keyed '<TAG>2'.
+const U2 = {
+  ENG: () => [
+    F('exchequer_rolls', 'The Exchequer Rolls', '📜', 24, 0, { desc: 'Pipe rolls and tally sticks: the most efficient treasury in Christendom.', effects: [{ mods: { taxMult: 0.08 } }, { gold: 40 }] }),
+    F('itinerant_justices', 'Itinerant Justices', '⚖', 24, 1, { pre: [['exchequer_rolls']], desc: 'Royal judges ride the circuits and the king’s peace is felt in every shire.', effects: [{ mods: { unrest: -1, legitimacyMonthly: 0.02 } }] }),
+    F('model_parliament', 'The Model Parliament', '🏛', 25, 2, { pre: [['itinerant_justices']], excl: ['star_chamber'], desc: 'Knights and burgesses join the barons to grant taxes.', effects: [{ influence: { burghers: 6, nobles: 3 } }, { mods: { taxMult: 0.06 } }, { stability: 1 }] }),
+    F('star_chamber', 'The King’s Council', '⚜', 24, 2, { pre: [['itinerant_justices']], excl: ['model_parliament'], desc: 'A small council of the king’s men governs without waiting for assemblies.', effects: [{ mods: { taxMult: 0.1 } }, { loyalty: { nobles: -15 } }, { legitimacy: 5 }] }),
+    F('wool_staple_eng', 'The Wool Staple', '🐑', 26, 1, { pre: [['exchequer_rolls']], desc: 'English wool is sold only through licensed staple ports.', effects: [{ mods: { tradeMult: 0.15 } }, { build: { type: 'port', where: 'coastal', n: 2 } }] }),
+    F('continental_war', 'The Continental War', '⚔', 25, 3, { pre: [['model_parliament', 'star_chamber']], desc: 'Gather the means for a great war to hold or regain the lands across the Channel.', effects: [{ claims: { tag: 'FRA', border: 3 } }, { mods: { rangedAtk: 0.1, armyMorale: 0.05 } }] }),
+  ],
+  FRA: () => [
+    F('baillis_senechaux', 'Baillis and Sénéchaux', '⚜', 24, 0, { desc: 'Salaried royal officers replace hereditary local lords.', effects: [{ mods: { taxMult: 0.08, unrest: -1 } }] }),
+    F('sainte_chapelle', 'La Sainte-Chapelle', '⛪', 25, 0, { desc: 'A jewel box of glass for the Crown of Thorns: the king as saint-king.', effects: [{ prestige: 25 }, { legitimacy: 8 }, { loyalty: { clergy: 10 } }] }),
+    F('university_paris', 'The University of Paris', '🎓', 24, 1, { pre: [['baillis_senechaux']], desc: 'Masters of Paris train jurists and theologians for the crown.', effects: [{ mods: { researchSpeed: 0.15, focusSpeed: 0.08 } }] }),
+    F('parlement_paris', 'The Parlement', '⚖', 25, 2, { pre: [['university_paris'], ['sainte_chapelle']], desc: 'A sovereign court of royal justice.', effects: [{ mods: { unrest: -1, legitimacyMonthly: 0.03 } }, { law: { cat: 'justice', opt: 'roman_law' } }] }),
+    F('estates_general_fra', 'The Estates General', '🏛', 26, 1, { pre: [['baillis_senechaux']], excl: ['philip_fair'], desc: 'Call clergy, nobles and townsmen to consent to a new tax.', effects: [{ gold: 80 }, { influence: { burghers: 5 } }, { loyalty: { burghers: 10 } }] }),
+    F('philip_fair', 'The Fair King', '👑', 26, 3, { pre: [['parlement_paris']], excl: ['estates_general_fra'], desc: 'Strike at Templars, Jews and Lombards alike; seize their treasure.', effects: [{ gold: 150 }, { legitimacy: -5 }, { mods: { taxMult: 0.1 } }, { loyalty: { clergy: -10 } }] }),
+  ],
+  HRE: () => [
+    F('hoftag', 'The Court Diets', '🏛', 24, 0, { desc: 'Princes assemble at Frankfurt and Nuremberg to settle the affairs of the Reich.', effects: [{ stability: 1 }, { legitimacy: 8 }] }),
+    F('landfrieden', 'The Landfrieden', '📜', 24, 1, { pre: [['hoftag']], desc: 'Private war is outlawed within the empire.', effects: [{ mods: { unrest: -2 } }, { loyalty: { nobles: -5, burghers: 8 } }] }),
+    F('golden_bull_elect', 'Rights of the Electors', '⚜', 25, 2, { pre: [['landfrieden']], excl: ['imperial_domain'], desc: 'Seven electors choose the king, and in return pledge him their loyal service.', effects: [{ loyalty: { nobles: 20 } }, { stability: 1 }, { mods: { legitimacyMonthly: 0.03 } }] }),
+    F('imperial_domain', 'Imperial Domain', '🦅', 24, 2, { pre: [['landfrieden']], excl: ['golden_bull_elect'], desc: 'The emperor builds a hereditary power base of his own.', effects: [{ mods: { taxMult: 0.12 } }, { loyalty: { nobles: -15 } }, { prestige: 20 }] }),
+    F('hanseatic_diet', 'Cities of the League', '⚓', 26, 1, { pre: [['hoftag']], desc: 'Free and Hanseatic cities pledge fleets and silver to the empire.', effects: [{ mods: { tradeMult: 0.15 } }, { build: { type: 'port', where: 'coastal', n: 2 } }] }),
+    F('crown_of_roman_kings', 'Crown of the Romans', '👑', 25, 3, { pre: [['golden_bull_elect', 'imperial_domain']], desc: 'Journey to Rome for the imperial crown and the loyalty of Italy.', effects: [{ prestige: 50 }, { claims: { tag: 'LOM' } }, { opinion: { tag: 'PAP', v: 20 } }] }),
+  ],
+  BYZ: () => [
+    F('pronoia_grants', 'Pronoia Grants', '🏰', 24, 0, { desc: 'Soldiers are paid with the revenues of imperial estates for the life of the holder.', effects: [{ mods: { manpowerMult: 0.15 } }, { loyalty: { nobles: 10 } }] }),
+    F('chrysobull_trade', 'Chrysobulls of Trade', '💰', 25, 0, { desc: 'Sell privileges to Italian merchants for gold and warships.', effects: [{ gold: 80 }, { mods: { tradeMult: 0.1 } }, { loyalty: { burghers: 8 } }] }),
+    F('orthodox_revival', 'Orthodox Revival', '☦', 24, 1, { pre: [['pronoia_grants']], desc: 'Monasteries of Athos and Studion lead a spiritual renewal.', effects: [{ legitimacy: 10 }, { loyalty: { clergy: 15 } }, { opinion: { religion: 'orthodox', v: 25 } }] }),
+    F('nicaean_exile', 'The Court at Nicaea', '🏯', 25, 2, { pre: [['orthodox_revival'], ['chrysobull_trade']], excl: ['dynatoi_rebuke'], desc: 'If the City falls, the empire will live on in Anatolia.', effects: [{ mods: { fortDefense: 0.2, stabilityMonthly: 0.01 } }, { build: { type: 'walls', where: 'border', n: 2 } }] }),
+    F('dynatoi_rebuke', 'Curb the Dynatoi', '⚖', 24, 2, { pre: [['orthodox_revival']], excl: ['nicaean_exile'], desc: 'Break the great landowners who swallow free peasant holdings.', effects: [{ loyalty: { nobles: -20, peasants: 15 } }, { mods: { taxMult: 0.1 } }] }),
+    F('byzantine_diplomacy', 'The Art of Byzantine Diplomacy', '🤝', 26, 1, { pre: [['chrysobull_trade']], desc: 'Gold, titles and marriage prove stronger than armies.', effects: [{ mods: { diplo: 3 } }, { opinion: { group: 'christian', v: 12 } }, { prestige: 15 }] }),
+  ],
+  CAS: () => [
+    F('fueros_castile', 'The Fueros', '📜', 24, 0, { desc: 'Charters of settlement grant frontier towns liberties and militias.', effects: [{ influence: { burghers: 5 } }, { mods: { manpowerMult: 0.08, devGrowth: 0.1 } }] }),
+    F('mesta_flocks', 'The Mesta', '🐑', 25, 0, { desc: 'Royal privileges for the great sheep-walks, the pride of Castile.', effects: [{ mods: { tradeMult: 0.12 } }, { gold: 50 }, { loyalty: { peasants: -5, nobles: 5 } }] }),
+    F('toledo_translators', 'School of Translators', '📚', 24, 1, { pre: [['fueros_castile']], desc: 'Christian, Jewish and Muslim scholars render Arabic learning into Latin and Castilian.', effects: [{ mods: { researchSpeed: 0.15 } }, { legitimacy: 5 }] }),
+    F('cortes_castile', 'The Cortes of Castile', '🏛', 26, 1, { pre: [['mesta_flocks']], excl: ['royal_absolutism_cas'], desc: 'The towns grant subsidies in return for a share of royal government.', effects: [{ gold: 60 }, { influence: { burghers: 6 } }, { stability: 1 }] }),
+    F('royal_absolutism_cas', 'Royal Authority', '👑', 25, 2, { pre: [['toledo_translators'], ['mesta_flocks']], excl: ['cortes_castile'], desc: 'The crown overrules the fueros of the nobles and cities.', effects: [{ mods: { taxMult: 0.1 } }, { loyalty: { nobles: -15, burghers: -10 } }, { legitimacy: 8 }] }),
+    F('andalusian_march', 'The Andalusian March', '⚔', 25, 3, { pre: [['cortes_castile', 'royal_absolutism_cas']], desc: 'Seville, Córdoba and Jaén: the great cities of the south.', req: { provinces: 8 }, effects: [{ claims: { tag: 'ALM', box: [-8, 35.8, -1.5, 38.8] } }, { cb: { kind: 'holy_war', tag: 'ALM' } }, { prestige: 25 }] }),
+  ],
+  VEN: () => [
+    F('great_council_ven', 'The Great Council', '🏛', 24, 0, { desc: 'Close the Golden Book: only listed families may sit in the Maggior Consiglio.', effects: [{ law: { cat: 'authority', opt: 'great_council' } }, { stability: 1 }, { legitimacy: 6 }] }),
+    F('murano_glass', 'The Glass of Murano', '🏺', 25, 0, { desc: 'Move the glassworks to an island and protect the secret of crystalline glass.', effects: [{ gold: 60 }, { mods: { tradeMult: 0.1 } }] }),
+    F('spice_monopoly', 'The Levant Convoys', '🚢', 24, 1, { pre: [['great_council_ven']], excl: ['free_trade_ven'], desc: 'State galleys sail on schedule, carrying pepper, silk and alum.', effects: [{ mods: { tradeMult: 0.2 } }, { gold: 80 }, { loyalty: { burghers: -5 } }] }),
+    F('free_trade_ven', 'Open the Rialto', '⚖', 26, 1, { pre: [['murano_glass']], excl: ['spice_monopoly'], desc: 'Every honest merchant may trade under the lion of Saint Mark.', effects: [{ mods: { tradeMult: 0.12, taxMult: 0.05 } }, { loyalty: { burghers: 15 } }] }),
+    F('council_of_ten', 'The Council of Ten', '🗝', 25, 2, { pre: [['spice_monopoly'], ['free_trade_ven']], desc: 'A secret tribunal watches for conspiracy.', effects: [{ mods: { unrest: -2, stabilityMonthly: 0.01 } }, { legitimacy: 6 }] }),
+    F('terraferma', 'The Terraferma', '🗺', 25, 3, { pre: [['council_of_ten']], desc: 'The lion looks inland: Padua, Verona and Treviso.', req: { provinces: 6 }, effects: [{ claims: { tag: 'LOM', border: 2 } }, { prestige: 20 }, { mods: { manpowerMult: 0.1 } }] }),
+  ],
+};
+
 export function buildFocusTree(n, game) {
-  const tree = [...coreBranches(n, game), ...faithBranch(n), ...govBranch(n), ...(U[n.tag] ? U[n.tag]() : [])];
+  const tree = [...coreBranches(n, game), ...faithBranch(n), ...govBranch(n), ...(U[n.tag] ? U[n.tag]() : []), ...(U2[n.tag] ? U2[n.tag]() : []), ...(EXTRA[n.tag] || [])];
   return tree;
 }
