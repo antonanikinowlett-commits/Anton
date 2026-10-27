@@ -16,6 +16,7 @@ import { EconomyMixin } from './economy.js';
 import { EstatesMixin } from './estates.js';
 import { ProgressionMixin } from './progression.js';
 import { kmPerPx } from '../world/proj.js';
+import { MAP_VERSION } from '../world/version.js';
 
 import { TERRAIN_ECON } from './economy.js';
 export { TERRAIN_ECON };
@@ -276,9 +277,11 @@ export class Game {
   }
 
   // ── save / load
-  serialize() { return JSON.stringify({ v: 1, s: this.s, ui: this.uiState || {} }, (k, v) => (k === '_m' ? undefined : v)); }
+  serialize() { return JSON.stringify({ v: 1, map: MAP_VERSION, s: this.s, ui: this.uiState || {} }, (k, v) => (k === '_m' ? undefined : v)); }
   load(json) {
     const d = JSON.parse(json);
+    // province ids differ between map versions; saves before versioning were map 1
+    if ((d.map || 1) !== MAP_VERSION) throw new Error(`This save was made on a different map (v${d.map || 1}; this version uses v${MAP_VERSION}) and can't be loaded.`);
     this.s = d.s;
     this.uiState = d.ui;
     this._owned = null; this._ft = null; this._wp = null;
