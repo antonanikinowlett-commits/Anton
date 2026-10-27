@@ -10,4 +10,5 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 
 ## Status
 - Done: combined-arms bonus (sideMods), captured-general ransom (endBattle). River penalty and tactics already existed on dev.
+- Done: rain-mud penalty (extra charge/attack malus on marsh, plains, forest).
 - Todo: night penalties, reserves joining over days, viewer formations/replay, naval battles, battle report screen.

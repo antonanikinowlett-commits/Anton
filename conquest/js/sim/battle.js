@@ -195,6 +195,7 @@ export const BattleMixin = {
       M.def += Math.min(0.15, ent * 0.01);
     }
     if (b.weather === 'rain') { M.ranged -= 0.3; M.charge -= 0.25; }
+    if (b.weather === 'rain' && ['marsh', 'plains', 'forest'].includes(b.terrain)) { M.charge -= 0.15; M.atk -= 0.05; } // churned mud
     if (b.weather === 'fog') M.ranged -= 0.45;
     if (b.weather === 'snow') { M.atk -= 0.1; M.ranged -= 0.2; M.moraleTaken += 0.1; }
     if (b.weather === 'heat') {
