@@ -473,6 +473,11 @@ export const BattleMixin = {
       this.log(`${won ? 'Victory' : 'Defeat'} at the Battle of ${prov}! Losses: ours ${Math.round(won ? casW : casL)}, theirs ${Math.round(won ? casL : casW)}.`, { nation: pl, type: won ? 'victory' : 'defeat', prov: b.prov, battle: b.id, important: true });
       this.emit('battleEnd', b.id, won);
     }
+    // compact record kept for replay after the live battle is purged
+    const past = s.pastBattles || (s.pastBattles = []);
+    past.push({ id: b.id, prov: b.prov, day: s.day, startDay: b.startDay, winner, attN: b.attN, defN: b.defN, terrain: b.terrain, weather: b.weather, night: !!b.night, river: !!b.river,
+      cas: { att: Math.round(b.cas.att), def: Math.round(b.cas.def) }, tac: b.tac, countered: b.countered, hist: b.hist.map((h) => ({ r: h.r, a: Math.round(h.a), d: Math.round(h.d) })), log: b.log.slice(-40) });
+    if (past.length > 25) past.shift();
     void playerSide;
     this.emit('battleOver', b.id);
   },

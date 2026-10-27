@@ -18,6 +18,7 @@ export class BattleViewer {
     const b = this.g.s.battles[id];
     if (!b) return;
     if (this.isOpen) this.close();
+    this.replaying = false;
     this.b = b; this.isOpen = true;
     this.vis = new WeakMap(); this.parts = []; this.arrows = [];
     this.lastRound = -1; this.bg = null;
@@ -40,7 +41,7 @@ export class BattleViewer {
   }
   close() {
     if (!this.isOpen) return;
-    this.isOpen = false;
+    this.isOpen = false; this.replaying = false;
     this.root.remove();
     this.ui.emit('battleViewerClosed');
   }
@@ -111,7 +112,7 @@ export class BattleViewer {
   }
 
   update() {
-    if (!this.isOpen) return;
+    if (!this.isOpen || this.replaying) return;
     const b = this.b, g = this.g;
     const now = performance.now();
     if (b.round !== this.lastRound) {
@@ -134,10 +135,39 @@ export class BattleViewer {
     const col = mySide ? (mySide === win ? '#8ad070' : '#e06a50') : '#f0d48a';
     this.resultEl.classList.remove('hidden');
     this.resultEl.innerHTML = `<div class="big" style="color:${col}">${title}</div><div style="margin-top:6px">Casualties — attacker ${fmt(b.cas.att)} · defender ${fmt(b.cas.def)}</div>
-      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div>${this.reportHtml()}<div class="btn" style="margin-top:10px" onclick="this.closest('#battle').dispatchEvent(new PointerEvent('pointerdown'))">Close</div>`;
-    this.resultEl.querySelector('.btn').onclick = () => this.close();
+      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div>${this.reportHtml()}<div class="row" style="margin-top:10px;gap:8px"><div class="btn" id="bv-replay">Replay</div><div class="btn" id="bv-close">Close</div></div>`;
+    this.resultEl.querySelector('#bv-close').onclick = () => this.close();
+    this.resultEl.querySelector('#bv-replay').onclick = () => { const id = b.id; this.replay(id); };
   }
 
+  // Replay a finished battle from its stored record (game.s.pastBattles, or the live battle if still present).
+  replay(id) {
+    const g = this.g, rec = (g.s.pastBattles || []).find((x) => x.id === id) || g.s.battles[id];
+    if (!rec) return;
+    if (this.isOpen) this.close();
+    this.isOpen = true; this.replaying = true; this.b = rec; this.vis = new WeakMap(); this.parts = []; this.arrows = [];
+    const sp = g.map.provinces[rec.prov], nm = (n) => (n >= 0 ? g.s.nations[n].name : 'Rebels');
+    this.root = el('div', { id: 'battle' });
+    const box = el('div', { class: 'bresult frame', style: { position: 'relative', maxWidth: '520px', margin: '60px auto' } });
+    const h = rec.hist || [], logs = rec.log || [];
+    const out = el('div', {}), slider = el('input', { type: 'range', min: 0, max: Math.max(0, h.length - 1), value: 0, style: { width: '100%' } });
+    const show = (k) => {
+      const cut = h.slice(0, k + 1), r = h.length ? h[k].r : 0;
+      const mx = Math.max(...h.map((p) => Math.max(p.a, p.d)), 1), W = 480, H = 80;
+      const pts = (key2) => cut.map((p, i) => `${(i / Math.max(1, h.length - 1) * W).toFixed(1)},${(H - p[key2] / mx * H).toFixed(1)}`).join(' ');
+      out.innerHTML = `<svg width="${W}" height="${H}"><polyline points="${pts('a')}" fill="none" stroke="#e06a50" stroke-width="2"/><polyline points="${pts('d')}" fill="none" stroke="#6aa0e0" stroke-width="2"/></svg>
+        <div class="small muted">Round ${r}: attacker ${fmt(h[k] ? h[k].a : 0)} men · defender ${fmt(h[k] ? h[k].d : 0)} men</div>
+        <div class="small" style="margin-top:6px">${logs.filter((l) => l.r <= r).slice(-6).map((l) => l.t).join('<br>')}</div>`;
+    };
+    slider.oninput = () => show(+slider.value);
+    let k = 0; const timer = setInterval(() => { if (!this.isOpen || this.b !== rec || k >= h.length - 1) return clearInterval(timer); slider.value = ++k; show(k); }, 350);
+    box.append(el('div', { class: 'frame-title' }, `Replay: Battle of ${sp.name} — ${nm(rec.attN)} vs ${nm(rec.defN)}`), el('div', { class: 'small muted' }, `${rec.terrain}${rec.night ? ' · night' : ''}${rec.river ? ' · river crossing' : ''} · ${rec.winner === 'att' ? 'attackers' : 'defenders'} won`), out, slider,
+      el('div', { class: 'btn', style: { marginTop: '10px' }, onclick: () => { clearInterval(timer); this.close(); } }, 'Close'));
+    this.root.append(box);
+    this.root.addEventListener('pointerdown', (e) => { if (e.target === this.root) { clearInterval(timer); this.close(); } });
+    document.body.append(this.root);
+    show(0);
+  }
   // Post-battle report: tactics each side chose per phase, plus a strength graph.
   reportHtml() {
     const b = this.b;
