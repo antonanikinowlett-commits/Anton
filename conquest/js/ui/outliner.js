@@ -7,7 +7,7 @@ export const OutlinerMixin = {
     this.outEl = el('div', { id: 'outliner', class: 'frame' });
     this.root.append(this.outEl);
     this._outKey = null;
-    this._outOpen = this._outOpen || { Goals: true, Armies: true, Fronts: true, Sieges: true, Construction: true };
+    this._outOpen = this._outOpen || { Goals: true, Recent: true, Armies: true, Fronts: true, Sieges: true, Construction: true };
     this.root.classList.toggle('out-closed', !!this._outCollapsed);
   },
   outlinerData() {
@@ -38,12 +38,12 @@ export const OutlinerMixin = {
       if (!ri.maxed) goals.push({ icon: '👑', label: ri.ok ? `Crown the ${ri.next}!` : `Reach ${ri.next}`, right: ri.ok ? 'ready' : ri.checks.map((c) => `${c[0].slice(0, 4)} ${c[1]}/${c[2]}`).join(' · '), tab: 'progress', hot: ri.ok });
       goals.push({ icon: '🏆', label: 'Score', right: String(g.nationScore(nid)), tab: 'progress' });
     }
-    return { armies, frs, sieges, cons, goals };
+    return { armies, frs, sieges, cons, goals, recent: (this.recent || []).slice(0, 6) };
   },
   updateOutliner() {
     if (!this.outEl || !this.P) return;
     const D = this.outlinerData();
-    const key = JSON.stringify([D.goals, D.armies.map((a) => [a.id, a.st, a.loc, Math.round(a.men / 10)]), D.frs.map((f) => [f.id, f.n, f.mode]), D.sieges.map((x) => [x.p, x.ours, Math.floor(x.prog)]), D.cons.map((c) => [c.name, c.left, c.p]), this._outOpen, this._outCollapsed, this.selArmies]);
+    const key = JSON.stringify([D.goals, D.recent.map((r) => r.day + r.text), D.armies.map((a) => [a.id, a.st, a.loc, Math.round(a.men / 10)]), D.frs.map((f) => [f.id, f.n, f.mode]), D.sieges.map((x) => [x.p, x.ours, Math.floor(x.prog)]), D.cons.map((c) => [c.name, c.left, c.p]), this._outOpen, this._outCollapsed, this.selArmies]);
     if (key === this._outKey) return;
     this._outKey = key;
     const E = this.outEl;
@@ -62,6 +62,7 @@ export const OutlinerMixin = {
     };
     const row = (icon, label, right, fn, cls = '') => el('div', { class: 'orow ' + cls, onclick: fn }, el('span', { class: 'oi' }, icon), el('span', { class: 'grow' }, label), el('span', { class: 'muted small' }, right));
     if (D.goals.length) sec('Goals', '', D.goals.map((x) => row(x.icon, x.label, x.right, () => this.openTab(x.tab), x.hot ? 'idle' : '')));
+    if (D.recent.length) sec('Recent', '', D.recent.map((r) => row(r.icon || '•', r.text, String(Math.floor(r.day / 365) + 1200), () => {}, 'muted')));
     sec('Armies', D.armies.length, D.armies.map((a) => row(a.icon, a.name, `${fmt(a.men)} · ${a.where}`, () => this.selectArmies([a.id], true), (a.st === 'idle' ? 'idle ' : '') + (this.selArmies.includes(a.id) ? 'sel' : ''))));
     sec('Fronts', D.frs.length, D.frs.map((f) => row('🛡', `vs ${f.name}`, `${f.n} armies · ${f.mode}`, () => this.openTab('military'))));
     sec('Sieges', D.sieges.length, D.sieges.map((x) => row(x.ours ? '🏰' : '🔥', x.name, x.ours ? `besieging ${Math.floor(x.prog)}%` : 'under siege', () => { this.selectProvince(x.p); this.v.flyToProvince(x.p); }, x.ours ? '' : 'bad')));

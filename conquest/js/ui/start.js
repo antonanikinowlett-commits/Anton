@@ -93,7 +93,9 @@ export class StartScreen {
     const foot = el('div', { style: { padding: '0 12px 12px' } });
     const tut = el('input', { type: 'checkbox', checked: 'checked', id: 'tutchk' });
     foot.append(el('label', { class: 'row small', style: { marginBottom: '8px' } }, tut, 'Play with the interactive tutorial'));
-    foot.append(el('div', { class: 'btn primary', style: { width: '100%', justifyContent: 'center', fontSize: '17px', padding: '9px' }, onclick: () => { const t = tut.checked; this.close(); this.onStart(n.tag, t); } }, `⚔  Rule the ${n.adj}`));
+    const diff = el('select', { id: 'diffsel' }, el('option', { value: 'normal' }, 'Normal'), el('option', { value: 'hard' }, 'Hard: richer, warlike rivals who target you'));
+    foot.append(el('label', { class: 'row small', style: { marginBottom: '8px', gap: '8px' } }, 'Difficulty', diff));
+    foot.append(el('div', { class: 'btn primary', style: { width: '100%', justifyContent: 'center', fontSize: '17px', padding: '9px' }, onclick: () => { const t = tut.checked; this.close(); this.onStart(n.tag, t, diff.value); } }, `⚔  Rule the ${n.adj}`));
     this.right.append(foot);
   }
   close() {

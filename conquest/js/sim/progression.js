@@ -249,6 +249,11 @@ export const ProgressionMixin = {
         p.rank--; this._applyRankMods(n); n.prestige -= 10;
         if (n.id === s.player) this.notify({ nation: n.id, text: `Our realm has shrunk: reduced to a ${RANKS[p.rank]}.` });
       }
+      // bankruptcy: debt cannot spiral forever (interest compounds); creditors seize what they can and the realm suffers
+      if (n.gold < -400) { n.gold = -400; n.stability = Math.max(-3, n.stability - 0.3); n.legitimacy = Math.max(0, n.legitimacy - 3); if (n.id === s.player) this.notify({ nation: n.id, title: 'Bankruptcy', icon: '🪙', text: 'The crown’s creditors have seized the revenues. Stability and legitimacy suffer.' }); }
+      // without prestige actions a ruler's standing fades: a perfectly content realm is not a stable state
+      if (n.legitimacy > 80) n.legitimacy -= s.difficulty === 'hard' ? 0.4 : 0.25;
+      if (n.stability > 2) n.stability -= 0.05;
       this._monthlyAmbition(n);
       if (n.id !== s.player && this.rng() < 0.05) for (const f of this.availableFormables(n.id)) if (this.formableStatus(n.id, f, true).ok) { this.formNation(n.id, f.id, true); break; }
       if (n.id === s.player) this._checkAchievements(n);

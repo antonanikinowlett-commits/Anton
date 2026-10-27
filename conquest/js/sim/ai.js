@@ -305,7 +305,8 @@ export const AIMixin = {
     if (this.atWar(n.id) || n.overlord >= 0) return;
     const persona = this.personaOf(n);
     const PERS = { aggressive: { cool: 0.8, ratio: 1.0, freq: 1.6 }, schemer: { cool: 1.3, ratio: 1.2, freq: 1.0 }, zealot: { cool: 1.1, ratio: 1.15, freq: 1.2 }, builder: { cool: 3, ratio: 1.8, freq: 0.5 } }[persona];
-    if (s.day - n.ai.lastWar < 365 * PERS.cool || s.day < 120) return;
+    const hard = s.difficulty === 'hard';
+    if (s.day - n.ai.lastWar < 365 * PERS.cool * (hard ? 0.7 : 1) || s.day < 120) return;
     if (n.stability < 0 || n.warExhaustion > 5 || n.manpower < n.maxManpower * 0.25) return;
     const friends = (nid) => this.s.nations[nid].allies.reduce((t, x) => t + this.power(x) * 0.3, 0);
     const myTot = myPow + friends(n.id);
@@ -318,17 +319,17 @@ export const AIMixin = {
       const theirs = this.power(o) + friends(o);
       const ratio = myTot / Math.max(1, theirs);
       const crusade = cbs.includes('holy_war') && persona === 'zealot';
-      if (ratio < (crusade ? 0.9 : PERS.ratio)) continue; // never pick a fight against a much stronger bloc
+      if (ratio < (crusade ? 0.9 : PERS.ratio) * (o === s.player ? (hard ? 0.75 : 0.9) : 1)) continue; // never pick a fight against a much stronger bloc
       // value: development we could take (claimed provinces count double) against the risk of losing
       let value = 0;
       for (const p of this.ownedProvinces(o)) if (this.map.provinces[p].adj.some((e) => e.id < this.L && s.prov[e.id].owner === n.id)) value += s.prov[p].dev * (s.prov[p].claims.includes(n.id) ? 2 : 1);
       const busy = this.atWar(o) ? 1.3 : 1; // an enemy already fighting elsewhere is an opening (schemers love it)
       const revenge = (n.ai.grudge && n.ai.grudge[o] && s.day - n.ai.grudge[o] < 365 * 15) ? 1.5 : 1;
-      const sc = ratio * (1 + Math.min(value, 120) / 60) * (cbs.includes('claim') ? 1.5 : 1) * (cbs.includes('holy_war') ? (crusade ? 2.2 : 1.3) : 1) * (o === s.player ? 0.8 : 1) *
+      const sc = ratio * (1 + Math.min(value, 120) / 60) * (cbs.includes('claim') ? 1.5 : 1) * (cbs.includes('holy_war') ? (crusade ? 2.2 : 1.3) : 1) * (o === s.player ? (hard ? 1.7 : 1.1) * (this.atWar(o) || on.stability < 0 || on.legitimacy < 50 ? 1.3 : 1) : 1) *
         (this.opinion(n.id, o) < 0 ? 1.3 : 1) * revenge * (persona === 'schemer' ? busy : 1) * (on.religion !== n.religion && persona === 'zealot' ? 1.5 : 1);
       if (sc > bs) { bs = sc; best = [o, cbs.includes('holy_war') && persona === 'zealot' ? 'holy_war' : cbs[0]]; }
     }
-    if (best && this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq) this.declareWar(n.id, best[0], { kind: best[1] });
+    if (best && this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq * (best[0] === s.player ? (hard ? 1.6 : 1.2) : 1)) this.declareWar(n.id, best[0], { kind: best[1] });
   },
 
   aiPeace() {

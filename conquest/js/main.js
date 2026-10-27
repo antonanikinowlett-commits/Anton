@@ -26,8 +26,9 @@ async function boot() {
   let started = false, acc = 0, last = performance.now();
   const tutorial = new Tutorial(ui);
 
-  const startGame = (tag, withTutorial) => {
+  const startGame = (tag, withTutorial, difficulty = 'normal') => {
     game.newGame(tag);
+    game.s.difficulty = difficulty;
     ui.build();
     started = true;
     ui.setSpeed(0);

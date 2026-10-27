@@ -255,6 +255,16 @@ export const EVENTS = [
   { id: 'claimant_rises', system: true, title: 'A Pretender Appears', icon: '🗡', chance: 0,
     desc: 'With no clear heir, a cousin with a good claim and a band of followers has taken up residence in a hill castle and proclaims himself the rightful ruler.',
     options: [{ text: 'Crush the pretender', effects: [{ revolt: { n: 1, nobles: true } }, { prestige: 8 }] }, { text: 'Grant him lands and titles', effects: [{ gold: -40 }, { loyalty: { nobles: 10 } }, { legitimacy: -3 }] }] },
+  // ── pressure on comfortable realms
+  { id: 'estates_demand', title: 'The Estates Smell Gold', icon: '💰', chance: 0.012, cond: (n, g) => n.gold > 350 && !g.atWar(n.id),
+    desc: 'Word has spread of the full treasury. Nobles, clergy and burghers each petition the crown for a share: a new charter, a church, an end to the tolls.',
+    options: [{ text: 'Open the coffers to all (150 gold)', effects: [{ gold: -150 }, { loyalty: { nobles: 12, clergy: 12, burghers: 12 } }, { legitimacy: 3 }] }, { text: 'Favour the nobles', effects: [{ gold: -80 }, { loyalty: { nobles: 20, burghers: -12 } }, { influence: { nobles: 4 } }] }, { text: 'The treasury is the crown’s alone', effects: [{ loyalty: { nobles: -12, clergy: -8, burghers: -10 } }, { legitimacy: -4 }, { unrest: { v: 8, n: 3 } }] }] },
+  { id: 'rival_pretender', title: 'A Rival Claimant', icon: '🗡', chance: 0.006, cond: (n) => n.legitimacy < 90 && n.gov !== 'theocracy',
+    desc: 'A distant cousin, supported by a rival court, announces that he has the better right to the crown. His agents are already speaking with the barons.',
+    options: [{ text: 'Declare him outlaw and hunt his supporters', effects: [{ revolt: { n: 1, nobles: true } }, { prestige: 8 }, { loyalty: { nobles: -6 } }] }, { text: 'Buy off his backers (60 gold)', effects: [{ gold: -60 }, { legitimacy: -2 }, { loyalty: { nobles: 6 } }] }, { text: 'Let him sulk abroad', effects: [{ legitimacy: -6 }, { mods_t: { mods: { stabilityMonthly: -0.02 }, months: 12 } }] }] },
+  { id: 'noble_league', title: 'A League of Barons', icon: '🏰', chance: 0.007, cond: (n, g) => n.estates.nobles?.influence > 25 && n.gold > 200,
+    desc: 'The great barons bind themselves by oath to resist new taxes and demand a council of their own. They know the royal strongbox is full.',
+    options: [{ text: 'Accept a baronial council', effects: [{ influence: { nobles: 6 } }, { loyalty: { nobles: 18 } }, { mods_t: { mods: { taxMult: -0.05 }, months: 24 } }] }, { text: 'Break the league by force', effects: [{ revolt: { n: 2, nobles: true } }, { prestige: 6 }, { loyalty: { nobles: -15 } }] }] },
 ];
 
 // Scripted historical events fire once on (or after) their date for the listed realms.

@@ -280,6 +280,13 @@ export class UI {
     v.on('battleClick', (id) => this.battleViewer.open(id));
     v.on('hover', (p, e) => this.mapTip(p, e));
     g.on('notify', (n) => {
+      // routine news (finished focus, innovation, achievement, ambition...) goes to the outliner, not into a toast
+      if (!n.title || n.title === 'Focus Complete') {
+        (this.recent ||= []).unshift({ day: this.s.day, icon: n.icon, text: n.title ? `${n.title}: ${n.text}` : n.text });
+        if (this.recent.length > 12) this.recent.length = 12;
+        this._outKey = null;
+        return;
+      }
       this.toast(n.title, n.text, n.icon, () => {
         if (n.battle) this.battleViewer.open(n.battle);
         else if (n.prov !== undefined) { this.selectProvince(n.prov); v.flyToProvince(n.prov); }

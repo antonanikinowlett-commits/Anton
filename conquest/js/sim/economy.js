@@ -52,6 +52,7 @@ export const EconomyMixin = {
       B.tax += i.tax; B.trade += i.trade; B.mines += i.goldMine; B.food += i.food; B.iron += i.iron; B.timber += i.timber; B.horses += i.horses;
     }
     B.tax *= 1 + this.softMult(this.mod(nid, 'taxMult'));
+    if (this.s.difficulty === 'hard' && nid !== this.s.player && !n.ai.horde) B.tax *= 1.2; // Hard: the AI realms are richer
     B.trade *= 1 + this.softMult(this.mod(nid, 'tradeMult'));
     B.food *= B.food > 0 ? 1 + this.mod(nid, 'foodMult') : 1;
     B.iron *= 1 + this.mod(nid, 'ironMult');

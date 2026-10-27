@@ -93,7 +93,7 @@ registerPanel({ id: 'diplomacy', icon: '🤝', name: 'Diplomacy', key: 'g', orde
         info.innerHTML = `${c.desc}<br>Likely to defend them: ${allies.length ? allies.map((x) => s.nations[x].name).join(', ') : '<span class="pos">no one</span>'}${(n.truces[t.id] || 0) > s.day ? '<br><span class="neg">Breaking a truce: −2 stability, −20 prestige!</span>' : ''}${n.naps.includes(t.id) ? '<br><span class="neg">Breaking a non-aggression pact: −1 stability</span>' : ''}`;
       };
       sel.onchange = upd; upd();
-      pb.append(el('div', { class: 'row' }, sel, el('div', { class: 'btn danger', onclick: () => ui.confirm('Declare War', `Declare war on the ${t.name}?`, () => { const r = g.declareWar(n.id, t.id, { kind: sel.value }); if (r) ui.toast('War', r, '🚫'); ui.renderPanel(true); }) }, '⚔ Declare war')), info);
+      pb.append(el('div', { class: 'row' }, sel, el('div', { class: 'btn danger', onclick: () => ui.confirm('Declare War', el('div', { html: `Declare war on the ${t.name}?<br><span class="${g.power(t.id) > g.power(n.id) * 1.3 ? 'neg' : 'muted'}">Their strength is ${(g.power(t.id) / Math.max(1, g.power(n.id))).toFixed(1)}× ours${g.power(t.id) > g.power(n.id) * 1.3 ? ' — a dangerous fight' : ''}.</span>` }), () => { const r = g.declareWar(n.id, t.id, { kind: sel.value }); if (r) ui.toast('War', r, '🚫'); ui.renderPanel(true); }) }, '⚔ Declare war')), info);
     }
   } else pb.append(el('div', { class: 'btn', onclick: () => ui.openTab('wars') }, '🔥 Go to war overview'));
   // allies that have not joined our wars can be called to arms
