@@ -80,6 +80,7 @@ export const AIMixin = {
     this.aiBuild(n);
     this.aiRecruit(n);
     this.aiFleet(n);
+    this.aiSeaInvasion(n);
     this.aiDiplomacy(n);
   },
 
@@ -133,17 +134,41 @@ export const AIMixin = {
     }
   },
 
+  // Seaborne invasion: at war with a realm we share no land border with, ship a host to its coast with a fleet escort.
+  aiSeaInvasion(n) {
+    const s = this.s, P = this.map.provinces;
+    if (n.ai.horde || (n.ai.lastSea || -999) > s.day - 90 || !this.atWar(n.id)) return;
+    const land = new Set(this.neighbours(n.id));
+    const foes = this.enemiesOf(n.id).filter((e) => !land.has(e) && s.nations[e].alive);
+    if (!foes.length) return;
+    const hosts = this.armiesOf(n.id).filter((a) => !this.isFleet(a) && !a.battle && !a.retreating && !a.path.length && !a.atSea && a.loc < this.L && this.armyMen(a) >= this.armyMax(a) * 0.7 && P[a.loc].coastal && !this.frontOfArmy(a.id));
+    if (!hosts.length) return;
+    hosts.sort((x, y) => this.armyPower(y) - this.armyPower(x));
+    const host = hosts[0];
+    let best = -1, bd = Infinity;
+    for (const e of foes) for (const p of this.ownedProvinces(e)) {
+      if (!P[p].coastal) continue;
+      const d = Math.hypot(P[p].x - P[host.loc].x, P[p].y - P[host.loc].y);
+      if (d < bd) { bd = d; best = p; }
+    }
+    if (best < 0 || this.orderMove(host.id, best)) return;
+    n.ai.lastSea = s.day;
+    const zone = P[best].adj.map((e) => e.id).find((q) => q >= this.L);
+    const escort = this.armiesOf(n.id).find((a) => this.isFleet(a) && !a.battle && !a.retreating && !a.path.length);
+    if (escort && zone !== undefined) this.orderMove(escort.id, zone);
+  },
   isFleet(a) { return a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship); },
   // Maritime realms keep a few fleets (others at most one) built in harbours.
   aiFleet(n) {
     const maritime = MARITIME.includes(n.tag);
-    if (n.ai.horde || n.gold < (maritime ? 45 : 110)) return;
-    const want = maritime ? 3 : 1;
+    const war = this.atWar(n.id);
+    if (n.ai.horde || n.gold < (maritime || war ? 45 : 110)) return;
+    const want = maritime ? 3 : war ? 2 : 1;
     const have = this.armiesOf(n.id).filter((a) => this.isFleet(a)).length + this.s.recruit.filter((r) => r.nation === n.id && Object.keys(r.template.regs).some((k) => UNITS[k].ship)).length;
-    if (have >= want || this.rng() > (maritime ? 0.5 : 0.1)) return;
+    if (have >= want || this.rng() > (maritime || war ? 0.5 : 0.1)) return;
     const mine = this.ownedProvinces(n.id).filter((p) => this.map.provinces[p].coastal && this.s.prov[p].controller === n.id);
     const port = mine.find((p) => (this.s.prov[p].buildings.port || 0) >= 1);
-    if (port === undefined) { if (maritime && mine.length) this.build(n.id, mine[Math.floor(this.rng() * mine.length)], 'port'); return; }
+    if (port === undefined) { if ((maritime || (war && n.gold > 90)) && mine.length) this.build(n.id, mine[Math.floor(this.rng() * mine.length)], 'port'); return; }
     const ship = ['NOR', 'DEN', 'SWE'].includes(n.tag) ? 'longship' : ['VEN', 'GEN', 'BYZ', 'ALM', 'AYY'].includes(n.tag) ? 'galley' : 'cog';
     this.recruit(n.id, port, { id: this.newId(), name: 'War Fleet', regs: { [ship]: 3, cog: 1 }, doctrine: 'balanced' });
   },
@@ -159,6 +184,17 @@ export const AIMixin = {
     const enemies = this.enemiesOf(a.nation);
     const seaOf = (p) => P[p].adj.map((e) => e.id).filter((q) => P[q].sea);
     const start = P[a.loc].sea ? [a.loc] : seaOf(a.loc);
+    // chase the nearest enemy host currently at sea (an invasion in transit), if our fleet can take it
+    if (enemies.length) {
+      let tgt = null, td = 1e9;
+      for (const b of Object.values(s.armies)) {
+        if (!b.atSea || b.battle || !enemies.includes(b.nation)) continue;
+        if (this.isFleet(b) && this.armyPower(b) > this.armyPower(a) * 1.3) continue;
+        const d = Math.hypot(P[b.loc].x - P[a.loc].x, P[b.loc].y - P[a.loc].y) * P[a.loc].kmpx;
+        if (d < td && d < 2500) { td = d; tgt = b; }
+      }
+      if (tgt && tgt.loc !== a.loc) { this.orderMove(a.id, tgt.path.length ? tgt.path[tgt.path.length - 1] >= this.L ? tgt.path[tgt.path.length - 1] : tgt.loc : tgt.loc); return; }
+    }
     // breadth-first over sea zones for hostile ships/transports
     if (enemies.length) {
       const seen = new Set(start); let frontier = start;
@@ -177,6 +213,18 @@ export const AIMixin = {
         for (const q of frontier) for (const r of seaOf(q)) if (!seen.has(r)) { seen.add(r); next.push(r); }
         frontier = next;
       }
+    }
+    // wartime: sail to the sea zone beside the nearest enemy port and blockade it
+    if (enemies.length && (s.day + a.id) % 9 < 3) {
+      let best = -1, bd = 1e9;
+      for (const e of enemies) for (const p of this.ownedProvinces(e)) {
+        if (!P[p].coastal || s.prov[p].blockadedBy === a.nation) continue;
+        const d = Math.hypot(P[p].x - P[a.loc].x, P[p].y - P[a.loc].y);
+        if (d < bd) { bd = d; best = p; }
+      }
+      const zone = best >= 0 ? P[best].adj.map((e) => e.id).find((q) => q >= this.L) : undefined;
+      if (zone !== undefined && zone !== a.loc && bd * P[a.loc].kmpx < 2500) { this.orderMove(a.id, zone); return; }
+      if (zone === a.loc) return;
     }
     // patrol: sit in a sea zone beside the home coast, rotating slowly
     if (!P[a.loc].sea) {
