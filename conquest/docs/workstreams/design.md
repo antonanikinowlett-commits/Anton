@@ -10,7 +10,9 @@ Verify with screenshots from `npm run smoke` and close-zoom shots; attach before
 ## Status
 _Updated 2026-10-26._
 - **Done:** `docs/STYLE.md` v1. `ws:ui` issue #1 filed (CSS tokens + `.ic` CSS). Icons: `js/ui/icons.js` (56 glyphs, `icon()`, `iconFor()`, `iconize()`, `EMOJI` map covering ~95 emoji) + `assets/icons/*.svg` (regenerate with `node assets/icons/export.mjs`).
-- **Next:**
+- **Visuals pass 1 (done):** terrain bake richer — per-biome tone patches, grain, northern tundra, stronger hillshade, turquoise coastal shallows (`js/render/terrain.js`).
+- **Next (orchestrator list):** 2) trees/mountains 3) effects (water foam, clouds, seasons, smoke, dust) 4) CSS vars + icon adoption.
+- **Older next:**
   1. File `ws:ui` icon adoption issue (use `iconize()` on panel HTML; add `.ic` CSS from issue #1).
   2. Heraldry: rank crowns above shields (`coaSVG(coa, size, {rank})`), add tenné/sanguine tinctures.
   3. Portraits: culture-specific clothing and headgear.
