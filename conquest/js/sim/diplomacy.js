@@ -31,13 +31,18 @@ export const DiplomacyMixin = {
   isAlly(a, b) { const n = this.s.nations[a]; return !!n && b >= 0 && n.allies.includes(b); },
   isSubjectOf(a, b) { const n = this.s.nations[a]; return !!n && b >= 0 && n.overlord === b; },
   neighbours(nid) {
+    const own = this.ownedProvinces(nid); // also guarantees this._owned exists
+    if (this._neighFor !== this._owned) { this._neighFor = this._owned; this._neigh = new Map(); }
+    const hit = this._neigh.get(nid);
+    if (hit) return hit.slice();
     const r = new Set();
     for (const p of this.ownedProvinces(nid)) for (const e of this.map.provinces[p].adj) {
       if (e.id >= this.L) continue;
       const o = this.s.prov[e.id].owner;
       if (o >= 0 && o !== nid) r.add(o);
     }
-    return [...r];
+    const out = [...r]; this._neigh.set(nid, out);
+    return out.slice();
   },
   relGroup,
 
@@ -332,7 +337,7 @@ export const DiplomacyMixin = {
         const n = this.s.nations[a.nation];
         const home = n.capital >= 0 ? n.capital : this.ownedProvinces(a.nation)[0];
         if (home === undefined || home < 0) { this.destroyArmy(a); continue; }
-        a.loc = home; a.path = []; a.prog = 0; a.atSea = false;
+        a.loc = home; this._armyVer = (this._armyVer || 0) + 1; a.path = []; a.prog = 0; a.atSea = false;
         this.emit('armyMoved', a.id);
       }
     }

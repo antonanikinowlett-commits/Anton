@@ -81,6 +81,7 @@ export const AIMixin = {
     this.aiRecruit(n);
     this.aiFleet(n);
     this.aiSeaInvasion(n);
+    this.aiDoctrine(n);
     this.aiDiplomacy(n);
   },
 
@@ -156,6 +157,12 @@ export const AIMixin = {
     const zone = P[best].adj.map((e) => e.id).find((q) => q >= this.L);
     const escort = this.armiesOf(n.id).find((a) => this.isFleet(a) && !a.battle && !a.retreating && !a.path.length);
     if (escort && zone !== undefined) this.orderMove(escort.id, zone);
+  },
+  // Rarely reconsider the national doctrine according to the realm's temperament.
+  aiDoctrine(n) {
+    if (n.ai.horde || this.rng() > 0.02) return;
+    const want = n.ai.aggro > 0.75 ? 'horde_crusade' : n.ai.aggro < 0.3 ? 'feudal_levy' : n.gold > 300 ? 'professional_retinue' : null;
+    if (want) this.setMilDoctrine(n.id, want);
   },
   isFleet(a) { return a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship); },
   // Maritime realms keep a few fleets (others at most one) built in harbours.
@@ -377,6 +384,7 @@ export const AIMixin = {
       return;
     }
     if (a.path.length && (s.day + a.id) % 9 !== 0) return;
+    if (a.ai.wait > s.day) return; // last order found no route: don't repath every day
     const here = P[a.loc];
     const dist = (p) => Math.hypot(P[p].x - here.x, P[p].y - here.y);
     // 1. strike weaker enemy armies nearby
@@ -414,7 +422,7 @@ export const AIMixin = {
     }
     if (target !== null && target !== a.loc) {
       if (a.path.length && a.path[a.path.length - 1] === target) return;
-      if (this.orderMove(a.id, target)) a.ai.fail = (a.ai.fail || 0) + 1;
+      if (this.orderMove(a.id, target)) { a.ai.fail = (a.ai.fail || 0) + 1; a.ai.wait = s.day + 10; }
     }
   },
   aiRebel(a) {
@@ -609,6 +617,7 @@ export const AIMixin = {
     if (can('horse_archers')) add('horse_archers', 3);
     if (n.horses > 8) add(can('mamluks') ? 'mamluks' : can('templars') ? 'templars' : 'knights', 2);
     else add('light_cav', 1);
+    if (this.atWar(n.id) && n.gold > 250) add('free_company', 2); // rich realms at war hire mercenaries
     const doctrine = regs.longbowmen || regs.horse_archers ? 'missile' : cavHeavy ? 'defensive' : regs.knights || regs.mamluks || regs.templars ? 'shock' : 'balanced';
     const t = n.templates.find((x) => x.name === 'Royal Host');
     if (t) Object.assign(t, { regs, doctrine });

@@ -101,7 +101,7 @@ export const ArmyMixin = {
       const ri = a.regs.indexOf(r);
       const d = el('div', { class: 'reg' + (regSel.has(ri) ? ' picked' : ''), onclick: () => { if (!mine) return; regSel.has(ri) ? regSel.delete(ri) : regSel.add(ri); this.renderArmy(); } });
       d.innerHTML = `<div class="row"><span class="ri">${u.icon}</span><span class="grow">${u.name}</span></div><div class="row between"><span>${fmt(r.men)}</span><span class="gold">${'★'.repeat(Math.floor((r.xp || 0) * 3))}</span></div><div class="bar green"><i style="width:${r.morale * 100}%"></i></div>`;
-      d._tip = () => unitTip(r.type) + `<hr>Men ${Math.round(r.men)}/${r.max} · morale ${pct(r.morale)} · experience ${pct(r.xp || 0)}`;
+      d._tip = () => unitTip(r.type) + `<hr>Men ${Math.round(r.men)}/${r.max} · morale ${pct(r.morale)} · experience ${pct(r.xp || 0)}${UNITS[r.type].merc ? ` · loyalty ${pct(r.loy ?? 1)} (falls while the treasury is empty; below 50% they desert)` : ''}`;
       regs.append(d);
     }
     pb.append(regs);
@@ -125,6 +125,7 @@ export const ArmyMixin = {
       if (others.length) o.append(el('div', { class: 'btn small', onclick: () => { g.merge([a.id, ...others.map((b) => b.id)]); this.renderArmy(); } }, '⧉ Merge here'));
       const pr = s.prov[a.loc];
       if (pr && pr.siege && pr.siege.by === a.nation) o.append(el('div', { class: 'btn small danger', onclick: () => { const r = g.assault(a.loc); this.toast('Assault', r || 'The walls are stormed!', r ? '💀' : '🏰'); this.renderArmy(); } }, '⚔ Assault'));
+      if (a.template && !a.battle) o.append(el('div', { class: 'btn small green', onclick: () => { const r = g.reinforceFromTemplate(a.id); this.toast(r ? 'Cannot reinforce' : 'Reinforcements', r || 'Missing regiments are mustering and will join the army.', r ? '🚫' : '⚔'); this.updateTopbar(); }, 'data-tip': 'Recruit the regiments this army has lost, up to its template. They muster here and merge in.' }, '➕ Reinforce from template'));
       if (a.battle) o.append(el('div', { class: 'btn small primary', onclick: () => this.battleViewer.open(a.battle) }, '👁 Watch battle'));
       o.append(el('div', { class: 'btn small danger', onclick: () => this.confirm('Disband army', `Disband ${a.name}? 60% of the men return to the manpower pool.`, () => { g.disband(a.id); this.selectArmies([]); }) }, '✖ Disband'));
       pb.append(o);

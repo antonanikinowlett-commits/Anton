@@ -18,7 +18,7 @@ export { terrainTip, unitTip } from './tips.js';
 
 const MODES = [
   ['political', '🗺', 'Political'], ['terrain', '⛰', 'Terrain'], ['terrainType', '🌲', 'Terrain types (combat)'], ['diplomacy', '🤝', 'Diplomacy'], ['religion', '✝', 'Religion'],
-  ['culture', '🗣', 'Culture'], ['development', '🏘', 'Development'], ['supply', '🌾', 'Supply limit'], ['fort', '🏰', 'Forts'], ['unrest', '🔥', 'Unrest'],
+  ['culture', '🗣', 'Culture'], ['development', '🏘', 'Development'], ['supply', '🌾', 'Supply limit'], ['attrition', '☠', 'Attrition risk (green: safe, red: armies bleed men; winter, desert, famine, poor supply; open sea is red)'], ['fort', '🏰', 'Forts'], ['unrest', '🔥', 'Unrest'],
 ];
 export const SPEEDS = [0, 0.7, 1.5, 3, 6, 14]; // days per second
 
