@@ -5,6 +5,7 @@ import { coaSVG, rebelCoa } from './heraldry.js';
 import { BUILDINGS, BUILDING_ORDER, CHURCH_NAMES, CASTLE_NAMES } from '../data/buildings.js';
 import { PANELS } from './panels.js';
 import { terrainTip } from './tips.js';
+import { UNITS } from '../data/units.js';
 
 export const ProvinceMixin = {
   // ── province panel
@@ -106,7 +107,7 @@ export const ProvinceMixin = {
       const rb = el('div', { class: 'btn green small', onclick: () => {
         const t = this.P.templates.find((x) => x.id === +sel.value);
         const r = g.recruit(pl, p, t);
-        if (r) this.toast('Cannot recruit', r, '🚫'); else { this.toast('Mustering', `${t.name} will assemble at ${sp.name}.`, '⚔'); this.emit('recruited'); }
+        if (r) this.toast('Cannot recruit', r, '🚫'); else { const rc = g.s.recruit[g.s.recruit.length - 1]; this.toast('Mustering', `${t.name} (about ${fmt(Object.entries(t.regs).reduce((x, [k, c]) => x + c * UNITS[k].men, 0))} men) assembles at ${sp.name} in ${rc ? rc.days : '?'} days.`, '⚔'); this.emit('recruited'); }
         this.updateTopbar();
       } }, '⚔ Recruit');
       rb._tip = () => { const t = this.P.templates.find((x) => x.id === +sel.value); if (!t) return ''; const c = g.templateCost(pl, t); return `<b>${t.name}</b><br>${Object.entries(c).filter(([k, v]) => v && k !== 'days').map(([k, v]) => `${fmt(v)} ${k}`).join(', ')}<br>${c.days} days (barracks speed this up)`; };

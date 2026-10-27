@@ -295,6 +295,12 @@ export class UI {
       if (['War!', 'Peace Offer'].includes(n.title) && this.settings?.pauseOnWar !== false) this.setSpeed(0);
     });
     g.on('event', () => { if (!this._eventOpen) this.showEvent(); });
+    // a freshly mustered army announces itself, is selected and the camera goes to it
+    g.on('mustered', (id) => {
+      const a = this.s.armies[id]; if (!a) return;
+      this.toast('Army mustered', `${a.name} is ready at ${g.provName(a.loc)} (${Math.round(g.armyMen(a)).toLocaleString('en-US')} men).`, '⚔', () => this.selectArmies([id], true));
+      if (!this.selArmies.length && !this.peace) this.selectArmies([id], true);
+    });
     g.on('armyGone', (id) => { if (this.selArmies.includes(id)) this.selectArmies(this.selArmies.filter((i) => i !== id)); });
     g.on('battle', (id) => { const b = this.s.battles[id]; if (b && this.settings?.autoBattle && [b.attN, b.defN].includes(this.s.player)) this.battleViewer.open(id); });
   }

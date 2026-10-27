@@ -518,7 +518,11 @@ export const MilitaryMixin = {
         const a = this.createArmy(r.nation, r.prov, regs, r.template.name, { doctrine: r.template.doctrine });
         a.template = r.template.id;
         if (r.mergeInto && s.armies[r.mergeInto] && s.armies[r.mergeInto].loc === r.prov) a.mergeInto = r.mergeInto;
-        if (r.nation === s.player) { this.log(`${a.name} has mustered at ${this.provName(r.prov)}.`, { nation: r.nation, type: 'mil', prov: r.prov, army: a.id }); this.emit('mustered', a.id); }
+        if (r.nation === s.player) {
+          const men = Math.round(this.armyMen(a)), mix = Object.entries(r.template.regs).filter(([, c]) => c > 0).map(([k, c]) => `${c} ${UNITS[k].name.toLowerCase()}`).join(', ');
+          this.log(`Recruited ${men.toLocaleString('en-US')} men in ${this.provName(r.prov)}: ${a.name} (${mix}).`, { nation: r.nation, type: 'mil', prov: r.prov, army: a.id });
+          this.emit('mustered', a.id);
+        }
         // auto-assign an idle general to AI armies
         if (r.nation !== s.player) { const gen = this.charsOf(r.nation, 'general').find((c) => !c.army); if (gen) this.assignGeneral(a.id, gen.id); }
       }
