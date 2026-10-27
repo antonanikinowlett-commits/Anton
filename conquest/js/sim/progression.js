@@ -52,7 +52,7 @@ export const ProgressionMixin = {
     if (n.prog) return;
     n.prog = defaultProg();
     const np = this.ownedProvinces(n.id).length;
-    let r = 0; while (r < 3 && np >= RANK_REQ[r].prov * 1.5) r++;
+    let r = 0; while (r < 2 && np >= RANK_REQ[r].prov * 1.5) r++;
     if (n.gov === 'imperial' || n.tag === 'HRE' || n.tag === 'BYZ') r = 3;
     n.prog.rank = r;
     this._applyRankMods(n);
@@ -70,6 +70,7 @@ export const ProgressionMixin = {
     if (!i || !n.prog || n.prog.known.includes(id)) return false;
     return i.pre.every((p) => n.prog.known.includes(p));
   },
+  hasResearchOptions(nid) { return INNOVATIONS.some((i) => this.innovAvailable(nid, i.id)); },
   innovCost(nid, id) {
     const i = INNOV[id], n = this.s.nations[nid];
     let c = 120 * (1 + i.era * 0.7);

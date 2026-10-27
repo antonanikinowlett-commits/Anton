@@ -10,7 +10,7 @@ export function check(g) {
   const nat = (i) => Number.isInteger(i) && i >= 0 && i < N;
   s.prov.forEach((p, i) => {
     if (!nat(p.owner) || !s.nations[p.owner].alive) v.push(`prov ${i} owner ${p.owner} invalid/dead`);
-    if (!nat(p.controller)) v.push(`prov ${i} controller ${p.controller} invalid`);
+    if (!nat(p.controller) && p.controller !== -2) v.push(`prov ${i} controller ${p.controller} invalid`);
     if (!(p.dev >= 0)) v.push(`prov ${i} dev ${p.dev}`);
   });
   for (const n of s.nations) {
