@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf-8"><pre id="o">loading</pre>
+<script type="module">
+import { generateMap } from '../../js/world/mapgen.js';
+import { Game } from '../../js/sim/game.js';
+import { mulberry32, dateOf } from '../../js/util.js';
+import { check } from './invariants.js';
+
+window.map = await generateMap(() => {});
+window.ready = true;
+
+// Runs one seed. Returns {seed, crash?, years:[...], violations:{msg:{n,firstDay}}, saveload}.
+window.runSeed = function (seed, years, tag = 'FRA') {
+  const g = new Game(window.map);
+  g.rng = mulberry32(seed);
+  g.newGame(tag);
+  g.s.player = -1;
+  const R = { seed, years: [], violations: {}, crash: null, wars: 0, battles: 0, revolts: 0, saveload: [], maxRealmShare: 0 };
+  const L = g.L, seenWars = new Set(), seenBattles = new Set();
+  let tickMs = 0, tickMax = 0, lastWarDay = 0, longestPeace = 0, day0 = 0;
+  const viol = (list, day) => { for (const m of list) { const k = m.replace(/\d+/g, '#'); const e = R.violations[k] ||= { n: 0, first: day, example: m }; e.n++; } };
+  const total = years * 365;
+  try {
+    for (let d = 1; d <= total; d++) {
+      const t0 = performance.now();
+      g.tickDay();
+      const dt = performance.now() - t0; tickMs += dt; if (dt > tickMax) tickMax = dt;
+      if (g.s.eventQueue.length) g.s.eventQueue.length = 0;
+      if (g.s.notifications && g.s.notifications.length > 200) g.s.notifications.length = 200;
+      for (const id of Object.keys(g.s.wars)) if (!seenWars.has(id)) { seenWars.add(id); R.wars++; lastWarDay = d; }
+      for (const id of Object.keys(g.s.battles)) if (!seenBattles.has(id)) { seenBattles.add(id); R.battles++; }
+      if (Object.keys(g.s.wars).length) lastWarDay = d; else longestPeace = Math.max(longestPeace, d - lastWarDay);
+      if (dateOf(g.s.day).d === 1) {
+        viol(check(g), g.s.day);
+        if (d % 365 < 31 || d === total) { /* year boundary below */ }
+      }
+      if (d % 365 === 0) {
+        const y = d / 365;
+        const alive = g.s.nations.filter((n) => n.alive);
+        const sizes = alive.map((n) => [n.tag, g.ownedProvinces(n.id).length]).sort((a, b) => b[1] - a[1]);
+        R.maxRealmShare = Math.max(R.maxRealmShare, sizes[0][1] / L);
+        const armies = Object.values(g.s.armies);
+        R.years.push({ y, ms: +(tickMs / 365).toFixed(2), msMax: +tickMax.toFixed(1), alive: alive.length, top: sizes.slice(0, 3).map((x) => x.join(':')).join(' '), topShare: +(sizes[0][1] / L).toFixed(3),
+          wars: Object.keys(g.s.wars).length, armies: armies.length, men: Math.round(armies.reduce((t, a) => t + g.armyMen(a), 0)), rebels: armies.filter((a) => a.rebelOf >= 0).length, gold: Math.round(alive.reduce((t, n) => t + n.gold, 0)) });
+        tickMs = 0; tickMax = 0;
+        if (y % 10 === 0) { // save -> load -> continue round-trip, compared against the uninterrupted run
+          const json = g.serialize();
+          const g2 = new Game(window.map); g2.rng = mulberry32(seed + y);
+          try {
+            g2.load(json);
+            for (let k = 0; k < 60; k++) { g2.tickDay(); if (g2.s.eventQueue.length) g2.s.eventQueue.length = 0; }
+            const again = g2.serialize();
+            JSON.parse(again);
+            viol(check(g2), g2.s.day);
+            R.saveload.push({ y, ok: true, kb: Math.round(json.length / 1024) });
+          } catch (e) { R.saveload.push({ y, ok: false, err: String(e.stack).split('\n').slice(0, 4).join(' | ') }); }
+        }
+      }
+    }
+  } catch (e) { R.crash = { day: g.s.day, date: JSON.stringify(dateOf(g.s.day)), stack: String(e.stack).split('\n').slice(0, 8).join('\n') }; }
+  R.revolts = Object.values(g.s.armies).filter((a) => a.rebelOf >= 0).length;
+  R.longestPeaceDays = longestPeace;
+  R.finalAlive = g.s.nations.filter((n) => n.alive).length;
+  R.zeroArmyNations = g.s.nations.filter((n) => n.alive && g.ownedProvinces(n.id).length > 3 && !g.armiesOf(n.id).length).length;
+  return R;
+};
+document.getElementById('o').textContent = 'ready';
+</script>

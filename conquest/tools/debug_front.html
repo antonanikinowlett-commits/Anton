@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><pre id="o"></pre>
+<script type="module">
+import { generateMap } from '../js/world/mapgen.js';
+import { Game } from '../js/sim/game.js';
+const o = document.getElementById('o'); const out=[];
+try {
+const m = await generateMap(()=>{});
+const g = new Game(m); g.newGame('FRA');
+const pl = g.s.player, enemy = g.nationByTag(new URLSearchParams(location.search).get('vs') || 'ENG').id;
+const as = g.armiesOf(pl); g.merge(as.map(a=>a.id));
+const a = g.armiesOf(pl)[0]; for (let i=0;i<6;i++) a.regs.push(g.newReg('levy_spear'), g.newReg('archers'));
+out.push('cover: ' + g.coverFront(a.id, enemy));
+const f = g.frontsOf(pl)[0];
+const dest = {}, changes = {};
+const om = g.orderMove.bind(g); g.orderMove = (id, p) => { if (dest[id] !== p) { changes[id] = (changes[id]||0)+1; dest[id] = p; } return om(id, p); };
+for (let d=0; d<60; d++) { g.tickDay(); g.s.eventQueue.length=0; if (d===40 && new URLSearchParams(location.search).get('war')) { g.declareWar(pl, enemy, {kind:'claim'}); g.setFrontMode(f.id,'advance'); } }
+const line = new Set(g.frontProvinces(f));
+for (const id of f.armies) { const x = g.s.armies[id]; if (!x) { out.push(id+' gone'); continue; } out.push(`${x.name} loc=${m.provinces[x.loc].name} onLine=${line.has(x.loc)} path=${x.path.length} retarget=${changes[id]||0}`); }
+out.push('stacked: ' + (f.armies.length - new Set(f.armies.map(id=>g.s.armies[id]?.loc)).size));
+} catch(e) { out.push('ERR '+e.stack); }
+o.textContent = out.join('\n'); window.done = true;
+</script>
