@@ -17,4 +17,8 @@ for (const f of files) {
   catch (e) { bad++; console.error(path.relative(root, f) + '\n' + e.stderr.toString()); }
 }
 console.log(`${files.length - bad}/${files.length} modules OK`);
+if (!bad) {
+  try { execFileSync(process.execPath, [path.join(root, 'tools/validate_data.mjs')], { stdio: 'inherit' }); }
+  catch { bad++; }
+}
 process.exit(bad ? 1 : 0);

@@ -1,11 +1,13 @@
 // Alerts bar and event pop-ups.
 // Mixed into UI.prototype (this = the UI).
 import { el } from '../util.js';
+import { showEndScore } from './panels/progress.js';
 
 export const AlertsMixin = {
   updateAlerts() {
     const g = this.g, s = this.s, n = this.P;
     const A = [];
+    if (s.ended && !this._endShown) { this._endShown = true; showEndScore(this); }
     const myBattles = Object.values(s.battles).filter((b) => !b.over && (b.attN === n.id || b.defN === n.id || b.att.concat(b.def).some((i) => s.armies[i]?.nation === n.id)));
     if (myBattles.length) A.push(['battle', '⚔', `${myBattles.length} battle(s) raging — click to watch`, () => this.battleViewer.open(myBattles[0].id), true, myBattles.length]);
     if (s.eventQueue.length) A.push(['event', '📜', 'An event awaits your decision', () => this.showEvent(), true, s.eventQueue.length]);
