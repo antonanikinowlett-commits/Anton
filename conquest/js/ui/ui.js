@@ -189,7 +189,10 @@ export class UI {
   }
 
   // ── toasts, alerts and modals
-  toast(title, text, icon = '📜', onclick) {
+  toast(title, text, icon = '📜', onclick, level = 'info') {
+    // Settings: 'important' hides routine feedback, 'critical' shows only war, peace, revolt and ruin (errors always show)
+    const v = this.settings?.toasts || 'all';
+    if (v !== 'all' && icon !== '🚫' && level !== 'critical' && !(v === 'important' && level === 'important')) return;
     const t = el('div', { class: 'toast frame', onclick: () => { onclick && onclick(); t.remove(); } }, el('div', { class: 'ti' }, icon), el('div', {}, el('div', { class: 'tt' }, title), el('div', { class: 'small' }, text)));
     this.toasts.prepend(t);
     while (this.toasts.children.length > 5) this.toasts.lastChild.remove();
@@ -287,11 +290,12 @@ export class UI {
         this._outKey = null;
         return;
       }
+      const level = ['War!', 'Peace Offer', 'Province Lost', 'Revolt', 'Bankruptcy', 'Excommunicated', 'Vassal rebels', 'Crusade failed'].includes(n.title) ? 'critical' : ['Battle!', 'Succession', 'Heresy', 'General wounded', 'General disgruntled'].includes(n.title) ? 'important' : 'info';
       this.toast(n.title, n.text, n.icon, () => {
         if (n.battle) this.battleViewer.open(n.battle);
         else if (n.prov !== undefined) { this.selectProvince(n.prov); v.flyToProvince(n.prov); }
         else if (n.peace) this.openTab('wars');
-      });
+      }, level);
       if (['War!', 'Peace Offer'].includes(n.title) && this.settings?.pauseOnWar !== false) this.setSpeed(0);
     });
     g.on('event', () => { if (!this._eventOpen) this.showEvent(); });

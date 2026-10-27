@@ -35,7 +35,7 @@ async function boot() {
     const n = game.player;
     if (n.capital >= 0) view.flyToProvince(n.capital, 330);
     tutorial.watch();
-    ui.settings = { pauseOnWar: true, autoBattle: false, tutorial: withTutorial };
+    ui.loadSettings({ tutorial: withTutorial });
     if (withTutorial) setTimeout(() => tutorial.start(), 900);
     else ui.toast(`${n.name}`, 'Press Space to start time. Hover anything for details.', '👑');
   };
@@ -52,18 +52,24 @@ async function boot() {
       ui.toast('Game saved', `${n.name}, ${dateStr(game.s.day)}`, '💾');
     } catch (e) { ui.toast('Save failed', String(e.message || e), '🚫'); }
   });
-  ui.on('load', (key) => {
-    const json = store.get(key);
+  const loadGame = (json) => {
     if (!json) { ui.toast('Load failed', 'Save not found', '🚫'); return; }
     try { game.load(json); } catch (e) { ui.toast('Load failed', String(e.message || e), '🚫'); return; }
     ui.build();
     started = true;
     ui.setSpeed(0);
-    ui.settings ||= { pauseOnWar: true, autoBattle: false, tutorial: true };
+    ui.loadSettings();
     tutorial.watch();
     const n = game.player;
     if (n && n.capital >= 0) view.flyToProvince(n.capital, 330);
     ui.toast('Game loaded', dateStr(game.s.day), '📂');
+  };
+  ui.on('load', (key) => loadGame(store.get(key)));
+  ui.on('loadjson', (json) => loadGame(json));
+  // yearly autosave to a single slot
+  game.on('month', () => {
+    if (!started || ui.settings?.autosave === false || game.date().m !== 0 || game.s.day < 30) return;
+    try { if (store.set('cc_autosave', game.serialize())) ui.toast('Autosaved', dateStr(game.s.day), '💾'); } catch { /* storage full */ }
   });
   ui.on('restart', () => location.reload());
 

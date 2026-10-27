@@ -60,7 +60,7 @@ export const AlertsMixin = {
     if (!ev) { s.eventQueue.shift(); return; }
     this._eventOpen = true;
     const was = this.speed;
-    this.setSpeed(0);
+    if (this.settings?.pauseOnEvents !== false) this.setSpeed(0);
     this.modal((m, close) => {
       m.append(el('div', { class: 'mh' }, el('div', { class: 'frame-title' }, ev.title)));
       const mb = el('div', { class: 'mb' }, el('div', { class: 'event-art' }, ev.icon || '📜'), el('div', { class: 'event-desc' }, ev.desc));

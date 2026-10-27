@@ -1017,8 +1017,9 @@ export class MapView {
     this.uniforms.uPolAlpha.value = 0.2 + 0.62 * (1 - near);
     this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
     const showDetail = c.d < 300;
-    for (const m of this.trees) m.visible = c.d < 240;
-    for (const m of this.peaks) m.visible = c.d < 520;
+    const lowQ = this.quality === 'low';
+    for (const m of this.trees) m.visible = c.d < 240 && !lowQ;
+    for (const m of this.peaks) m.visible = c.d < 520 && !lowQ;
     for (const m of Object.values(this.bmesh)) m.visible = showDetail;
     for (const l of this.labelGroup.children) {
       const op = clamp((c.d - 110) / 160, 0, 1) * clamp((l.userData.size * 34 - c.d) / 200 + 0.6, 0.15, 1);
@@ -1044,6 +1045,15 @@ MapView.prototype.adaptResolution = function (gap) {
   if (this._ft > 1 / 40 && this.dpr > 0.6) next = Math.max(0.6, this.dpr - 0.15);
   else if (this._ft < 1 / 57 && this.dpr < this.maxDpr) next = Math.min(this.maxDpr, this.dpr + 0.1);
   if (next !== this.dpr) { this.dpr = next; this._dprChange = now; this.renderer.setPixelRatio(next); this.resize(); }
+};
+
+// Graphics quality (game settings): low drops trees and mountains and renders at reduced resolution, medium caps the resolution at 1x.
+MapView.prototype.setQuality = function (q) {
+  this.quality = q || 'high';
+  this._hiDpr ??= this.maxDpr;
+  this.maxDpr = this.quality === 'low' ? Math.min(this._hiDpr, 0.75) : this.quality === 'med' ? Math.min(this._hiDpr, 1) : this._hiDpr;
+  if (this.dpr > this.maxDpr) { this.dpr = this.maxDpr; this.renderer.setPixelRatio(this.dpr); this.resize(); }
+  this.dirty = true;
 };
 
 function tick() { return new Promise((r) => setTimeout(r, 0)); }
