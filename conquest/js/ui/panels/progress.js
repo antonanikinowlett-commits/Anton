@@ -7,6 +7,7 @@ import { registerPanel } from './registry.js';
 import { H, subtabs, barHTML } from './common.js';
 import { INNOVATIONS, INNOV, BRANCHES, ERAS } from '../../data/innovations.js';
 import { RANKS, RANK_ICONS, AMBITIONS, AMBITION_ORDER, ACHIEVEMENTS, END_YEAR } from '../../sim/progression.js';
+import { FORMABLES } from '../../data/formables.js';
 import { UNITS } from '../../data/units.js';
 
 // Always an SVG icon: the mapped one for an emoji, else a fallback glyph.
@@ -95,6 +96,23 @@ function renderAmbitions(ui, pb, g, n) {
   }
 }
 
+function renderDecisions(ui, pb, g, n) {
+  const list = g.availableFormables(n.id);
+  const done = (n.prog.formed || []).map((id) => FORMABLES.find((f) => f.id === id)).filter(Boolean);
+  pb.append(H('<div class="muted small">Great realms are made, not inherited. Hold enough of the region, with the prestige and gold, to proclaim a greater crown.</div>'));
+  for (const f of done) pb.append(H(ico(`<div class="card hl" style="margin-top:6px"><b>${sic(f.icon, 'crown')} ${f.name}</b> <span class="pos">✔ proclaimed</span></div>`)));
+  if (!list.length && !done.length) pb.append(H('<p class="muted">No greater realm can be formed by this ruler.</p>'));
+  for (const f of list) {
+    const st = g.formableStatus(n.id, f);
+    const card = el('div', { class: 'card', style: { marginTop: '6px' } });
+    card.innerHTML = ico(`<b>${sic(f.icon, 'crown')} ${f.name}</b><div class="muted small">${f.desc}</div>`) +
+      st.checks.map(([name, v, need]) => `<div class="small">${v >= need ? '<span class="pos">✔</span>' : '<span class="neg">✕</span>'} ${name}: ${v} / ${need}</div>`).join('') +
+      `<div class="small muted" style="margin-top:4px">${g.describeEffects(f.effects).join(' · ')}</div>`;
+    card.append(el('div', { style: { marginTop: '6px' } }, el('div', { class: 'btn primary' + (st.ok ? '' : ' disabled'), onclick: () => { if (g.formNation(n.id, f.id)) ui.renderPanel(true); } }, `Proclaim ${f.name} (${f.req.gold} gold)`)));
+    pb.append(card);
+  }
+}
+
 function renderAchievements(ui, pb, g, n) {
   const p = n.prog;
   const hist = p.score.length ? p.score.map(([yr, v]) => `${yr}: ${v}`).join(' · ') : 'recorded every 5 years';
@@ -109,10 +127,10 @@ function renderAchievements(ui, pb, g, n) {
 registerPanel({ id: 'progress', icon: '📚', name: 'Progress', key: 'i', order: 55, wide: true, render(ui, pb) {
   const g = ui.g, n = ui.P;
   if (!n.prog) g._initProgFor(n);
-  const [tabs, cur] = subtabs(ui, 'progress', [['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['ach', 'Achievements & Score']]);
+  const [tabs, cur] = subtabs(ui, 'progress', [['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['dec', 'Decisions'], ['ach', 'Achievements & Score']]);
   pb.style.padding = '8px';
   pb.append(tabs);
-  ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, ach: renderAchievements })[cur](ui, pb, g, n);
+  ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, dec: renderDecisions, ach: renderAchievements })[cur](ui, pb, g, n);
 } });
 
 // End-of-game summary (the age ends in 1453). Shown once per session by AlertsMixin.updateAlerts.
