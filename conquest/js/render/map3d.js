@@ -6,6 +6,7 @@ import { bakeTerrain, upsampleProvinces, depthTexture, noiseTexture, UP } from '
 import { MODELS } from './models.js';
 import { BIOME } from '../world/mapgen.js';
 import { UNITS } from '../data/units.js';
+import { icon } from '../ui/icons.js';
 import { hexToRgb, clamp, hash2, mulberry32, fmt } from '../util.js';
 
 // regiment type -> 3D figure; figures are ordered front (cavalry) to back (siege)
@@ -479,7 +480,7 @@ export class MapView {
     const g = this.game, s = g.s;
     const near = this.cam.d < 260;
     for (const m of Object.values(this.amesh)) m.count = 0;
-    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color(), white = new THREE.Color(1, 1, 1);
+    const q2 = new THREE.Quaternion(), q3 = new THREE.Quaternion(), eul = new THREE.Euler(), M = new THREE.Matrix4(), q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color(), white = new THREE.Color(1, 1, 1);
     const seen = new Set();
     const byLoc = new Map();
     for (const a of Object.values(s.armies)) { const k = a.loc; byLoc.set(k, (byLoc.get(k) || 0) + 1); }
@@ -512,19 +513,19 @@ export class MapView {
           list.sort((x, y) => (MODEL_RANK[x] ?? 3) - (MODEL_RANK[y] ?? 3));
           if (list.length > 18) list = list.slice(0, 18);
         }
-        const cols = fleet ? 2 : 4, sp = fleet ? 1.1 : 0.5;
+        const cols = fleet ? 2 : 4, sp = fleet ? 1.7 : 0.5;
         c.set(col).lerp(white, 0.15);
         q.setFromAxisAngle(up, pos.dir);
         const cosd = Math.cos(pos.dir), sind = Math.sin(pos.dir);
         list.forEach((type, i) => {
           const row = Math.floor(i / cols), cl = i % cols;
-          const mounted = MOUNTED.has(type), lx = (cl - (cols - 1) / 2) * sp * (mounted ? 1.3 : 1), lz = -row * sp * 1.25 + (mounted ? -0.2 : 0);
+          const mounted = MOUNTED.has(type), lx = (cl - (cols - 1) / 2) * sp * (mounted ? 1.3 : 1), lz = -row * sp * (fleet ? 1.5 : 1.25) + (mounted ? -0.2 : 0);
           const wx = pos.x + lx * cosd + lz * sind, wz = pos.z - lx * sind + lz * cosd;
-          const bob = pos.moving || a.battle ? Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.05 : 0;
+          const bob = fleet ? Math.sin(t * 1.6 + i * 2.1) * 0.025 + 0.02 : pos.moving || a.battle ? Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.05 : 0;
           V.set(wx, (this.map.provinces[a.loc].sea ? 0.05 : this.groundY(wx, wz)) + bob, wz);
           const sc = type === 'trebuchet' ? 1.4 : fleet ? 1.3 : 1.5;
           S.set(sc, sc, sc);
-          M.compose(V, q, S);
+          if (fleet) { q2.setFromAxisAngle(up, pos.dir); q3.setFromEuler(eul.set(Math.sin(t * 1.3 + i) * 0.04, 0, Math.sin(t * 1.1 + i * 1.7) * 0.05)); q3.premultiply(q2); M.compose(V, q3, S); } else M.compose(V, q, S);
           const m = this.amesh[type];
           if (m.count < m.instanceMatrix.count) { m.setMatrixAt(m.count, M); m.setColorAt(m.count, c); m.count++; }
         });
@@ -565,11 +566,12 @@ export class MapView {
     const mine = a.nation === s.player;
     const hostile = s.player >= 0 && (a.nation < 0 ? a.rebelOf === s.player : g.atWar(s.player, a.nation));
     const men = g.armyMen(a);
-    const key = `${Math.round(men / 100)}|${Math.round(g.armyMorale(a) * 20)}|${this.sel.armies.includes(a.id)}|${!!a.battle}|${hostile}|${a.retreating}|${!!a.atSea}`;
+    const isFleet = a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship);
+    const key = `${Math.round(men / 100)}|${Math.round(g.armyMorale(a) * 20)}|${this.sel.armies.includes(a.id)}|${!!a.battle}|${hostile}|${a.retreating}|${!!a.atSea}|${isFleet}`;
     if (el._k === key) return;
     el._k = key;
     el.querySelector('.ac-flag').style.background = n ? n.color : '#111';
-    el.querySelector('.ac-num').textContent = men >= 1000 ? (men / 1000).toFixed(men >= 10000 ? 0 : 1) + 'k' : Math.round(men);
+    el.querySelector('.ac-num').innerHTML = (isFleet ? icon('ship') + ' ' : '') + (men >= 1000 ? (men / 1000).toFixed(men >= 10000 ? 0 : 1) + 'k' : Math.round(men));
     el.querySelector('.ac-bar i').style.width = `${Math.round(g.armyMorale(a) * 100)}%`;
     el.classList.toggle('mine', mine);
     el.classList.toggle('hostile', hostile);
@@ -642,6 +644,7 @@ export class MapView {
       case 'culture': { const h = hash2(pr.culture.length * 31 + pr.culture.charCodeAt(0), pr.culture.charCodeAt(1) || 0, 3); const h2 = hash2(pr.culture.charCodeAt(2) || 0, pr.culture.length, 7); return [80 + h * 160, 80 + h2 * 150, 90 + (1 - h) * 140]; }
       case 'development': { const t = clamp(pr.dev / 22, 0, 1); return [60 + t * 60, 70 + t * 170, 40 + t * 40]; }
       case 'supply': { const v = g.supplyLimit(p, pl >= 0 ? pl : pr.owner); const t = clamp(v / 18, 0, 1); return [220 - t * 160, 60 + t * 160, 50]; }
+      case 'attrition': { const t = clamp(g.attritionRisk(p, pl >= 0 ? pl : pr.owner) / 0.09, 0, 1); return [70 + t * 180, 190 - t * 140, 80]; }
       case 'unrest': { const t = clamp(pr.unrest / 60, 0, 1); return [80 + t * 170, 170 - t * 120, 70]; }
       case 'fort': { const f = g.fortLevel(p); return f === 0 ? [110, 110, 100] : [[150, 140, 90], [190, 160, 70], [230, 170, 50], [250, 120, 40]][Math.min(3, f - 1)]; }
       case 'terrainType': return hexToRgb({ farmland: '#c8c060', plains: '#9ab86a', forest: '#3a7a3a', taiga: '#2a5a4a', hills: '#a08a5a', mountains: '#8a7a7a', marsh: '#5a7a6a', steppe: '#d0c080', desert: '#e8d090' }[sp.terrain]);

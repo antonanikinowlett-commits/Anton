@@ -39,8 +39,8 @@ const server = http.createServer((req, res) => {
     for (const s of r.saveload.filter((x) => !x.ok)) md += `\nSave/load failed at year ${s.y}: ${s.err}\n`;
     const v = Object.values(r.violations).sort((a, b) => b.n - a.n);
     if (v.length) md += `\nInvariant violations (${v.length} kinds):\n` + v.slice(0, 25).map((x) => `- x${x.n} (first day ${x.first}): ${x.example}`).join('\n') + '\n';
-    md += '\n| yr | tick ms avg | max | alive | top 3 | wars | armies | men | rebels |\n|---|---|---|---|---|---|---|---|---|\n';
-    for (const y of r.years.filter((y) => y.y % 5 === 0 || y.y === 1)) md += `| ${y.y} | ${y.ms} | ${y.msMax} | ${y.alive} | ${y.top} | ${y.wars} | ${y.armies} | ${y.men} | ${y.rebels} |\n`;
+    md += '\n| yr | tick ms avg | max | alive | top 3 | wars | armies | men | rebels | provs changed owner vs start |\n|---|---|---|---|---|---|---|---|---|---|\n';
+    for (const y of r.years.filter((y) => y.y % 5 === 0 || y.y === 1)) md += `| ${y.y} | ${y.ms} | ${y.msMax} | ${y.alive} | ${y.top} | ${y.wars} | ${y.armies} | ${y.men} | ${y.rebels} | ${y.changed} |\n`;
   }
   if (pageErrors.length) md += `\nPage errors:\n${[...new Set(pageErrors)].slice(0, 10).join('\n')}\n`;
   fs.writeFileSync(out, md); console.log('report ' + out);

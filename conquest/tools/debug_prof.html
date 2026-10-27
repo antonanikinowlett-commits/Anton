@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><pre id="o"></pre>
+<script type="module">
+import { generateMap } from '../js/world/mapgen.js';
+import { Game } from '../js/sim/game.js';
+const o = document.getElementById('o');
+try {
+const m = await generateMap(()=>{}); const g = new Game(m); g.newGame('FRA'); g.s.player=-1;
+const T = {}, C = {}; const stack = [];
+const proto = Game.prototype;
+for (const k of Object.getOwnPropertyNames(proto)) {
+  const f = Object.getOwnPropertyDescriptor(proto, k).value;
+  if (typeof f !== 'function' || k === 'constructor' || k === 'rng' || k === 'tickDay') continue;
+  proto[k] = function (...a) {
+    const t0 = performance.now(); stack.push(0);
+    try { return f.apply(this, a); } finally {
+      const dt = performance.now() - t0, child = stack.pop();
+      T[k] = (T[k] || 0) + dt - child; C[k] = (C[k] || 0) + 1;
+      if (stack.length) stack[stack.length - 1] += dt;
+    }
+  };
+}
+const t0 = performance.now();
+for (let d=0; d<730; d++){ g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length=0; }
+const tot = performance.now() - t0;
+const rows = Object.entries(T).sort((a,b)=>b[1]-a[1]).slice(0,25).map(([k,v])=>`${k.padEnd(26)} self ${v.toFixed(0).padStart(6)}ms  calls ${C[k]}`);
+o.textContent = `total ${tot.toFixed(0)}ms (wrapped)\n` + rows.join('\n');
+} catch(e){ o.textContent='ERR '+e.stack }
+window.done=true;
+</script>

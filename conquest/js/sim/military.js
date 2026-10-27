@@ -1,4 +1,5 @@
 // Armies: recruitment, movement, pathfinding, supply, attrition, sieges and occupation.
+import { MIL_DOCTRINES, DOCTRINE_SWITCH, pickMilDoctrine } from '../data/mildoctrines.js';
 import { UNITS, unitAvailable } from '../data/units.js';
 import { TERRAIN_ECON } from './economy.js';
 import { Heap, clamp } from '../util.js';
@@ -7,8 +8,19 @@ import { NATIONS } from '../data/nations.js';
 const SEA_KMPD = 75;
 
 export const MilitaryMixin = {
-  armiesOf(nid) { return Object.values(this.s.armies).filter((a) => a.nation === nid); },
-  armiesAt(p) { return Object.values(this.s.armies).filter((a) => a.loc === p); },
+  // Army lookups are hot (hundreds of thousands of calls per sim year), so index armies by nation and by
+  // location; the index is rebuilt lazily after anything adds, removes or moves an army (_armyVer bump).
+  armyIndex() {
+    if (this._ai && this._aiFor === this.s.armies && this._aiVer === this._armyVer) return this._ai;
+    const byNation = new Map(), byLoc = new Map();
+    for (const a of Object.values(this.s.armies)) {
+      let l = byNation.get(a.nation); if (!l) byNation.set(a.nation, l = []); l.push(a);
+      l = byLoc.get(a.loc); if (!l) byLoc.set(a.loc, l = []); l.push(a);
+    }
+    this._aiFor = this.s.armies; this._aiVer = this._armyVer; return this._ai = { byNation, byLoc };
+  },
+  armiesOf(nid) { return (this.armyIndex().byNation.get(nid) || []).slice(); },
+  armiesAt(p) { return (this.armyIndex().byLoc.get(p) || []).slice(); },
   armyMen(a) { let m = 0; for (const r of a.regs) m += r.men; return m; },
   armyMax(a) { let m = 0; for (const r of a.regs) m += r.max; return m; },
   armyMorale(a) { let m = 0, w = 0; for (const r of a.regs) { m += r.morale * r.men; w += r.men; } return w ? m / w : 0; },
@@ -48,7 +60,7 @@ export const MilitaryMixin = {
       const u = UNITS[type];
       const cav = u.cls === 'cav' ? 1 + this.mod(nid, 'cavCost') : 1;
       for (const [k, v] of Object.entries(u.cost)) c[k] += v * count * rc * cav;
-      c.manpower += u.men * count;
+      if (!u.merc) c.manpower += u.men * count; // mercenaries are bought, not levied
       if (count) days.push(u.days);
     }
     for (const k of Object.keys(c)) c[k] = Math.round(c[k]);
@@ -70,7 +82,7 @@ export const MilitaryMixin = {
   createArmy(nid, loc, regs, name, opts = {}) {
     const a = { id: this.newId(), nation: nid, name: name || this.armyName(nid), loc, path: [], prog: 0, regs, general: null, doctrine: opts.doctrine || 'balanced',
       battle: null, retreating: false, entrench: 0, rebelOf: opts.rebelOf ?? -1, ai: {}, atSea: loc >= this.L, home: loc };
-    this.s.armies[a.id] = a;
+    this.s.armies[a.id] = a; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('army', a.id);
     return a;
   },
@@ -105,9 +117,15 @@ export const MilitaryMixin = {
     }
   },
   borderProvinces(nid) {
-    const r = [];
-    for (const p of this.ownedProvinces(nid)) if (this.map.provinces[p].adj.some((e) => e.id < this.L && this.s.prov[e.id].owner !== nid)) r.push(p);
-    return r;
+    this.ownedProvinces(nid); // makes sure this._owned exists; the cache lives exactly as long as it does
+    if (this._borderFor !== this._owned) { this._borderFor = this._owned; this._border = new Map(); }
+    let r = this._border.get(nid);
+    if (!r) {
+      r = [];
+      for (const p of this.ownedProvinces(nid)) if (this.map.provinces[p].adj.some((e) => e.id < this.L && this.s.prov[e.id].owner !== nid)) r.push(p);
+      this._border.set(nid, r);
+    }
+    return r.slice();
   },
 
   // ── recruitment
@@ -123,17 +141,47 @@ export const MilitaryMixin = {
     if (c.manpower > n.manpower) return `Not enough manpower (${Math.round(c.manpower)} needed)`;
     return null;
   },
-  recruit(nid, p, t) {
+  recruit(nid, p, t, mergeInto) {
     const why = this.canRecruit(nid, p, t);
     if (why) return why;
     const n = this.s.nations[nid], c = this.templateCost(nid, t);
     for (const k of ['gold', 'iron', 'timber', 'horses', 'manpower']) n[k] -= c[k];
     const barracks = this.s.prov[p].buildings.barracks || 0;
     const days = Math.max(10, Math.round(c.days * (1 - barracks * 0.2)));
-    this.s.recruit.push({ id: this.newId(), nation: nid, prov: p, template: { ...t, regs: { ...t.regs } }, days, total: days });
+    this.s.recruit.push({ id: this.newId(), nation: nid, prov: p, template: { ...t, regs: { ...t.regs } }, days, total: days, mergeInto: mergeInto || null });
     if (nid === this.s.player) this.log(`Mustering "${t.name}" at ${this.provName(p)} (${days} days).`, { nation: nid, type: 'mil', prov: p });
     this.emit('recruit');
     return null;
+  },
+  // Switch the realm's national doctrine: costs prestige and a stability dip, and cannot be repeated for a year.
+  setMilDoctrine(nid, key) {
+    const n = this.s.nations[nid];
+    if (!n || !MIL_DOCTRINES[key]) return 'Unknown doctrine';
+    if ((n.milDoc || pickMilDoctrine(n)) === key) return 'Already your doctrine';
+    const wait = (n.milDocDay ?? -9999) + DOCTRINE_SWITCH.cooldown - this.s.day;
+    if (wait > 0) return `Doctrine reforms need ${wait} more days`;
+    if (n.prestige < DOCTRINE_SWITCH.prestige) return `Needs ${DOCTRINE_SWITCH.prestige} prestige`;
+    n.prestige -= DOCTRINE_SWITCH.prestige;
+    n.stability -= DOCTRINE_SWITCH.stability;
+    n.milDoc = key; n.milDocDay = this.s.day;
+    this.recalcMods(nid);
+    if (nid === this.s.player) this.log(`${n.name} adopts the ${MIL_DOCTRINES[key].name} doctrine.`, { nation: nid, type: 'mil' });
+    return null;
+  },
+  // Top an army up to the composition of the template it was raised from; the new regiments muster
+  // in the army's province and merge into it when ready.
+  reinforceFromTemplate(aid) {
+    const a = this.s.armies[aid];
+    if (!a) return 'No army';
+    const t = this.s.nations[a.nation]?.templates.find((x) => x.id === a.template);
+    if (!t) return 'This army was not raised from a saved template';
+    if (a.atSea || a.loc >= this.L || this.s.prov[a.loc].controller !== a.nation) return 'Must be in a province you control';
+    const have = {};
+    for (const r of a.regs) have[r.type] = (have[r.type] || 0) + 1;
+    const missing = {};
+    for (const [k, c] of Object.entries(t.regs)) if (c > (have[k] || 0)) missing[k] = c - (have[k] || 0);
+    if (!Object.keys(missing).length) return 'Already at template strength';
+    return this.recruit(a.nation, a.loc, { id: t.id, name: `${a.name} reinforcements`, regs: missing, doctrine: t.doctrine }, a.id);
   },
   cancelRecruit(id) {
     const i = this.s.recruit.findIndex((r) => r.id === id);
@@ -157,7 +205,7 @@ export const MilitaryMixin = {
   },
   unassignGeneral(aid) { const a = this.s.armies[aid]; if (a && a.general) { const c = this.s.chars[a.general]; if (c) c.army = null; a.general = null; } },
   generalOf(a) { return this.s.chars[a.general] || null; },
-  genStat(a, k) { const g = this.generalOf(a); return g && g.gen ? g.gen[k] + (k === 'tactics' ? this.mod(a.nation, 'generalTactics') : 0) : 0; },
+  genStat(a, k) { const g = this.generalOf(a); return g && g.gen ? Math.max(0, g.gen[k] - ((g.woundedUntil || 0) > this.s.day ? 2 : 0)) + (k === 'tactics' ? this.mod(a.nation, 'generalTactics') : 0) : 0; },
 
   disband(aid) {
     const a = this.s.armies[aid];
@@ -165,7 +213,7 @@ export const MilitaryMixin = {
     const n = this.s.nations[a.nation];
     if (n) n.manpower = Math.min(n.maxManpower, n.manpower + this.armyMen(a) * 0.6);
     this.unassignGeneral(aid);
-    delete this.s.armies[aid];
+    delete this.s.armies[aid]; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('armyGone', aid);
   },
   merge(ids) {
@@ -177,7 +225,7 @@ export const MilitaryMixin = {
       main.regs.push(...a.regs);
       if (!main.general && a.general) { const g = a.general; this.unassignGeneral(a.id); this.assignGeneral(main.id, g); }
       this.unassignGeneral(a.id);
-      delete this.s.armies[a.id];
+      delete this.s.armies[a.id]; this._armyVer = (this._armyVer || 0) + 1;
       this.emit('armyGone', a.id);
     }
     this.emit('army', main.id);
@@ -261,6 +309,8 @@ export const MilitaryMixin = {
     const nid = a.nation, speed = this.armySpeed(a), seaMult = 1 + this.mod(nid, 'seaSpeed');
     if (!this.canEnter(nid, to, a.rebelOf)) return null;
     const g = new Float64Array(P.length).fill(Infinity), prev = new Int32Array(P.length).fill(-1);
+    // per-search memo of the diplomatic/fort checks (1 = allowed, 2 = refused); they cannot change mid-search
+    const enter = new Uint8Array(P.length), block = new Uint8Array(P.length);
     const h = new Heap(256);
     const tx = P[to].x, ty = P[to].y;
     const heur = (p) => Math.hypot(P[p].x - tx, P[p].y - ty) * P[p].kmpx / SEA_KMPD / seaMult;
@@ -274,9 +324,9 @@ export const MilitaryMixin = {
       for (const e of sp.adj) {
         const q = e.id;
         if (P[q].sea && !sp.sea && !sp.coastal) continue;
-        if (q < L && !this.canEnter(nid, q, a.rebelOf)) continue;
+        if (q < L) { if (!enter[q]) enter[q] = this.canEnter(nid, q, a.rebelOf) ? 1 : 2; if (enter[q] === 2) continue; }
         // enemy forts block passage: you can enter them but not move through
-        if (c !== from && c < L && this.blocksPassage(a, c)) continue;
+        if (c !== from && c < L) { if (!block[c]) block[c] = this.blocksPassage(a, c) ? 2 : 1; if (block[c] === 2) continue; }
         const nd = g[c] + this.stepDays(nid, c, e, speed, seaMult);
         if (nd < g[q]) { g[q] = nd; prev[q] = c; h.push(nd + heur(q), q); }
       }
@@ -301,8 +351,10 @@ export const MilitaryMixin = {
     if (!a) return 'No army';
     if (a.battle) return 'Army is in battle';
     if (a.retreating) return 'Army is retreating';
+    // a target that had no route recently stays unreachable for a while: don't re-run the search every call
+    if (a.noRoute && a.noRoute.to === to && a.noRoute.until > this.s.day && a.noRoute.from === a.loc) return 'No route (closed borders or impassable)';
     const path = this.findPath(a, to);
-    if (!path) return 'No route (closed borders or impassable)';
+    if (!path) { a.noRoute = { to, from: a.loc, until: this.s.day + 15 }; return 'No route (closed borders or impassable)'; }
     if (a.path.length && a.path[0] === path[0]) { /* keep progress */ } else a.prog = 0;
     a.path = path;
     a.entrench = 0;
@@ -356,7 +408,7 @@ export const MilitaryMixin = {
         if (n) n.gold -= a.regs.length * 0.15 * (this.s.prov[leaving]?.buildings.port ? 0.5 : 1);
       }
       a.lastFrom = leaving;
-      a.loc = next; a.prog = 0; a.path.shift(); a.entrench = 0;
+      a.loc = next; this._armyVer = (this._armyVer || 0) + 1; a.prog = 0; a.path.shift(); a.entrench = 0;
       a.atSea = P[next].sea;
       a.landed = !P[next].sea && P[leaving].sea ? this.s.day : a.landed;
       if (a.retreating && !a.path.length) a.retreating = false;
@@ -416,6 +468,19 @@ export const MilitaryMixin = {
     if (n && n.ai.horde) attr = 0; // the horde lives off the land and its remounts
     a.attrition = attr;
     a.attrWhy = why;
+    // mercenary loyalty: falls while the treasury is empty, recovers when paid; the disloyal walk away
+    if (a.regs.some((r) => UNITS[r.type].merc)) {
+      const broke = n && n.gold < 0;
+      let left = 0;
+      for (const r of a.regs) {
+        if (!UNITS[r.type].merc) continue;
+        r.loy = clamp((r.loy ?? 1) + (broke ? -0.02 : 0.01), 0, 1);
+        if (r.loy < 0.5) { const d = r.men * 0.05 * (1 - r.loy); r.men -= d; left += d; r.morale = Math.max(0.05, r.morale - 0.03); }
+      }
+      if (left > 0) why.push(['Mercenaries desert: they are unpaid and disloyal', 0]);
+      if (broke && a.nation === s.player && !a.deserterWarned) { a.deserterWarned = true; this.notify({ title: 'Mercenaries restless', icon: '💰', text: `${a.name}: the treasury is empty and the mercenaries are losing faith.`, army: a.id }); }
+      else if (!broke) a.deserterWarned = false;
+    }
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
@@ -428,6 +493,20 @@ export const MilitaryMixin = {
     }
     if (a.regs.some((r) => r.men < 30)) a.regs = a.regs.filter((r) => r.men >= 30);
   },
+  // Per-month attrition an army of nation nid would suffer standing in province p (0..~0.2), for the map mode.
+  attritionRisk(p, nid) {
+    const sp = this.map.provinces[p];
+    if (sp.sea) return 0.09;
+    const se = this.season();
+    let a = 0;
+    if (se === 'winter' && (sp.lat > 55 || ['mountains', 'taiga'].includes(sp.terrain))) a += 0.001;
+    if (se === 'summer' && sp.terrain === 'desert') a += 0.0008;
+    const n = this.s.nations[nid];
+    if (n && n.food < 0) a += 0.001;
+    const lim = this.supplyLimit(p, nid);
+    if (lim < 3) a += 0.0015 * (3 / Math.max(0.5, lim) - 1) * 3 * 0.5;
+    return Math.min(0.2, a * 30);
+  },
   dailyRecruit() {
     const s = this.s;
     for (const r of [...s.recruit]) {
@@ -438,6 +517,7 @@ export const MilitaryMixin = {
         const regs = this.regsFromTemplate(r.template);
         const a = this.createArmy(r.nation, r.prov, regs, r.template.name, { doctrine: r.template.doctrine });
         a.template = r.template.id;
+        if (r.mergeInto && s.armies[r.mergeInto] && s.armies[r.mergeInto].loc === r.prov) a.mergeInto = r.mergeInto;
         if (r.nation === s.player) { this.log(`${a.name} has mustered at ${this.provName(r.prov)}.`, { nation: r.nation, type: 'mil', prov: r.prov, army: a.id }); this.emit('mustered', a.id); }
         // auto-assign an idle general to AI armies
         if (r.nation !== s.player) { const gen = this.charsOf(r.nation, 'general').find((c) => !c.army); if (gen) this.assignGeneral(a.id, gen.id); }
@@ -446,7 +526,7 @@ export const MilitaryMixin = {
   },
   destroyArmy(a, why) {
     this.unassignGeneral(a.id);
-    delete this.s.armies[a.id];
+    delete this.s.armies[a.id]; this._armyVer = (this._armyVer || 0) + 1;
     this.emit('armyGone', a.id);
     if (a.nation === this.s.player && why) this.log(`${a.name} ${why}.`, { nation: a.nation, type: 'mil' });
   },
@@ -552,6 +632,8 @@ export const MilitaryMixin = {
       pr.controller = this.isAlly(nid, pr.owner) && this.atWar(nid, prevCtl) ? pr.owner : nid;
     }
     pr.garrison = 0.2;
+    const sg = army && this.generalOf(army);
+    if (sg && sg.gen && this.fortLevel(p) > 0) { sg.xp = (sg.xp || 0) + 6; sg.sieges = (sg.sieges || 0) + 1; if (this.rng() < 0.2) { sg.gen.siege++; if (army.nation === s.player) this.log(`${this.charName(sg)} masters the art of siegecraft at ${this.provName(p)}: siege skill ${sg.gen.siege}.`, { nation: army.nation, type: 'mil', army: army.id }); } }
     if (sacked && army && army.nation >= 0) {
       const loot = pr.dev * 0.8 * (1 + this.mod(army.nation, 'lootMult'));
       s.nations[army.nation].gold += loot;

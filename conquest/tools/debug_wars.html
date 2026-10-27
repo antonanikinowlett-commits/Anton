@@ -1,0 +1,28 @@
+<!doctype html><meta charset="utf-8"><pre id="o"></pre>
+<script type="module">
+// How do AI wars end and what do they change? Usage: debug_wars.html?years=12
+import { generateMap } from '../js/world/mapgen.js';
+import { Game } from '../js/sim/game.js';
+const o = document.getElementById('o');
+try {
+  const years = +(new URLSearchParams(location.search).get('years') || 12);
+  const m = await generateMap(() => {}); const g = new Game(m); g.newGame('FRA'); g.s.player = -1;
+  const ends = { peaceProvinces: 0, peaceGoldOnly: 0, whitePeace: 0 }, durs = [], scores = [], start = {};
+  const mp = g.makePeace.bind(g);
+  g.makePeace = (w, side, demands) => {
+    const prov = demands.filter((d) => d.type === 'province').length;
+    if (prov) ends.peaceProvinces++; else if (demands.length) ends.peaceGoldOnly++; else ends.whitePeace++;
+    durs.push(Math.round((g.s.day - w.start) / 30)); scores.push(Math.abs(Math.round(w.score)));
+    return mp(w, side, demands);
+  };
+  const owner0 = g.s.prov.map((p) => p.owner);
+  let declared = 0; const dw = g.declareWar.bind(g); g.declareWar = (...a) => { declared++; return dw(...a); };
+  for (let d = 0; d < years * 365; d++) { g.tickDay(); if (g.s.eventQueue.length) g.s.eventQueue.length = 0; }
+  let changed = 0; for (let p = 0; p < g.L; p++) if (g.s.prov[p].owner !== owner0[p]) changed++;
+  const med = (a) => a.length ? a.slice().sort((x, y) => x - y)[a.length >> 1] : 0;
+  const sizes = g.s.nations.filter((n) => n.alive).map((n) => g.ownedProvinces(n.id).length).sort((a, b) => b - a);
+  o.textContent = `years ${years}: wars declared ${declared}; ended by peace with provinces ${ends.peaceProvinces}, gold/other only ${ends.peaceGoldOnly}, white ${ends.whitePeace}; ` +
+    `median length ${med(durs)} months, median |score| ${med(scores)}; provinces that changed owner ${changed} of ${g.L}; alive ${sizes.length}; top sizes ${sizes.slice(0, 5)}`;
+} catch (e) { o.textContent = 'ERR ' + e.stack; }
+window.done = true;
+</script>

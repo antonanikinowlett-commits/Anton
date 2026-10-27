@@ -5,6 +5,7 @@ import { TRAITS, GEN_TRAIT_POOL, PERS_TRAIT_POOL } from '../data/traits.js';
 import { groupOf, personName } from '../data/names.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { mulberry32, clamp, dateOf, season, pick, hexToRgb } from '../util.js';
+import { milDoctrineMods } from '../data/mildoctrines.js';
 import { MilitaryMixin } from './military.js';
 import { BattleMixin } from './battle.js';
 import { DiplomacyMixin } from './diplomacy.js';
@@ -195,6 +196,7 @@ export class Game {
     const add = (mods, f = 1) => { if (mods) for (const [k, v] of Object.entries(mods)) M[k] = (M[k] || 0) + v * f; };
     for (const [cat, opt] of Object.entries(n.laws)) add(LAWS[cat]?.options[opt]?.mods);
     for (const m of n.mods) if (!m.until || m.until > this.s.day) add(m.mods);
+    add(milDoctrineMods(n));
     const ruler = this.s.chars[n.ruler];
     if (ruler) for (const t of ruler.traits) add(TRAITS[t].mods);
     for (const role of COUNCIL_ROLES) {
