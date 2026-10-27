@@ -272,6 +272,7 @@ export const AIMixin = {
       return;
     }
     if (a.path.length && (s.day + a.id) % 9 !== 0) return;
+    if (a.ai.wait > s.day) return; // last order found no route: don't repath every day
     const here = P[a.loc];
     const dist = (p) => Math.hypot(P[p].x - here.x, P[p].y - here.y);
     // 1. strike weaker enemy armies nearby
@@ -309,7 +310,7 @@ export const AIMixin = {
     }
     if (target !== null && target !== a.loc) {
       if (a.path.length && a.path[a.path.length - 1] === target) return;
-      if (this.orderMove(a.id, target)) a.ai.fail = (a.ai.fail || 0) + 1;
+      if (this.orderMove(a.id, target)) { a.ai.fail = (a.ai.fail || 0) + 1; a.ai.wait = s.day + 10; }
     }
   },
   aiRebel(a) {

@@ -299,8 +299,10 @@ export const MilitaryMixin = {
     if (!a) return 'No army';
     if (a.battle) return 'Army is in battle';
     if (a.retreating) return 'Army is retreating';
+    // a target that had no route recently stays unreachable for a while: don't re-run the search every call
+    if (a.noRoute && a.noRoute.to === to && a.noRoute.until > this.s.day && a.noRoute.from === a.loc) return 'No route (closed borders or impassable)';
     const path = this.findPath(a, to);
-    if (!path) return 'No route (closed borders or impassable)';
+    if (!path) { a.noRoute = { to, from: a.loc, until: this.s.day + 15 }; return 'No route (closed borders or impassable)'; }
     if (a.path.length && a.path[0] === path[0]) { /* keep progress */ } else a.prog = 0;
     a.path = path;
     a.entrench = 0;
