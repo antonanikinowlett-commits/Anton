@@ -29,8 +29,9 @@ Every role is a separate, long-running Claude Code session working in the same r
 - Never commit `CrownAndConquest.html`; the orchestrator rebuilds it on `dev`.
 
 ## Protocol v2 (autonomous loop)
-- **Everyone ships to `dev` themselves.** Work on your own branch; when `npm run check` + `npm run smoke` pass, `git fetch origin dev && git merge origin/dev`, re-run both, then `git push origin HEAD:dev`. Never push a failing `dev`. Never commit `CrownAndConquest.html` (the orchestrator rebuilds it).
-- **Debugger (`qa/sim`)** re-tests `dev` every time it changes (an hourly scheduled check plus a direct message from whoever just pushed): `tools/qa/longrun.cjs`, invariants, smoke. New problems go to the **fixer** by `send_message` (one short message per bug: repro + file hint) and are logged in `docs/qa/`. After the fixer reports a fix, the debugger re-runs the repro and replies "verified" or "still failing".
-- **Fixer (`fix/conquest`)** fixes debugger bugs immediately, pushes to `dev`, then messages the debugger to re-check.
-- **Art director** owns all visuals, including `js/render/*` (terrain, map texture, trees, mountains, water, effects) and `js/render/models.js`.
+- **Push only to your own branch** (`ws/<name>`, `fix/conquest`, `qa/sim`, `pm`). Run `npm run check` + `npm run smoke` before each push and merge `origin/dev` in regularly. Never commit `CrownAndConquest.html`.
+- **The orchestrator merges every branch into `dev`** (on a schedule and whenever a worker reports a milestone), runs the checks, and pushes `dev` only when green. Never push `dev` yourself.
+- **Debugger (`qa/sim`)** tests the *latest merged state*: `origin/dev` plus any `fix/*`/`ws/*` branch that has new commits (merge them locally into a scratch checkout, never push). Runs `tools/qa/longrun.cjs`, invariants, smoke and visual checks. Each bug goes to the **fixer** by `send_message` (repro + file hint); after a fix is reported it re-runs the repro and replies "verified" or "still failing".
+- **Fixer (`fix/conquest`)** fixes debugger bugs immediately, pushes to its branch, messages the debugger to re-check.
+- **Art director** owns all visuals including `js/render/*` and `js/render/models.js` (explicitly authorised by the owner).
 - Nobody asks the owner for confirmation. Decide, do, and report in one line.

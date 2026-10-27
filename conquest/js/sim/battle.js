@@ -10,6 +10,7 @@ import { clamp } from '../util.js';
 const ROUNDS_PER_DAY = 4;
 const MAX_ROUNDS = 48;
 
+function sideArmiesOf(g, b, side) { return b[side].map((i) => g.s.armies[i]).filter(Boolean); }
 function cls(type) { return UNITS[type].cls; }
 
 export const BattleMixin = {
@@ -30,7 +31,7 @@ export const BattleMixin = {
       attN: this.side(attackers[0]), defN: this.side(defenders[0]),
       terrain: sp.terrain, weather, season: se, river: !!(fromEdge && fromEdge.river), strait: !!(fromEdge && fromEdge.strait),
       landing: a0.landed === s.day, fort: this.fortLevel(p) > 0 && defenders.some((d) => s.prov[p]?.controller === d.nation),
-      highGround: false, tac: { att: {}, def: {} }, countered: { att: {}, def: {} }, log: [], cas: { att: 0, def: 0 }, fx: [], lines: { att: null, def: null },
+      night: this.rng() < (se === 'winter' ? 0.2 : 0.1), highGround: false, tac: { att: {}, def: {} }, countered: { att: {}, def: {} }, log: [], cas: { att: 0, def: 0 }, fx: [], lines: { att: null, def: null },
       startMen: { att: 0, def: 0 }, over: false, winner: null, hist: [], startDay: s.day,
     };
     if (fromEdge) b.highGround = sp.elev - this.map.provinces[a0.lastFrom].elev > 150;
@@ -41,6 +42,7 @@ export const BattleMixin = {
     s.battles[id] = b;
     const W = { clear: 'clear skies', rain: 'driving rain', fog: 'thick fog', snow: 'falling snow', heat: 'blistering heat' }[weather];
     this.blog(b, `Battle of ${sp.name} begins under ${W}. ${this.sideName(b, 'att')} attack ${this.sideName(b, 'def')}${b.river ? ' across the river' : ''}${b.landing ? ' straight from the boats' : ''}.`);
+    if (b.night) this.blog(b, `Battle is joined in the dark; archers cannot see their targets and charges lose cohesion.`);
     if (b.highGround) this.blog(b, `The defenders hold the high ground.`);
     const pl = s.player;
     if (attackers.some((a) => a.nation === pl) || defenders.some((a) => a.nation === pl)) {
@@ -63,6 +65,7 @@ export const BattleMixin = {
     if (!side) return;
     b[side].push(a.id); a.battle = b.id; a.path = []; a.prog = 0;
     b.startMen[side] += this.armyMen(a);
+    for (const x of sideArmiesOf(this, b, side)) for (const r of x.regs) if (!r.routed) r.morale = Math.min(1, r.morale + 0.06);
     this.blog(b, `${a.name} arrives to reinforce ${this.sideName(b, side)}!`);
   },
 
@@ -195,6 +198,7 @@ export const BattleMixin = {
       M.def += Math.min(0.15, ent * 0.01);
     }
     if (b.weather === 'rain') { M.ranged -= 0.3; M.charge -= 0.25; }
+    if (b.night) { M.ranged -= 0.35; M.charge -= 0.2; if (side === 'att') M.atk -= 0.08; }
     if (b.weather === 'rain' && ['marsh', 'plains', 'forest'].includes(b.terrain)) { M.charge -= 0.15; M.atk -= 0.05; } // churned mud
     if (b.weather === 'fog') M.ranged -= 0.45;
     if (b.weather === 'snow') { M.atk -= 0.1; M.ranged -= 0.2; M.moraleTaken += 0.1; }
