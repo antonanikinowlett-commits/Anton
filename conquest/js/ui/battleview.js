@@ -51,6 +51,7 @@ export class BattleViewer {
     const W = { clear: '☀ Clear', rain: '🌧 Rain', fog: '🌫 Fog', snow: '❄ Snow', heat: '🔥 Heat' }[b.weather];
     const tags = [`<span class="chip">${sp.terrain}</span>`, `<span class="chip" data-tip="Rain: missiles −30%, charges −25%. Fog: missiles −45%. Snow: −10% attack, morale. Heat: non-native troops suffer.">${W}</span>`];
     if (b.river) tags.push('<span class="chip bad" data-tip="Attacker crossing a river: −25% attack, −30% charge, narrower front">〰 River crossing</span>');
+    if (b.night) tags.push('<span class="chip bad" data-tip="Night battle: missiles −35%, charges −20%, attacker −8% attack">🌙 Night</span>');
     if (b.highGround) tags.push('<span class="chip" data-tip="Defender on higher ground: +12% defence; attacker −12% attack and −15% missiles">⛰ High ground</span>');
     if (b.fort) tags.push('<span class="chip" data-tip="Defending under their own walls: +15% defence and steadier morale">🏰 Fortified</span>');
     if (b.landing) tags.push('<span class="chip bad" data-tip="Attacking straight from the ships: −30% attack">⛵ Amphibious landing</span>');
@@ -133,8 +134,25 @@ export class BattleViewer {
     const col = mySide ? (mySide === win ? '#8ad070' : '#e06a50') : '#f0d48a';
     this.resultEl.classList.remove('hidden');
     this.resultEl.innerHTML = `<div class="big" style="color:${col}">${title}</div><div style="margin-top:6px">Casualties — attacker ${fmt(b.cas.att)} · defender ${fmt(b.cas.def)}</div>
-      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div><div class="btn" style="margin-top:10px" onclick="this.closest('#battle').dispatchEvent(new PointerEvent('pointerdown'))">Close</div>`;
+      <div class="small muted" style="margin-top:4px">${b.log.slice(-2).map((l) => l.t).join('<br>')}</div>${this.reportHtml()}<div class="btn" style="margin-top:10px" onclick="this.closest('#battle').dispatchEvent(new PointerEvent('pointerdown'))">Close</div>`;
     this.resultEl.querySelector('.btn').onclick = () => this.close();
+  }
+
+  // Post-battle report: tactics each side chose per phase, plus a strength graph.
+  reportHtml() {
+    const b = this.b;
+    const row = (side) => PHASES.map((ph) => {
+      const t = b.tac[side][ph];
+      return t && TACTICS[t] ? `${PHASE_NAMES[ph]}: ${TACTICS[t].name}${b.countered[side][ph] ? ' (countered)' : ''}` : '';
+    }).filter(Boolean).join(' · ');
+    let svg = '';
+    const h = b.hist || [];
+    if (h.length > 1) {
+      const mx = Math.max(...h.map((p) => Math.max(p.a, p.d)), 1), W = 220, H = 46;
+      const pts = (k) => h.map((p, i) => `${(i / (h.length - 1) * W).toFixed(1)},${(H - p[k] / mx * H).toFixed(1)}`).join(' ');
+      svg = `<svg width="${W}" height="${H}" style="margin-top:6px;display:block"><polyline points="${pts('a')}" fill="none" stroke="#e06a50" stroke-width="2"/><polyline points="${pts('d')}" fill="none" stroke="#6aa0e0" stroke-width="2"/></svg><div class="small muted">Fighting strength: attacker (red), defender (blue)</div>`;
+    }
+    return `<div class="small" style="margin-top:6px"><b>Attacker</b> ${row('att') || '—'}<br><b>Defender</b> ${row('def') || '—'}</div>${svg}`;
   }
 
   // ── visual simulation

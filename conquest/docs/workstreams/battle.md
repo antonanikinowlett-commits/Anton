@@ -12,4 +12,5 @@ Constraints: keep per-day battle cost low (thousands of AI battles per campaign)
 - Done: combined-arms bonus (sideMods), captured-general ransom (endBattle). River penalty and tactics already existed on dev.
 - Done: rain-mud penalty (extra charge/attack malus on marsh, plains, forest).
 - Done: night battles (10%, 20% winter: ranged -35%, charge -20%, attacker -8%); reinforcements arriving raise side morale +6%. 730-day smoke OK.
-- Todo: reserves joining over days, viewer formations/replay, naval battles, battle report screen.
+- Done: viewer night chip; post-battle report (tactics per phase, strength graph) in showResult.
+- Todo: distinct formations per unit type in viewer, replay, naval battles.
