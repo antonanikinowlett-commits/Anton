@@ -50,12 +50,12 @@ export const TradeSimMixin = {
     const local = new Float64Array(K), power = Array.from({ length: K }, () => ({}));
     const mult = {};
     for (const n of s.nations) { n.merchants ||= []; n.embargoes ||= []; n.tradeAgreements ||= []; }
-    for (const n of s.nations) if (n.alive) mult[n.id] = (1 + this.mod(n.id, 'tradeMult')) * (n.gov === 'merchant_republic' ? 2 : 1);
+    for (const n of s.nations) if (n.alive) mult[n.id] = (1 + this.softMult(this.mod(n.id, 'tradeMult'))) * (n.gov === 'merchant_republic' ? 2 : 1);
     for (let p = 0; p < this.L; p++) {
       const pr = s.prov[p], o = pr.owner;
       if (o < 0 || mult[o] === undefined) continue;
       const b = pr.buildings, port = b.port || 0;
-      const tv = ((b.market || 0) * 0.3 + port * 0.45 + (P[p].imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * (1 - pr.devast / 100) * (pr.blockadedBy !== undefined ? 0.2 : 1);
+      const tv = ((b.market || 0) * 0.2 + port * 0.3 + (P[p].imp >= 2 ? 0.25 : 0)) * (1 + pr.dev / 20) * (1 - pr.devast / 100) * (pr.blockadedBy !== undefined ? 0.2 : 1);
       const k = nm[p];
       local[k] += tv;
       if (pr.controller === o) power[k][o] = (power[k][o] || 0) + (tv + 0.02 * pr.dev) * (1 + (port > 0 ? 1 : 0)) * mult[o];
@@ -175,7 +175,7 @@ export const TradeSimMixin = {
         if (f.length) this.tradeAgreement(n.id, f[Math.floor(this.rng() * f.length)]);
       }
     }
-    if (n.gold > 100 && this.rng() < 0.3) {
+    if (n.gold > 150 && this.rng() < 0.1) {
       // build where the trade is rich: sample provinces and pick the best harbour or market site
       const own = this.ownedProvinces(n.id), nm = this._nodeMap();
       let bp = -1, bt = '', bv = 0;
