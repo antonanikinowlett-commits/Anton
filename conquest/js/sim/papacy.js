@@ -112,7 +112,7 @@ export const PapacyMixin = {
         if (r) { delete c.members[nid]; return r; }
         w = this.warBetween(nid, c.target);
       }
-      if (w) { c.warId = w.id; w.holy = kind; }
+      if (w) { c.warId = w.id; w.holy = kind; c.provs0 = this.ownedProvinces(c.target).length; c.start = s.day; }
     } else if (!w.att.includes(nid) && !w.def.includes(nid)) this.joinWar(w, nid, 'att');
     this.papalFavorChange(nid, 10);
     this.log(`${n.name} takes the cross.`, { nation: nid, important: nid === s.player });
@@ -208,14 +208,27 @@ export const PapacyMixin = {
     const s = this.s, P = s.papacy, c = P[kind], sl = SLOTS[kind];
     const t = s.nations[c.target];
     const ids = Object.keys(c.members).map(Number);
+    const fought = c.provs0 !== undefined;
+    const lost = fought ? Math.max(0, c.provs0 - (t.alive ? this.ownedProvinces(c.target).length : 0)) : 0;
+    const won = fought && (lost > 0 || !t.alive);
+    const outcome = !fought ? 'no war' : won ? 'victory' : 'failure';
     for (const id of ids) {
       const n = s.nations[id], v = this.contribution(id, kind);
-      n.prestige += Math.min(40, 5 + v); n.legitimacy = Math.min(100, n.legitimacy + 3);
-      this.papalFavorChange(id, Math.min(20, 5 + v));
+      if (won) {
+        n.prestige += Math.min(40, 8 + v); n.legitimacy = Math.min(100, n.legitimacy + 3);
+        this.papalFavorChange(id, Math.min(20, 5 + v));
+      } else if (fought) {
+        // a crusade that gained nothing is a clear failure: lost prestige and piety
+        n.prestige -= 10; this.papalFavorChange(id, -10);
+        if (id === s.player) this.notify({ nation: id, title: 'Crusade failed', icon: '✠', text: `The ${sl.word} against ${t.name} has failed. Prestige −10.` });
+      }
     }
-    P.history.push({ kind, target: t.tag, call: c.callDay, end: s.day, members: ids.map((i) => s.nations[i].tag), scripted: c.scripted });
+    // the victorious leader is crowned in the conquered land
+    const lead = won ? this.holyWarLeader(kind) : null;
+    if (lead !== null && lost >= 3) { const L = s.nations[lead]; L.prestige += 20; L.legitimacy = Math.min(100, L.legitimacy + 5); }
+    P.history.push({ kind, target: t.tag, call: c.callDay, end: s.day, members: ids.map((i) => s.nations[i].tag), scripted: c.scripted, outcome, lost });
     if (P.history.length > 20) P.history.shift();
-    this.log(`The ${sl.word} against ${t.name} has ended (${ids.length} participant${ids.length === 1 ? '' : 's'}).`, { nation: c.target, important: ids.includes(s.player) });
+    this.log(`The ${sl.word} against ${t.name} ends in ${outcome}${lost ? ` (${lost} provinces taken)` : ''}.`, { nation: c.target, important: ids.includes(s.player) });
     P[kind] = null;
     P.last[kind] = s.day;
   },
