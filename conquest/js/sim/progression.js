@@ -1,6 +1,7 @@
 // Progression: innovations (research), realm rank, ambitions, achievements and score.
 import { INNOVATIONS, INNOV } from '../data/innovations.js';
 import { dateOf } from '../util.js';
+import { FORMABLES } from '../data/formables.js';
 
 export const RANKS = ['County', 'Duchy', 'Kingdom', 'Empire'];
 export const RANK_ICONS = ['⚜', '🛡', '👑', '🦅'];
@@ -148,6 +149,31 @@ export const ProgressionMixin = {
     return true;
   },
 
+  // ── formable nations
+  formableStatus(nid, f) {
+    const n = this.s.nations[nid], r = f.req;
+    const inBox = this.ownedProvinces(nid).filter((p) => { const sp = this.map.provinces[p]; return sp.lon >= r.region[0] && sp.lat >= r.region[1] && sp.lon <= r.region[2] && sp.lat <= r.region[3]; }).length;
+    const checks = [['Provinces in the region', inBox, r.min], ['Prestige', Math.round(n.prestige), r.prestige], ['Gold', Math.round(n.gold), r.gold]];
+    if (r.religion) checks.push([`Faith: ${r.religion}`, n.religion === r.religion ? 1 : 0, 1]);
+    return { ok: checks.every((c) => c[1] >= c[2]), checks };
+  },
+  availableFormables(nid) {
+    const n = this.s.nations[nid], done = n.prog.formed || [];
+    return FORMABLES.filter((f) => f.tags.includes(n.tag) && !done.includes(f.id));
+  },
+  formNation(nid, id) {
+    const n = this.s.nations[nid], f = FORMABLES.find((x) => x.id === id);
+    if (!f || !f.tags.includes(n.tag) || (n.prog.formed || []).includes(id) || !this.formableStatus(nid, f).ok) return false;
+    n.gold -= f.req.gold;
+    (n.prog.formed ||= []).push(id);
+    if (f.rename) { n.name = f.rename.name; n.adj = f.rename.adj; }
+    this.applyEffects(nid, f.effects, 'form:' + id);
+    if (n.prog.rank < 2) { n.prog.rank = 2; this._applyRankMods(n); this.recalcMods(nid); }
+    this.log(`${n.name} is proclaimed.`, { nation: nid, important: nid === this.s.player });
+    if (nid === this.s.player) this.notify({ nation: nid, text: `${f.name} proclaimed!` });
+    return true;
+  },
+
   // ── ambitions
   chooseAmbition(nid, id) {
     const n = this.s.nations[nid], a = AMBITIONS[id];
@@ -215,6 +241,7 @@ export const ProgressionMixin = {
         if (n.id === s.player) this.notify({ nation: n.id, text: `Our realm has shrunk: reduced to a ${RANKS[p.rank]}.` });
       }
       this._monthlyAmbition(n);
+      if (n.id !== s.player && this.rng() < 0.05) for (const f of this.availableFormables(n.id)) if (this.formableStatus(n.id, f).ok) { this.formNation(n.id, f.id); break; }
       if (n.id === s.player) this._checkAchievements(n);
       if (dt.m === 0) {
         if (dt.y % 5 === 0) { p.score.push([dt.y, this.nationScore(n.id)]); if (p.score.length > 40) p.score.shift(); }
