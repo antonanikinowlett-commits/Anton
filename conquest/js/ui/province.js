@@ -57,6 +57,7 @@ export const ProvinceMixin = {
       const box = el('div', { class: 'card', style: { marginTop: '6px' } });
       box.innerHTML = `<div class="row between"><b>🏰 Siege by ${besieger ? besieger.name : 'rebels'}</b><span>${Math.round(sg.prog)}% · day ${sg.days}</span></div>
         <div class="bar" style="margin:4px 0"><i style="width:${Math.min(100, sg.prog)}%;background:#d07030"></i></div>
+        <div class="small muted">Est. ${sg.rate ? Math.max(1, Math.ceil((100 - sg.prog) / sg.rate)) + ' days to fall' : 'no progress'} · walls breached ${Math.round((sg.breach || 0) / 0.4 * 100)}%${sg.starving ? ' · <span class="neg">garrison starving</span>' : ''}</div>
         <div class="small muted">Garrison ${Math.round(fort * 1000 * pr.garrison)} men${sg.blockade ? '' : ' — <span class="neg">besiegers too few to make progress (need 1.5× garrison)</span>'}</div>
         ${sg.events.map((e) => `<div class="small">• ${e.t}</div>`).join('')}`;
       if (sg.by === pl) box.append(el('div', { class: 'btn danger small', style: { marginTop: '4px' }, onclick: () => { const r = g.assault(p); this.toast('Assault', r || 'The walls have been stormed!', r ? '💀' : '🏰'); this.renderProvince(); }, 'data-tip': 'Storm the walls now. Costly in lives; chance grows with siege progress and numbers.' }, '⚔ Assault the walls'));

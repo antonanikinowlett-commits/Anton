@@ -486,9 +486,22 @@ export const MilitaryMixin = {
       if (men < garrison * 1.5) { sg.blockade = false; continue; }
       sg.blockade = true;
       const ownerN = s.nations[pr.owner];
-      let rate = 1.5 * (1 + power / (fort * 2)) * (1 + siegeGen * 0.12 + (nid >= 0 ? this.mod(nid, 'siege') : 0)) / (1 + fort * 0.8 * (1 + (ownerN ? this.mod(ownerN.id, 'fortDefense') : 0)));
+      // engines: rams shine against small forts, towers against big ones; any engine slowly breaches the walls
+      let rams = 0, towers = 0;
+      for (const a of armies) for (const r of a.regs) { const u = UNITS[r.type]; if (u.ram) rams += r.men / r.max; if (u.tower) towers += r.men / r.max; }
+      power += (fort <= 2 ? rams * 0.6 : 0) + (fort >= 3 ? towers * 0.8 : 0);
+      if (power > 0) sg.breach = Math.min(0.4, (sg.breach || 0) + power / (fort * 800)); // sapped wall: up to -40% defence
+      const effFort = fort * (1 - (sg.breach || 0));
+      let rate = 1.5 * (1 + power / (fort * 2)) * (1 + siegeGen * 0.12 + (nid >= 0 ? this.mod(nid, 'siege') : 0)) / (1 + effFort * 0.8 * (1 + (ownerN ? this.mod(ownerN.id, 'fortDefense') : 0)));
       rate *= 1 + sg.days / 250; // starvation
       if (this.map.provinces[p].coastal && ownerN && ownerN.gov === 'merchant_republic') rate *= 0.7; // resupplied by sea
+      // starvation: a realm with no food or a blockaded port cannot feed its garrison
+      if ((ownerN && ownerN.food < 0) || pr.blockadedBy !== undefined) {
+        pr.garrison = Math.max(0.2, pr.garrison - 0.004);
+        sg.starving = true;
+        rate *= 1.25;
+      } else sg.starving = false;
+      sg.rate = rate;
       sg.prog += rate * (0.4 + this.rng() * 1.2);
       // siege events
       if (this.rng() < 0.012) { sg.events.unshift({ day: s.day, t: 'Disease in the siege camp' }); for (const a of armies) for (const r of a.regs) r.men *= 0.97; }
