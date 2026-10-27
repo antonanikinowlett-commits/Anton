@@ -18,4 +18,6 @@ Next
 1. Create labels (`ws:map`, `ws:render`, `ws:battle`, `ws:military`, `ws:ai`, `ws:diplomacy`, `ws:politics`, `ws:content`, `ws:economy`, `ws:ui`, `ws:design`, `ws:progression`, `qa`, `p1`–`p3`, `bug`, `spec`) — the GitHub MCP has no create-label tool; labels are auto-created when first applied to an issue.
 2. File 5–10 issues per area (avoid repeating brief goals), plus per-area issues for each spec. Observed candidates: tick at budget (ws:ai/ws:military perf), too few wars in the West (ws:ai), AI never assaults sieges (ws:ai), tutorial blocks map at start (ws:ui), save versioning (spec saves.md), only 25 events (ws:content).
 3. Write `docs/ROADMAP.md` (vision, M1 solid core / M2 deep systems / M3 polish & onboarding, issue numbers per milestone).
-4. Message the orchestrator (session_0128P3AFKxV4tjv9UaBUuG4q) when the roadmap and first issue batch are up.
+
+
+Update 2026-10-27: ROADMAP.md written; issues #2–#59 filed (labels auto-created; ws:progression and qa have none yet). Remaining work: triage QA bugs as they arrive, update ROADMAP Progress.
