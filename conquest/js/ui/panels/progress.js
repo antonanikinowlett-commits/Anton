@@ -1,14 +1,17 @@
 // Progress panel: innovations grid (branch x era), realm rank, ambitions, achievements and score.
 import { el } from '../../util.js';
-import { iconize } from '../icons.js';
+import { iconize, icon, EMOJI } from '../icons.js';
 // ico() swaps mapped emoji for SVG icons; give them an explicit size (no global .ic rule yet).
-const ico = (html, px = 16) => iconize(html).replace(/<svg class="ic[^"]*"/g, (m) => `${m} style="width:${px}px;height:${px}px;vertical-align:-3px"`);
+const ico = (html, px = 16) => iconize(html).replace(/<svg class="ic[^"]*"(?! style)/g, (m) => `${m} style="width:${px}px;height:${px}px;vertical-align:-3px"`);
 import { registerPanel } from './registry.js';
 import { H, subtabs, barHTML } from './common.js';
 import { INNOVATIONS, INNOV, BRANCHES, ERAS } from '../../data/innovations.js';
 import { RANKS, RANK_ICONS, AMBITIONS, AMBITION_ORDER, ACHIEVEMENTS, END_YEAR } from '../../sim/progression.js';
 import { UNITS } from '../../data/units.js';
 
+// Always an SVG icon: the mapped one for an emoji, else a fallback glyph.
+const sic = (emoji, fb = 'star', px = 16) => icon(EMOJI[String(emoji).replace(/\uFE0F/g, '')] || fb, { size: px }).replace('style="', 'style="vertical-align:-3px;');
+const FALLBACK = { military: 'swords', civic: 'scroll', agri: 'wheat', sea: 'anchor' };
 const MOD_LABELS = {
   taxMult: ['Tax income', 1], tradeMult: ['Trade income', 1], foodMult: ['Food', 1], devGrowth: ['Development growth', 1], buildCost: ['Building cost', 1], buildSpeed: ['Build speed', 1],
   siege: ['Siege power', 0], fortDefense: ['Fort defence', 1], supply: ['Supply', 1], seaSpeed: ['Sea speed', 1], rangedAtk: ['Ranged attack', 1], cavAtk: ['Cavalry attack', 1],
@@ -25,7 +28,7 @@ const modText = (mods) => Object.entries(mods || {}).map(([k, v]) => {
 
 function innovTip(g, nid, i, state) {
   const n = g.s.nations[nid];
-  let h = `<div class="tt-title">${i.name}</div><div class="muted small">${BRANCHES[i.branch].name} · ${ERAS[i.era].name} · c. ${i.year}</div><p>${i.desc}</p>${modText(i.mods)}`;
+  let h = `<div class="tt-title">${sic(i.icon, FALLBACK[i.branch])} ${i.name}</div><div class="muted small">${BRANCHES[i.branch].name} · ${ERAS[i.era].name} · c. ${i.year}</div><p>${i.desc}</p>${modText(i.mods)}`;
   if (i.unlock) h += `<br><b>Unlocks:</b> ${UNITS[i.unlock] ? UNITS[i.unlock].name : i.unlock === 'roman_law' ? 'Roman Law' : i.unlock}`;
   if (i.pre.length) h += `<br><span class="muted">Requires: ${i.pre.map((p) => (n.prog.known.includes(p) ? '<span class="pos">' : '<span class="neg">') + INNOV[p].name + '</span>').join(', ')}</span>`;
   if (state !== 'done') h += `<br><span class="muted">Cost: ${g.innovCost(nid, i.id)} points</span>`;
@@ -37,13 +40,13 @@ function renderInnovations(ui, pb, g, n) {
   const top = el('div', { class: 'card hl', style: { marginBottom: '8px' } });
   if (cur) {
     const c = g.innovCost(n.id, cur.id);
-    top.innerHTML = ico(`<b>Researching: ${cur.icon} ${cur.name}</b> <span class="muted small">${Math.floor(p.pts)} / ${c} points · +${p.rp.toFixed(1)} per month</span>`) + barHTML(p.pts / c, 'blue');
+    top.innerHTML = ico(`<b>Researching: ${sic(cur.icon, FALLBACK[cur.branch])} ${cur.name}</b> <span class="muted small">${Math.floor(p.pts)} / ${c} points · +${p.rp.toFixed(1)} per month</span>`) + barHTML(p.pts / c, 'blue');
   } else top.innerHTML = ico(`<b class="neg">Nothing is being researched.</b> <span class="muted small">+${g.researchRate(n.id).toFixed(1)} points per month${p.pts > 0 ? ` (${Math.floor(p.pts)} banked)` : ''}. Choose an innovation below.</span>`);
   pb.append(top);
   const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))', gap: '8px' } });
   for (const b of Object.keys(BRANCHES)) {
     const col = el('div');
-    col.append(H(ico(`<div class="frame-title" style="font-size:13px;margin-bottom:4px">${BRANCHES[b].icon} ${BRANCHES[b].name}</div>`)));
+    col.append(H(ico(`<div class="frame-title" style="font-size:13px;margin-bottom:4px">${sic(BRANCHES[b].icon)} ${BRANCHES[b].name}</div>`)));
     for (let e = 0; e < ERAS.length; e++) {
       col.append(H(`<div class="muted small" style="margin:6px 0 2px">${ERAS[e].name}</div>`));
       for (const i of INNOVATIONS.filter((x) => x.branch === b && x.era === e)) {
@@ -55,7 +58,7 @@ function renderInnovations(ui, pb, g, n) {
         else if (state === 'avail') style.borderColor = 'var(--gold-d)';
         else style.opacity = '.45';
         const card = el('div', { style, onclick: state === 'avail' ? () => { g.startResearch(n.id, i.id); ui.renderPanel(true); } : null });
-        card.innerHTML = `<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
+        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
         card._tip = () => innovTip(g, n.id, i, state);
         col.append(card);
       }
@@ -67,7 +70,7 @@ function renderInnovations(ui, pb, g, n) {
 
 function renderRank(ui, pb, g, n) {
   const inf = g.rankInfo(n.id);
-  pb.append(H(ico(`<div class="card hl"><div class="frame-title" style="font-size:16px">${RANK_ICONS[inf.rank]} ${n.name}: ${inf.name}</div>
+  pb.append(H(ico(`<div class="card hl"><div class="frame-title" style="font-size:16px">${sic(RANK_ICONS[inf.rank])} ${n.name}: ${inf.name}</div>
     <div class="muted small">Rank brings diplomatic weight, legitimacy and tax. Ranks: ${RANKS.map((r, k) => (k === inf.rank ? `<b class="gold">${r}</b>` : r)).join(' → ')}</div></div>`)));
   if (inf.maxed) { pb.append(H('<p class="muted">The realm has reached the highest rank.</p>')); return; }
   const card = el('div', { class: 'card', style: { marginTop: '8px' } });
@@ -79,7 +82,7 @@ function renderRank(ui, pb, g, n) {
 function renderAmbitions(ui, pb, g, n) {
   const p = n.prog, pr = g.ambitionProgress(n.id);
   if (pr) {
-    pb.append(H(ico(`<div class="card hl"><b>${pr.def.icon} ${pr.def.name}</b> <span class="muted small">${pr.def.desc}</span>${barHTML(pr.value / pr.goal, 'green')}
+    pb.append(H(ico(`<div class="card hl"><b>${sic(pr.def.icon, 'hammer')} ${pr.def.name}</b> <span class="muted small">${pr.def.desc}</span>${barHTML(pr.value / pr.goal, 'green')}
       <div class="small">${Math.min(pr.value, pr.goal)} / ${pr.goal} · ${Math.max(0, Math.ceil(pr.daysLeft / 30))} months left · reward: +${pr.def.prestige} prestige${pr.def.legit ? `, +${pr.def.legit} legitimacy` : ''}</div></div>`)));
   } else pb.append(H(`<p class="muted">${p.ambCool > 0 ? `The court rests for ${p.ambCool} more month(s) before a new ambition.` : 'Your ruler has no ambition. Choose one:'}</p>`));
   pb.append(H(`<div class="muted small">Ambitions fulfilled: ${p.ambDone}. Failing an ambition costs 10 prestige.</div>`));
@@ -87,7 +90,7 @@ function renderAmbitions(ui, pb, g, n) {
     for (const id of AMBITION_ORDER) {
       const a = AMBITIONS[id];
       pb.append(el('div', { class: 'card', style: { margin: '6px 0', cursor: 'pointer' }, onclick: () => { g.chooseAmbition(n.id, id); ui.renderPanel(true); },
-        html: ico(`<b>${a.icon} ${a.name}</b> <span class="muted small">${a.desc} ${a.months} months · +${a.prestige} prestige${a.legit ? `, +${a.legit} legitimacy` : ''}</span>`) }));
+        html: ico(`<b>${sic(a.icon, 'hammer')} ${a.name}</b> <span class="muted small">${a.desc} ${a.months} months · +${a.prestige} prestige${a.legit ? `, +${a.legit} legitimacy` : ''}</span>`) }));
     }
   }
 }
@@ -99,7 +102,7 @@ function renderAchievements(ui, pb, g, n) {
     <div class="muted small">Development + prestige + innovations + rank + battles + achievements. The age ends in ${END_YEAR}.</div><div class="small">${hist}</div></div>`));
   for (const [id, a] of Object.entries(ACHIEVEMENTS)) {
     const done = p.ach.includes(id);
-    pb.append(H(ico(`<div class="card" style="margin-top:5px;${done ? '' : 'opacity:.5'}"><b>${a.icon} ${a.name}</b> ${done ? '<span class="pos">✔</span>' : ''}<div class="muted small">${a.desc}</div></div>`)));
+    pb.append(H(ico(`<div class="card" style="margin-top:5px;${done ? '' : 'opacity:.5'}"><b>${sic(a.icon)} ${a.name}</b> ${done ? '<span class="pos">✔</span>' : ''}<div class="muted small">${a.desc}</div></div>`)));
   }
 }
 
