@@ -136,8 +136,15 @@ export const AIMixin = {
     if (n.manpower < n.maxManpower * (war ? 0.15 : 0.35)) return;
     const regs = this.armiesOf(n.id).reduce((t, a) => t + a.regs.length, 0) + this.s.recruit.filter((r) => r.nation === n.id).reduce((t, r) => t + Object.values(r.template.regs).reduce((x, y) => x + y, 0), 0);
     const B = this.budget(n.id);
-    const want = Math.min(n.maxManpower / 1000 * (war ? 0.8 : 0.4), Math.max(3, B.income * (war ? 1.3 : 0.9) / 0.22));
-    if (regs >= want) return;
+    const want = Math.min(n.maxManpower / 1000 * (war ? 0.15 : 0.04), Math.max(3, B.income * (war ? 1.3 : 0.9) / 0.22));
+    if (regs >= want) {
+      // peace-time standing army shrinks back to what the realm can afford
+      if (!war && regs > want * 1.5 && regs > 6) {
+        const weakest = this.armiesOf(n.id).filter((a) => !a.battle && !a.path.length).sort((a, b) => this.armyPower(a) - this.armyPower(b))[0];
+        if (weakest) this.disband(weakest.id);
+      }
+      return;
+    }
     const t = (war && n.templates.length > 0 ? n.templates : n.templates).find((tt) => !this.canRecruit(n.id, n.capital, tt) && Object.keys(tt.regs).every((k) => unitAvailable(k, n, this)));
     if (!t || n.capital < 0) return;
     if (n.gold - this.templateCost(n.id, t).gold < (war ? 0 : 25)) return;
@@ -171,9 +178,9 @@ export const AIMixin = {
     }
     // war
     if (this.atWar(n.id) || n.overlord >= 0) return;
-    if (s.day - n.ai.lastWar < 365 * 2 || s.day < 120) return;
-    if (n.stability < 0 || n.warExhaustion > 5 || n.manpower < n.maxManpower * 0.4) return;
-    const friends = (nid) => this.s.nations[nid].allies.reduce((t, x) => t + this.power(x) * 0.6, 0);
+    if (s.day - n.ai.lastWar < 365 * 1.5 || s.day < 120) return;
+    if (n.stability < 0 || n.warExhaustion > 5 || n.manpower < n.maxManpower * 0.25) return;
+    const friends = (nid) => this.s.nations[nid].allies.reduce((t, x) => t + this.power(x) * 0.3, 0);
     const myTot = myPow + friends(n.id);
     let best = null, bs = 0;
     for (const o of nbs) {
@@ -182,7 +189,7 @@ export const AIMixin = {
       if (!cbs.length) continue;
       const theirs = this.power(o) + friends(o);
       const ratio = myTot / Math.max(1, theirs);
-      if (ratio < 1.4) continue;
+      if (ratio < 1.25) continue;
       const sc = ratio * (cbs.includes('claim') ? 1.5 : 1) * (cbs.includes('holy_war') ? 1.3 : 1) * (o === s.player ? 0.8 : 1) * (this.opinion(n.id, o) < 0 ? 1.3 : 1);
       if (sc > bs) { bs = sc; best = [o, cbs[0]]; }
     }
@@ -205,8 +212,9 @@ export const AIMixin = {
         if (score < 15 && !(months > 30 && Math.abs(w.score) < 10)) continue;
         // build a demand list worth at most our war score
         const demands = [];
-        let budget = score;
         const losers = side === 'att' ? w.def : w.att;
+        // a realm reduced to a rump can be annexed outright
+        let budget = score + (score >= 40 && losers.length === 1 && this.ownedProvinces(losers[0]).length <= 3 ? 60 : 0);
         const occupied = [];
         for (const ln of losers) for (const p of this.ownedProvinces(ln)) if (s.prov[p].controller === leader || (side === 'att' ? w.att : w.def).includes(s.prov[p].controller)) occupied.push(p);
         occupied.sort((a, b) => (s.prov[b].claims.includes(leader) ? 10 : 0) - (s.prov[a].claims.includes(leader) ? 10 : 0) || s.prov[b].dev - s.prov[a].dev);
