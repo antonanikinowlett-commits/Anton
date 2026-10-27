@@ -1,4 +1,5 @@
 // Armies: recruitment, movement, pathfinding, supply, attrition, sieges and occupation.
+import { MIL_DOCTRINES, DOCTRINE_SWITCH, pickMilDoctrine } from '../data/mildoctrines.js';
 import { UNITS, unitAvailable } from '../data/units.js';
 import { TERRAIN_ECON } from './economy.js';
 import { Heap, clamp } from '../util.js';
@@ -133,6 +134,21 @@ export const MilitaryMixin = {
     this.s.recruit.push({ id: this.newId(), nation: nid, prov: p, template: { ...t, regs: { ...t.regs } }, days, total: days, mergeInto: mergeInto || null });
     if (nid === this.s.player) this.log(`Mustering "${t.name}" at ${this.provName(p)} (${days} days).`, { nation: nid, type: 'mil', prov: p });
     this.emit('recruit');
+    return null;
+  },
+  // Switch the realm's national doctrine: costs prestige and a stability dip, and cannot be repeated for a year.
+  setMilDoctrine(nid, key) {
+    const n = this.s.nations[nid];
+    if (!n || !MIL_DOCTRINES[key]) return 'Unknown doctrine';
+    if ((n.milDoc || pickMilDoctrine(n)) === key) return 'Already your doctrine';
+    const wait = (n.milDocDay ?? -9999) + DOCTRINE_SWITCH.cooldown - this.s.day;
+    if (wait > 0) return `Doctrine reforms need ${wait} more days`;
+    if (n.prestige < DOCTRINE_SWITCH.prestige) return `Needs ${DOCTRINE_SWITCH.prestige} prestige`;
+    n.prestige -= DOCTRINE_SWITCH.prestige;
+    n.stability -= DOCTRINE_SWITCH.stability;
+    n.milDoc = key; n.milDocDay = this.s.day;
+    this.recalcMods(nid);
+    if (nid === this.s.player) this.log(`${n.name} adopts the ${MIL_DOCTRINES[key].name} doctrine.`, { nation: nid, type: 'mil' });
     return null;
   },
   // Top an army up to the composition of the template it was raised from; the new regiments muster

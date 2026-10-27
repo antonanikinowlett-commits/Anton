@@ -81,6 +81,7 @@ export const AIMixin = {
     this.aiRecruit(n);
     this.aiFleet(n);
     this.aiSeaInvasion(n);
+    this.aiDoctrine(n);
     this.aiDiplomacy(n);
   },
 
@@ -156,6 +157,12 @@ export const AIMixin = {
     const zone = P[best].adj.map((e) => e.id).find((q) => q >= this.L);
     const escort = this.armiesOf(n.id).find((a) => this.isFleet(a) && !a.battle && !a.retreating && !a.path.length);
     if (escort && zone !== undefined) this.orderMove(escort.id, zone);
+  },
+  // Rarely reconsider the national doctrine according to the realm's temperament.
+  aiDoctrine(n) {
+    if (n.ai.horde || this.rng() > 0.02) return;
+    const want = n.ai.aggro > 0.75 ? 'horde_crusade' : n.ai.aggro < 0.3 ? 'feudal_levy' : n.gold > 300 ? 'professional_retinue' : null;
+    if (want) this.setMilDoctrine(n.id, want);
   },
   isFleet(a) { return a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship); },
   // Maritime realms keep a few fleets (others at most one) built in harbours.

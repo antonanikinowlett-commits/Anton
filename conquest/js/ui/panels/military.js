@@ -1,7 +1,7 @@
 // Military panel: Armies, fronts, templates, mustering and the unit codex.
 import { el, fmt, pct } from '../../util.js';
 import { coaSVG } from '../heraldry.js';
-import { MIL_DOCTRINES, pickMilDoctrine } from '../../data/mildoctrines.js';
+import { MIL_DOCTRINES, DOCTRINE_SWITCH, pickMilDoctrine } from '../../data/mildoctrines.js';
 import { INNOV } from '../../data/innovations.js';
 import { UNITS, UNIT_ORDER, unitAvailable, unitReqText, TERRAIN_COMBAT } from '../../data/units.js';
 import { DOCTRINES } from '../../data/tactics.js';
@@ -63,6 +63,12 @@ function templateEditor(ui, pb) {
     const md = MIL_DOCTRINES[n.milDoc || pickMilDoctrine(n)], active = md.perk && n.prog && n.prog.known.includes(md.perk.innov);
     pb.append(H(`<div class="card" style="margin-bottom:6px"><b>${md.icon} ${md.name}</b> <span class="muted small">national doctrine</span><div class="small">${md.desc}</div>
       <div class="small ${active ? 'pos' : 'muted'}">${active ? '✔' : '🔒'} ${md.perk.name}: ${md.perk.desc}${active ? '' : ` Unlocked by the ${INNOV[md.perk.innov] ? INNOV[md.perk.innov].name : md.perk.innov} innovation.`}</div></div>`));
+    const sw = el('div', { class: 'row wrap', style: { margin: '-2px 0 6px' } });
+    for (const [k, d] of Object.entries(MIL_DOCTRINES)) {
+      if (d === md) continue;
+      sw.append(el('div', { class: 'btn small', onclick: () => ui.confirm('Change doctrine', `Adopt ${d.name}? Costs ${DOCTRINE_SWITCH.prestige} prestige and ${DOCTRINE_SWITCH.stability} stability; no further change for a year.`, () => { const r = g.setMilDoctrine(n.id, k); ui.toast(r ? 'Cannot reform' : 'Doctrine adopted', r || d.name, r ? '🚫' : d.icon); ui.renderPanel(true); }), 'data-tip': d.desc }, `${d.icon} Adopt ${d.name}`));
+    }
+    pb.append(sw);
   }
   const list = el('div', { class: 'row wrap' });
   for (const t of n.templates) list.append(el('div', { class: 'subtab' + (t.id === T.id ? ' on' : ''), onclick: () => { st.tmpl = { id: t.id, name: t.name, regs: { ...t.regs }, doctrine: t.doctrine }; ui.renderPanel(true); } }, t.name));

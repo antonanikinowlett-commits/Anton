@@ -28,3 +28,5 @@ export function milDoctrineMods(n) {
   if (d.perk && n.prog && n.prog.known && n.prog.known.includes(d.perk.innov)) for (const [k, v] of Object.entries(d.perk.mods)) out[k] = (out[k] || 0) + v;
   return out;
 }
+
+export const DOCTRINE_SWITCH = { prestige: 30, stability: 1, cooldown: 365 };
