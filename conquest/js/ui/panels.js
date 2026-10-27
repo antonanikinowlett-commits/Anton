@@ -10,6 +10,7 @@ import './panels/treasury.js';
 import './panels/laws.js';
 import './panels/focus.js';
 import './panels/progress.js';
+import './panels/trade.js';
 import './panels/diplomacy.js';
 import './panels/military.js';
 import './panels/economy.js';

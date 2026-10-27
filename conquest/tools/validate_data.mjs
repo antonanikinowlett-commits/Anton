@@ -13,7 +13,7 @@ const errs = [];
 const bad = (where, msg) => errs.push(`${where}: ${msg}`);
 const tags = new Set([...NATIONS.map((n) => n.tag), 'MON']);
 const ESTATES = new Set(['nobles', 'clergy', 'burghers', 'peasants']);
-const KEYS = new Set(['mods', 'mods_t', 'gold', 'prestige', 'iron', 'timber', 'horses', 'food', 'legitimacy', 'stability', 'manpower', 'claims', 'cb', 'unlock', 'build', 'law', 'loyalty', 'influence', 'opinion', 'gov', 'religion', 'unrest', 'devLoss', 'revolt', 'mercs', 'followup']);
+const KEYS = new Set(['mods', 'mods_t', 'gold', 'prestige', 'iron', 'timber', 'horses', 'food', 'legitimacy', 'stability', 'manpower', 'claims', 'cb', 'unlock', 'build', 'law', 'loyalty', 'influence', 'opinion', 'gov', 'religion', 'unrest', 'devLoss', 'revolt', 'mercs', 'followup', 'holy']);
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
 
 function checkMods(where, m) {
@@ -38,6 +38,7 @@ function checkEffects(where, effects, eventIds) {
     if ((k === 'loyalty' || k === 'influence') && Object.keys(v).some((x) => !ESTATES.has(x))) bad(where, `${k} with unknown estate`);
     if (k === 'unlock' && !UNITS[v] && !['roman_law', 'common_law_fast'].includes(v)) bad(where, `unknown unlock ${v}`);
     if (k === 'followup' && !eventIds.has(v.id)) bad(where, `followup to unknown event ${v.id}`);
+    if (k === 'holy' && !(v.join || v.donate || v.ignore)) bad(where, 'holy needs join, donate or ignore');
     if (k === 'unrest' && !(v.n > 0 && num(v.v))) bad(where, 'unrest needs v and n');
   }
 }
@@ -58,7 +59,7 @@ for (const e of [...EVENTS, ...HISTORY]) {
     try { e.cond({ ...n, estates: stubEstates(), legitimacy: 40, gold: 30, food: 30, warExhaustion: 8, prestige: 10 }, stubGame); } catch (x) { bad(w, `cond throws for ${n.tag}: ${x.message}`); break; }
   }
 }
-for (const e of EVENTS) if (e.chance === 0 && ![...EVENTS, ...HISTORY].some((o) => (o.options || []).some((op) => op.effects.some((f) => f.followup?.id === e.id)))) bad(`event ${e.id}`, 'chance 0 but no event follows up to it');
+for (const e of EVENTS) if (e.chance === 0 && !e.system && ![...EVENTS, ...HISTORY].some((o) => (o.options || []).some((op) => op.effects.some((f) => f.followup?.id === e.id)))) bad(`event ${e.id}`, 'chance 0 but no event follows up to it');
 
 // ── focus trees (every realm, plus the Mongol horde)
 const gameStub = { nationByTag: () => ({ alive: true, name: 'X' }), ownedProvinces: () => [], map: { provinces: [] }, owner: () => -1, power: () => 1, cultureGroup: () => 'latin' };

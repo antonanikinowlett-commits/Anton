@@ -6,7 +6,7 @@ import { FORMABLES } from '../data/formables.js';
 export const RANKS = ['County', 'Duchy', 'Kingdom', 'Empire'];
 export const RANK_ICONS = ['⚜', '🛡', '👑', '🦅'];
 // requirements to be crowned into rank r+1 (index r): provinces, prestige, gold
-export const RANK_REQ = [{ prov: 3, prestige: 20, gold: 50 }, { prov: 8, prestige: 60, gold: 150 }, { prov: 20, prestige: 150, gold: 400 }];
+export const RANK_REQ = [{ prov: 40, prestige: 20, gold: 50 }, { prov: 120, prestige: 60, gold: 150 }, { prov: 300, prestige: 150, gold: 400 }];
 const RANK_MODS = [{}, { diplo: 1, legitimacyMonthly: 0.003 }, { diplo: 2, legitimacyMonthly: 0.006, taxMult: 0.02 }, { diplo: 3, legitimacyMonthly: 0.01, taxMult: 0.04, prestigeMonthly: 0.003 }];
 export const END_YEAR = 1453;
 const RESEARCH_CAP = 80;
@@ -17,11 +17,11 @@ const totalDev = (g, nid) => { let t = 0; for (const p of g.ownedProvinces(nid))
 // Ambition definitions: measure(g, n, snap) returns progress toward goal; snap is taken at start.
 export const AMBITIONS = {
   win_battles: { name: 'Glory in Arms', icon: '⚔', desc: 'Win 3 battles.', goal: 3, months: 36, prestige: 25, legit: 5, snap: (g, n) => n.stats.won, measure: (g, n, s) => n.stats.won - s },
-  cathedral: { name: 'Build a Cathedral', icon: '⛪', desc: 'Raise 3 levels of churches.', goal: 3, months: 48, prestige: 20, legit: 8, snap: (g, n) => totalLevels(g, n.id, 'church'), measure: (g, n, s) => totalLevels(g, n.id, 'church') - s },
-  great_works: { name: 'Great Works', icon: '🏗', desc: 'Complete 6 building levels of any kind.', goal: 6, months: 48, prestige: 15, legit: 4, snap: (g, n) => totalLevels(g, n.id), measure: (g, n, s) => totalLevels(g, n.id) - s },
-  flourish: { name: 'A Flourishing Realm', icon: '🏘', desc: 'Raise total development by 12.', goal: 12, months: 60, prestige: 25, legit: 6, snap: (g, n) => totalDev(g, n.id), measure: (g, n, s) => totalDev(g, n.id) - s },
-  conquest: { name: 'Expand the Realm', icon: '🗺', desc: 'Gain 3 provinces.', goal: 3, months: 48, prestige: 30, legit: 0, snap: (g, n) => g.ownedProvinces(n.id).length, measure: (g, n, s) => g.ownedProvinces(n.id).length - s },
-  treasury: { name: 'Fill the Treasury', icon: '💰', desc: 'Increase gold by 150.', goal: 150, months: 36, prestige: 15, legit: 3, snap: (g, n) => n.gold, measure: (g, n, s) => Math.round(n.gold - s) },
+  cathedral: { name: 'Build a Cathedral', icon: '⛪', desc: 'Raise the realm’s church levels by about 10%.', goal: (g, n) => Math.max(3, Math.round(totalLevels(g, n.id, 'church') * 0.1)), months: 48, prestige: 20, legit: 8, snap: (g, n) => totalLevels(g, n.id, 'church'), measure: (g, n, s) => totalLevels(g, n.id, 'church') - s },
+  great_works: { name: 'Great Works', icon: '🏗', desc: 'Complete new building levels worth about 12% of the realm’s total.', goal: (g, n) => Math.max(8, Math.round(totalLevels(g, n.id) * 0.12)), months: 48, prestige: 15, legit: 4, snap: (g, n) => totalLevels(g, n.id), measure: (g, n, s) => totalLevels(g, n.id) - s },
+  flourish: { name: 'A Flourishing Realm', icon: '🏘', desc: 'Raise total development by about 6%.', goal: (g, n) => Math.max(12, Math.round(totalDev(g, n.id) * 0.06)), months: 60, prestige: 25, legit: 6, snap: (g, n) => totalDev(g, n.id), measure: (g, n, s) => totalDev(g, n.id) - s },
+  conquest: { name: 'Expand the Realm', icon: '🗺', desc: 'Expand the realm by about 5% in provinces.', goal: (g, n) => Math.max(3, Math.round(g.ownedProvinces(n.id).length * 0.05)), months: 48, prestige: 30, legit: 0, snap: (g, n) => g.ownedProvinces(n.id).length, measure: (g, n, s) => g.ownedProvinces(n.id).length - s },
+  treasury: { name: 'Fill the Treasury', icon: '💰', desc: 'Fill the treasury with considerably more gold.', goal: (g, n) => Math.max(150, Math.round(g.ownedProvinces(n.id).length * 1.5)), months: 36, prestige: 15, legit: 3, snap: (g, n) => n.gold, measure: (g, n, s) => Math.round(n.gold - s) },
   scholar: { name: 'Patron of Learning', icon: '📚', desc: 'Learn 2 innovations.', goal: 2, months: 48, prestige: 15, legit: 3, snap: (g, n) => n.prog.known.length, measure: (g, n, s) => n.prog.known.length - s },
   grand_match: { name: 'A Great Marriage', icon: '💍', desc: 'Marry into a kingdom-rank house.', goal: 1, months: 60, prestige: 30, legit: 5, snap: (g, n) => n.marriages.length, measure: (g, n, s) => n.marriages.slice(s).some((o) => g.realmRank(o) >= 2) ? 1 : 0 },
 };
@@ -53,7 +53,10 @@ export const ProgressionMixin = {
     if (n.prog) return;
     n.prog = defaultProg();
     const np = this.ownedProvinces(n.id).length;
-    let r = 0; while (r < 2 && np >= RANK_REQ[r].prov * 1.5) r++;
+    let r = 0; while (r < 2 && np >= RANK_REQ[r].prov) r++;
+    // historical titles outrank size: kingdoms, caliphates and sultanates start as kingdoms, duchies and the like as duchies
+    if (/^(Kingdom|Crown|Caliphate|Abbasid|Almohad|Sultanate|Ayyubid|Papal|Tsardom)/.test(n.name)) r = Math.max(r, 2);
+    else if (/^(Duchy|Principality|Grand|Republic|Lombard|Golden|Margraviate|Banate|Novgorod|Galicia|Vladimir)/.test(n.name)) r = Math.max(r, 1);
     if (n.gov === 'imperial' || n.tag === 'HRE' || n.tag === 'BYZ') r = 3;
     n.prog.rank = r;
     this._applyRankMods(n);
@@ -159,11 +162,11 @@ export const ProgressionMixin = {
   },
   availableFormables(nid) {
     const n = this.s.nations[nid], done = n.prog.formed || [];
-    return FORMABLES.filter((f) => f.tags.includes(n.tag) && !done.includes(f.id));
+    return FORMABLES.filter((f) => f.tags.includes(n.tag) && !done.includes(f.id) && !this.s.nations.some((x) => x.prog?.formed?.includes(f.id)));
   },
   formNation(nid, id) {
     const n = this.s.nations[nid], f = FORMABLES.find((x) => x.id === id);
-    if (!f || !f.tags.includes(n.tag) || (n.prog.formed || []).includes(id) || !this.formableStatus(nid, f).ok) return false;
+    if (!f || !f.tags.includes(n.tag) || this.s.nations.some((x) => x.prog?.formed?.includes(id)) || !this.formableStatus(nid, f).ok) return false;
     n.gold -= f.req.gold;
     (n.prog.formed ||= []).push(id);
     if (f.rename) { n.name = f.rename.name; n.adj = f.rename.adj; }
@@ -178,14 +181,14 @@ export const ProgressionMixin = {
   chooseAmbition(nid, id) {
     const n = this.s.nations[nid], a = AMBITIONS[id];
     if (!a || n.prog.amb || n.prog.ambCool > 0) return false;
-    n.prog.amb = { id, snap: a.snap(this, n), end: this.s.day + a.months * 30 };
+    n.prog.amb = { id, snap: a.snap(this, n), end: this.s.day + a.months * 30, goal: typeof a.goal === 'function' ? a.goal(this, n) : a.goal };
     return true;
   },
   ambitionProgress(nid) {
     const n = this.s.nations[nid], am = n.prog.amb;
     if (!am) return null;
     const d = AMBITIONS[am.id];
-    return { def: d, value: Math.max(0, d.measure(this, n, am.snap)), goal: d.goal, daysLeft: am.end - this.s.day };
+    return { def: d, value: Math.max(0, d.measure(this, n, am.snap)), goal: am.goal ?? d.goal, daysLeft: am.end - this.s.day };
   },
   _monthlyAmbition(n) {
     const p = n.prog;

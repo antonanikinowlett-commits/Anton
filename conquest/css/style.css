@@ -334,3 +334,7 @@ input[type=text], select { font-family: var(--serif); font-size: 14px; backgroun
 #ui:not(.out-closed) #toasts { right: 270px; }
 #alerts .alert { position: relative; }
 @media (max-width: 900px) { #outliner { top: auto; bottom: 8px; max-height: 30vh; } #ui:not(.out-closed) #toasts { right: 10px; } }
+
+/* inline SVG icons (js/ui/icons.js) */
+.ic { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; fill: currentColor; flex: none; }
+.ic.gilt { filter: drop-shadow(0 1px 0 rgba(0,0,0,.6)); }

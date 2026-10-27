@@ -30,6 +30,12 @@ export const CharactersMixin = {
       c.traits.push(pick(rng, PERS_TRAIT_POOL));
       if (rng() < 0.4) { const t = pick(rng, PERS_TRAIT_POOL); if (!c.traits.includes(t) && !(t === 'brave' && c.traits.includes('craven')) && !(t === 'craven' && c.traits.includes('brave'))) c.traits.push(t); }
     }
+    if (opts.parent) {
+      // children take after their parents: some traits, and skills drawn towards the parent's
+      const pt = opts.parent.traits.filter((x) => x !== 'inactive');
+      for (const x of pt) if (c.traits.length < 3 && !c.traits.includes(x) && rng() < 0.35 && !(x === 'brave' && c.traits.includes('craven')) && !(x === 'craven' && c.traits.includes('brave'))) c.traits.push(x);
+      for (const k of Object.keys(c.skills)) c.skills[k] = Math.max(1, Math.round(c.skills[k] * 0.5 + Math.min(12, opts.parent.skills[k]) * 0.5 + (rng() - 0.5) * 3));
+    }
     if (role === 'general') this.makeGeneral(c, opts.traits);
     this.s.chars[c.id] = c;
     return c;
@@ -93,7 +99,7 @@ export const CharactersMixin = {
     }
     // heirs
     if (!n.heir && !['merchant_republic', 'theocracy', 'elective_monarchy', 'caliphate'].includes(n.gov) && ruler && this.age(ruler) > 20 && this.age(ruler) < 55 && this.rng() < 0.02) {
-      const h = this.makeChar(n, 'heir', { name: [personName(this.rng, n.culture)[0], ruler.dyn], age: 0 });
+      const h = this.makeChar(n, 'heir', { name: [personName(this.rng, n.culture)[0], ruler.dyn], age: 0, parent: ruler });
       n.heir = h.id;
       if (n.id === s.player) this.log(`An heir is born: ${this.charName(h)}.`, { nation: n.id, type: 'court' });
     }
@@ -119,6 +125,8 @@ export const CharactersMixin = {
     const old = s.chars[n.ruler];
     let heir = s.chars[n.heir];
     let crisis = false;
+    const hereditary = !['elective_monarchy', 'merchant_republic', 'theocracy', 'caliphate'].includes(n.gov);
+    const noHeir = !heir && hereditary;
     if (!heir || n.gov === 'elective_monarchy' || n.gov === 'merchant_republic' || n.gov === 'theocracy' || n.laws.succession === 'tanistry' || n.laws.succession === 'seniority') {
       // electors/council choose the most capable of a few candidates
       const cands = [heir, ...this.charsOf(n.id, 'pool'), ...this.charsOf(n.id, 'general')].filter(Boolean).filter((c) => this.age(c) >= 16);
@@ -136,6 +144,13 @@ export const CharactersMixin = {
     else n.legitimacy = clamp(n.legitimacy - 10 + (n.laws.succession === 'primogeniture' ? 10 : 0), 0, 100);
     if (n.laws.succession === 'tanistry') heir.skills.martial += 2;
     if (old) old.role = 'dead';
+    // dynastic fallout: a child on the throne invites intrigue; a missing heir invites claimants, among them the in-laws
+    if (crisis) this.applyEffects(n.id, [{ followup: { id: 'regency_intrigue', months: 8 } }], 'succession');
+    if (noHeir) {
+      this.applyEffects(n.id, [{ followup: { id: 'claimant_rises', months: 5 } }], 'succession');
+      const kin = n.marriages.map((m) => s.nations[m]).filter((m) => m?.alive && m.overlord < 0).sort((a, b) => this.power(b.id) - this.power(a.id))[0];
+      if (kin) { this.applyEffects(kin.id, [{ claims: { tag: n.tag, border: 2 } }], 'succession'); this.log(`The ${kin.name} presses a claim on the throne of the ${n.name} through marriage.`, { nation: kin.id, type: 'diplo', important: [kin.id, n.id].includes(s.player) }); }
+    }
     this.recalcMods(n.id);
     const t = this.rulerTitle(n);
     this.log(`${t} ${this.charName(heir)} now rules the ${n.name}${crisis ? ' — a child ruler! A regency council governs.' : '.'}`, { nation: n.id, type: 'court', important: n.id === s.player });

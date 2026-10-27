@@ -264,6 +264,11 @@ export const PoliticsMixin = {
       if (e.unrest) { const ps = this.ownedProvinces(nid); for (let i = 0; i < e.unrest.n && ps.length; i++) { const p = pick(this.rng, ps); s.prov[p].unrest = clamp(s.prov[p].unrest + e.unrest.v, 0, 100); } }
       if (e.devLoss) { const ps = this.ownedProvinces(nid); for (let i = 0; i < e.devLoss.n && ps.length; i++) { const p = pick(this.rng, ps); s.prov[p].dev = Math.max(1, s.prov[p].dev - 1); } }
       if (e.revolt) { const ps = this.ownedProvinces(nid).filter((p) => p !== n.capital); for (let i = 0; i < e.revolt.n && ps.length; i++) this.spawnRebels(pick(this.rng, ps), e.revolt.nobles); }
+      if (e.holy) {
+        if (e.holy.join) this.joinHolyWar(nid, e.holy.join);
+        if (e.holy.donate) this.donateHolyWar(nid, e.holy.donate.gold, e.holy.donate.kind);
+        if (e.holy.ignore) this.papalFavorChange(nid, -e.holy.ignore);
+      }
       if (e.followup) (s.eventLater ||= []).push({ id: e.followup.id, nid, day: s.day + e.followup.months * 30 });
       if (e.mercs && n.capital >= 0) {
         const regs = [];
@@ -387,6 +392,9 @@ export const PoliticsMixin = {
       if (e.devLoss) out.push(`-1 development in ${e.devLoss.n} provinces`);
       if (e.revolt) out.push(`${e.revolt.nobles ? 'Baronial' : 'Peasant'} revolt`);
       if (e.mercs) out.push('A mercenary company joins us');
+      if (e.holy?.join) out.push('Take the cross: join the holy war');
+      if (e.holy?.donate) out.push(`Donate ${e.holy.donate.gold} gold to the holy war`);
+      if (e.holy?.ignore) out.push(`Papal favour −${e.holy.ignore}`);
     }
     return out;
   },

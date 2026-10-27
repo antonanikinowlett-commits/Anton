@@ -9,7 +9,7 @@ registerPanel({ id: 'economy', icon: '💰', name: 'Economy', key: 'b', order: 7
   pb.append(el('div', { class: 'section' }, 'Monthly Budget'));
   const max = Math.max(B.income, B.expense, 1);
   const line = (k, v, cls) => `<div class="row small"><span style="width:130px">${k}</span><div class="grow bar ${cls}"><i style="width:${Math.abs(v) / max * 100}%"></i></div><span style="width:56px;text-align:right" class="${v < 0 ? 'neg' : 'pos'}">${signed(v, 1)}</span></div>`;
-  pb.append(H(line('Taxes', B.tax, 'green') + line('Trade', B.trade, 'green') + line('Mines', B.mines, 'green') + (B.tribute ? line('Tribute', B.tribute, B.tribute > 0 ? 'green' : 'red') : '') +
+  pb.append(H(line('Taxes', B.tax, 'green') + line('Trade', B.trade, 'green') + (B.nodes ? line('Trade routes', B.nodes, 'green') : '') + line('Mines', B.mines, 'green') + (B.tribute ? line('Tribute', B.tribute, B.tribute > 0 ? 'green' : 'red') : '') +
     line('Army upkeep', -B.armyUpkeep, 'red') + line('Court', -B.court, 'red') + line('Administration', -B.admin, 'red') + (B.interest ? line('Interest', -B.interest, 'red') : '') + `<div class="row small" style="margin-top:4px"><b class="grow">Balance</b><b class="${B.net < 0 ? 'neg' : 'pos'}">${signed(B.net, 1)} / month</b></div>`));
   pb.append(el('div', { class: 'section' }, 'Resources'));
   pb.append(H(`<div class="stat-grid"><div class="stat"><b>${fmt(n.food)}</b>🌾 Food ${signed(B.foodNet, 1)}</div><div class="stat"><b>${fmt(n.iron)}</b>⚒ Iron ${signed(B.iron, 1)}</div><div class="stat"><b>${fmt(n.timber)}</b>🪵 Timber ${signed(B.timber, 1)}</div>
