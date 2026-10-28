@@ -62,6 +62,8 @@ Object.assign(BUILDINGS, {
 });
 // upkeep of the original buildings (gold per level per month)
 for (const [k, v] of Object.entries({ walls: 0.08, barracks: 0.1, port: 0.04, workshop: 0.05, church: 0.03 })) BUILDINGS[k].upkeep = v;
+// Buildings that must first be unlocked by an innovation (progression.js adds 'bld:<key>' to nation.unlocks).
+for (const [k, v] of Object.entries({ guildhall: 'Craft Guilds', university: 'Universities', townwalls: 'Concentric Castles', siegeworks: 'Sapper Corps', shipyard: 'Harbour Works' })) BUILDINGS[k].innov = v;
 BUILDINGS.road.slot = false;
 BUILDINGS.walls.slot = false;
 

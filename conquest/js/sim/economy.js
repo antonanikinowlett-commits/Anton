@@ -111,12 +111,12 @@ export const EconomyMixin = {
     }
   },
   // invest in a province: settlers, clearings, new villages
-  developCost(p) { const d = this.s.prov[p].dev; return Math.round(60 + d * d * 12); },
+  developCost(p, nid) { const d = this.s.prov[p].dev; return Math.round((60 + d * d * 12) * (1 + (nid === undefined ? 0 : this.mod(nid, 'devCost')))); },
   developProvince(nid, p) {
     const pr = this.s.prov[p], n = this.s.nations[nid];
     if (pr.owner !== nid || pr.controller !== nid) return 'Must own and control the province';
     if (pr.dev >= 30) return 'Fully developed';
-    const c = this.developCost(p);
+    const c = this.developCost(p, nid);
     if (n.gold < c) return `Need ${c} gold`;
     n.gold -= c; pr.dev++;
     this.emit('province', p);
@@ -144,6 +144,7 @@ export const EconomyMixin = {
     if (pr.owner !== nid) return 'Not your province';
     if (pr.controller !== nid) return 'Province is occupied';
     if (!B.allowed(sp)) return 'Not possible in this terrain';
+    if (B.innov && !this.s.nations[nid].unlocks.includes('bld:' + type)) return `Requires the innovation ${B.innov}`;
     const lvl = (pr.buildings[type] || 0) + pr.queue.filter((q) => q.type === type).length;
     if (lvl >= B.max) return 'Maximum level reached';
     if (pr.queue.length >= 2) return 'Construction queue full (2)';

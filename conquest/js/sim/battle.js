@@ -505,7 +505,7 @@ export const BattleMixin = {
     if (nidL >= 0) { const n = s.nations[nidL]; n.prestige -= Math.min(10, casL / 2500); n.stats.lost++; n.stats.lostMen += casL; n.warExhaustion += casL / 4000; n.stats.killed += casW; }
     if (nidW >= 0) s.nations[nidW].warExhaustion += casW / 6000;
     for (const a of winArmies) {
-      for (const r of a.regs) { r.routed = false; r.xp = Math.min(1, (r.xp || 0) + 0.06); r.morale = Math.max(r.morale, 0.25); }
+      for (const r of a.regs) { r.routed = false; r.xp = Math.min(1, (r.xp || 0) + 0.06 * (1 + this.mod(a.nation, 'xpGain'))); r.morale = Math.max(r.morale, 0.25); }
       this.generalGainsFromBattle(this.generalOf(a), a, casL, casW, winner === 'def', prov);
     }
     // battle score for the war

@@ -28,11 +28,14 @@ const modText = (mods) => Object.entries(mods || {}).map(([k, v]) => {
 }).join('<br>');
 
 function innovTip(g, nid, i, state) {
-  const n = g.s.nations[nid];
-  let h = `<div class="tt-title">${sic(i.icon, FALLBACK[i.branch])} ${i.name}</div><div class="muted small">${BRANCHES[i.branch].name} · ${ERAS[i.era].name} · c. ${i.year}</div><p>${i.desc}</p>${modText(i.mods)}`;
-  if (i.unlock) h += `<br><b>Unlocks:</b> ${UNITS[i.unlock] ? UNITS[i.unlock].name : i.unlock === 'roman_law' ? 'Roman Law' : i.unlock}`;
-  if (i.pre.length) h += `<br><span class="muted">Requires: ${i.pre.map((p) => (n.prog.known.includes(p) ? '<span class="pos">' : '<span class="neg">') + INNOV[p].name + '</span>').join(', ')}</span>`;
-  if (state !== 'done') h += `<br><span class="muted">Cost: ${g.innovCost(nid, i.id)} points</span>`;
+  const inf = g.innovInfo(nid, i.id), n = g.s.nations[nid];
+  let h = `<div class="tt-title">${sic(i.icon, FALLBACK[i.branch])} ${i.name}</div><div class="muted small">${BRANCHES[i.branch].name} · ${ERAS[i.era].name} · c. ${i.year}</div><p>${i.desc}</p>`;
+  h += inf.effects.map((l) => `<div class="${l.good ? 'pos' : 'neg'}">${l.text}</div>`).join('');
+  if (i.pre.length) h += `<div class="muted">Requires: ${i.pre.map((p) => (n.prog.known.includes(p) ? '<span class="pos">' : '<span class="neg">') + INNOV[p].name + '</span>').join(', ')}</div>`;
+  if (inf.block && state !== 'done') h += `<div class="neg">${inf.block.text}</div>`;
+  if (state === 'avail' && inf.forfeits.length) h += `<div class="neg">Choosing this permanently closes: ${inf.forfeits.join(', ')}</div>`;
+  if (state === 'done' && i.excl.length) h += `<div class="muted">Closed off: ${i.excl.map((x) => INNOV[x].name).join(', ')}</div>`;
+  if (state === 'avail' || state === 'now') h += `<div class="muted">Cost ${inf.cost} points (~${inf.months} months)<br>${inf.breakdown.map(([t, v]) => `${t}: ${v > 0 ? '+' : ''}${v}`).join(' · ')}</div>`;
   return h;
 }
 
@@ -51,15 +54,15 @@ function renderInnovations(ui, pb, g, n) {
     for (let e = 0; e < ERAS.length; e++) {
       col.append(H(`<div class="muted small" style="margin:6px 0 2px">${ERAS[e].name}</div>`));
       for (const i of INNOVATIONS.filter((x) => x.branch === b && x.era === e)) {
-        const done = p.known.includes(i.id), now = p.cur === i.id, avail = g.innovAvailable(n.id, i.id);
-        const state = done ? 'done' : now ? 'now' : avail ? 'avail' : 'locked';
+        const state = g.innovInfo(n.id, i.id).state, done = state === 'done';
         const style = { display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 6px', marginBottom: '3px', borderRadius: '3px', border: '1px solid var(--line)', fontSize: '13px', cursor: state === 'avail' ? 'pointer' : 'default' };
         if (state === 'done') { style.borderColor = '#4a7a3a'; style.background = 'rgba(100,160,70,.12)'; }
         else if (state === 'now') { style.borderColor = 'var(--gold)'; style.background = 'rgba(212,175,95,.15)'; }
         else if (state === 'avail') style.borderColor = 'var(--gold-d)';
+        else if (state === 'closed') { style.opacity = '.3'; style.textDecoration = 'line-through'; }
         else style.opacity = '.45';
         const card = el('div', { style, onclick: state === 'avail' ? () => { g.startResearch(n.id, i.id); ui.renderPanel(true); } : null });
-        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
+        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'closed' ? ico('<span>✖</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
         card._tip = () => innovTip(g, n.id, i, state);
         col.append(card);
       }

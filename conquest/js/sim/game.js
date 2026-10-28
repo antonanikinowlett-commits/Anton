@@ -251,7 +251,7 @@ export class Game {
       n.timber = Math.max(0, n.timber + B.timber);
       n.horses = Math.max(0, n.horses + B.horses);
       n.maxManpower = this.calcMaxManpower(n.id);
-      n.manpower = Math.min(n.maxManpower, n.manpower + n.maxManpower / 60 * (n.food < 0 ? 0.3 : 1));
+      n.manpower = Math.min(n.maxManpower, n.manpower + n.maxManpower / 60 * (n.food < 0 ? 0.3 : 1) * (1 + this.mod(n.id, 'manpowerRegen')));
       if (n.food < 0) { n.stability = Math.max(-3, n.stability - 0.05); }
       if (n.gold < -50) { n.stability = Math.max(-3, n.stability - 0.1); this.estateDelta(n, 'nobles', -1); }
       n.prestige = clamp(n.prestige * 0.995 + this.mod(n.id, 'prestigeMonthly') * 10, -100, 500);

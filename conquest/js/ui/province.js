@@ -114,7 +114,7 @@ export const ProvinceMixin = {
       act.append(sel, rb);
     }
     if (isMine && pr.controller === pl) {
-      const dc = g.developCost(p);
+      const dc = g.developCost(p, g.s.player);
       act.append(el('div', { class: 'btn small', onclick: () => { const r = g.developProvince(pl, p); if (r) this.toast('Develop', r, '🚫'); this.renderProvince(); this.updateTopbar(); }, 'data-tip': `Invest ${dc} gold: settle colonists, clear land and found villages. +1 development (taxes, manpower, supply).` }, `🏘 Develop (${dc}g)`));
     }
     if (!isMine && own) {

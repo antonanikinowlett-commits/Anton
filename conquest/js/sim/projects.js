@@ -14,7 +14,7 @@ export const ProjectsMixin = {
     const n = this.s.nations[nid], day = this.s.day, out = [];
     for (const [id, d] of Object.entries(PROJECTS)) out.push({ id, ...d, cooldown: Math.max(0, Math.ceil(((n.proj?.[id] || 0) - day) / 30)), affordable: n.gold >= d.cost });
     const dp = this.cheapestDevelopment(nid);
-    if (dp >= 0) out.push({ id: 'develop', icon: '🏘', name: `Develop ${this.provName(dp)}`, cost: this.developCost(dp), cooldown: 0, tip: '+1 development: more tax, manpower and building slots.', affordable: n.gold >= this.developCost(dp), p: dp });
+    if (dp >= 0) out.push({ id: 'develop', icon: '🏘', name: `Develop ${this.provName(dp)}`, cost: this.developCost(dp, nid), cooldown: 0, tip: '+1 development: more tax, manpower and building slots.', affordable: n.gold >= this.developCost(dp, nid), p: dp });
     const k = ['iron', 'timber', 'horses'].sort((a, b) => n[a] - n[b])[0];
     out.push({ id: 'buy:' + k, icon: { iron: '⚒', timber: '🪵', horses: '🐎' }[k], name: `Buy 20 ${k}`, cost: Math.round(this.resourcePrice(nid, k) * 20), cooldown: 0, tip: `Your scarcest strategic good (${Math.floor(n[k])} in stock), bought from foreign merchants.`, affordable: n.gold >= Math.round(this.resourcePrice(nid, k) * 20) });
     return out;
