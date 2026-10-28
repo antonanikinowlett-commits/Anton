@@ -68,7 +68,7 @@ export const ArmyMixin = {
     }
     pb.append(gr);
     // doctrine
-    const dr = el('div', { class: 'row', style: { margin: '6px 0' } }, el('span', { class: 'small muted' }, 'Doctrine:'));
+    const dr = el('div', { class: 'row wrap', style: { margin: '6px 0' } }, el('span', { class: 'small muted' }, 'Doctrine:'));
     for (const [k, d] of Object.entries(DOCTRINES)) {
       const b = el('div', { class: 'subtab' + (a.doctrine === k ? ' on' : ''), onclick: () => { if (mine) { a.doctrine = k; this.renderArmy(); } } }, d.name);
       b._tip = () => `<b>${d.name}</b><br>${d.desc}<br><span class="muted small">Biases which tactics the general picks in each battle phase.</span>`;
