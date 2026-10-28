@@ -258,7 +258,7 @@ export const AIMixin = {
   },
 
   aiRecruit(n) {
-    const war = this.atWar(n.id);
+    const war = this.atWar(n.id) || !!n.ai.prepare;
     if (n.manpower < n.maxManpower * (war ? 0.15 : 0.35)) return;
     const regs = this.armiesOf(n.id).reduce((t, a) => t + a.regs.length, 0) + this.s.recruit.filter((r) => r.nation === n.id).reduce((t, r) => t + Object.values(r.template.regs).reduce((x, y) => x + y, 0), 0);
     const B = this.budget(n.id);
@@ -339,7 +339,24 @@ export const AIMixin = {
         (this.opinion(n.id, o) < 0 ? 1.3 : 1) * revenge * (persona === 'schemer' ? busy : 1) * (on.religion !== n.religion && persona === 'zealot' ? 1.5 : 1);
       if (sc > bs) { bs = sc; best = [o, cbs.includes('holy_war') && persona === 'zealot' ? 'holy_war' : cbs[0]]; }
     }
-    if (best && this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq * (best[0] === s.player ? (hard ? 1.6 : 1.2) : 1)) { const why = this.declareWar(n.id, best[0], { kind: best[1] }); if (!why) this.aiMobilize(n); }
+    if (best) {
+      // a realm only marches when its field armies can compete: otherwise it musters first (a visible build-up) and waits
+      const o = best[0], on = s.nations[o];
+      const armyOf = (x) => this.armyStrength(x) + s.nations[x].allies.reduce((t, a) => t + this.armyStrength(a) * 0.3, 0);
+      const armyRatio = armyOf(n.id) / Math.max(1, armyOf(o));
+      if (armyRatio >= 0.9 || n.ai.horde) {
+        if (this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq * (o === s.player ? (hard ? 1.6 : 1.2) : 1) * (n.ai.prepare?.target === o ? 2.5 : 1)) { const why = this.declareWar(n.id, o, { kind: best[1] }); if (!why) { n.ai.prepare = null; this.aiMobilize(n); } }
+      } else if (n.ai.prepare?.target !== o) {
+        if (this.rng() < 0.3 && n.gold > 50 && n.manpower > n.maxManpower * 0.35) {
+          n.ai.prepare = { target: o, kind: best[1], since: s.day };
+          this.pushNews(`${n.name} musters its host on the border of ${on.name}.`, { type: 'war', nation: n.id });
+          if (o === s.player) this.notify({ title: 'Troops massing', icon: '🛡', text: `${n.name} is raising troops near our border. Prepare: levies, fortifications, allies.` });
+        }
+      } else {
+        this.aiMobilize(n);
+        if (s.day - n.ai.prepare.since > 540) n.ai.prepare = null;
+      }
+    }
   },
 
   aiPeace() {
