@@ -454,7 +454,7 @@ export const BattleMixin = {
         if (side === 'att') casA += cas; else casD += cas;
         const u = UNITS[r.type];
         const mloss = (cas / Math.max(200, r.men + cas)) * 2.6 / u.morale * (1 + EM.moraleTaken) + (mdmg[side].get(r) || 0) / u.morale * (1 + EM.moraleTaken);
-        r.morale -= Math.max(0, mloss);
+        r.morale = Math.max(0, r.morale - Math.max(0, mloss));
       }
       // seeing comrades run is contagious
       const L = b.lines[side];

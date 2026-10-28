@@ -280,7 +280,9 @@ export const AIMixin = {
   // On going to war an AI realm musters at once: up to four regiments' worth of templates, as gold and manpower allow.
   aiMobilize(n) {
     if (n.ai.horde || n.capital < 0 || n.id === this.s.player) return;
-    for (let i = 0; i < 4; i++) {
+    const have = this.armiesOf(n.id).reduce((t, a) => t + a.regs.length, 0) + this.s.recruit.filter((r) => r.nation === n.id).length * 8;
+    const cap = Math.max(8, Math.min(n.maxManpower / 1000 * 0.12, this.budget(n.id).income / 0.3));
+    for (let i = 0; i < 4 && have + i * 8 < cap; i++) {
       const t = n.templates.find((tt) => !this.canRecruit(n.id, n.capital, tt) && Object.keys(tt.regs).every((k) => unitAvailable(k, n, this)));
       if (!t || n.gold - this.templateCost(n.id, t).gold < 10) return;
       this.recruit(n.id, n.capital, t);
