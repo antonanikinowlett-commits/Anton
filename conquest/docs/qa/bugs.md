@@ -21,3 +21,7 @@ Open (minor): transient 0-regiment army (1 hit/seed), regiment morale slightly n
 ## 2026-10-27 14:55 dev e87241d (+ws/progression 01426e9, ws/battle), 20y×3
 check 70/70, smoke OK, visual OK, no crash, save/load OK, 7–8 ms/day (within budget), 111–125 wars, 245–310 provinces changed owner.
 Open: rebel armies at y20 = 13/22/20 of 55/71/70 armies (a quarter–third of all armies; was 0 on a4442e9) – check unrest/rebel spawn & disband (js/sim/politics.js / ai.js); 0-regiment army (1–2/run, transient); morale slightly <0.
+
+## 2026-10-27 16:30 dev 981294a (includes fix/conquest 35f0487), 20y×3
+check 70/70, smoke OK, visual OK, no crash, save/load OK, 6.8–8.2 ms/day, 115–117 wars, 283–297 provinces changed owner, rebels 3–4, 0 invariant hits except one morale≈0 (-0.005). Open: none significant (rare 0-regiment army earlier, not seen this run).
+Note: `player=-1` in all-AI harness equals the rebel nation id (fixed in ai.js:18 by fixer); keep in mind for any new `nation === s.player` checks.
