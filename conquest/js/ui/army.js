@@ -3,6 +3,7 @@
 import { el, fmt, pct } from '../util.js';
 import { coaSVG, rebelCoa } from './heraldry.js';
 import { portraitSVG } from './portrait.js';
+import { ENGAGE } from '../sim/warplan.js';
 import { UNITS } from '../data/units.js';
 import { DOCTRINES } from '../data/tactics.js';
 import { TRAITS } from '../data/traits.js';
@@ -74,6 +75,21 @@ export const ArmyMixin = {
       dr.append(b);
     }
     pb.append(dr);
+    // orders: engage policy and retreat line
+    {
+      const o = g.armyOrders(a), vet = g.armyVeterancy(a);
+      const orow = el('div', { class: 'row wrap army-orders', style: { margin: '6px 0' } }, el('span', { class: 'small muted' }, 'Orders:'));
+      for (const [k, d] of Object.entries(ENGAGE)) {
+        const b = el('div', { class: 'subtab' + (o.engage === k ? ' on' : ''), onclick: () => { if (mine) { g.setArmyOrders(a.id, { engage: k }); this.renderArmy(); } } }, d.name);
+        b._tip = () => `<b>${d.name}</b><br>${d.desc}`;
+        orow.append(b);
+      }
+      const rl = el('select', { onchange: (e) => { if (mine) { g.setArmyOrders(a.id, { retreat: +e.target.value }); this.renderArmy(); } } });
+      for (const v of [0, 0.2, 0.3, 0.4, 0.5, 0.6]) rl.append(el('option', { value: v, selected: Math.abs(o.retreat - v) < 0.01 ? 'selected' : null }, v ? `Retreat below ${Math.round(v * 100)}% morale` : 'Fight to the end'));
+      rl._tip = () => '<b>Retreat line</b><br>If the army\'s morale falls below this (and the enemy\'s is higher) it leaves the battle in good order: far fewer casualties than a rout.';
+      orow.append(rl, el('span', { class: 'chip', 'data-tip': `Veterancy: ${vet.label}. Experienced regiments fight up to +35% better; fresh recruits dilute it.` }, `🎖 ${vet.label} (+${vet.bonus}%)`));
+      pb.append(orow);
+    }
     // stats
     const men = g.armyMen(a), max = g.armyMax(a);
     const sup = a.loc < g.L ? g.supplyLimit(a.loc, a.nation) : 999;

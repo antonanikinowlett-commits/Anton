@@ -385,6 +385,7 @@ export const DiplomacyMixin = {
       cb: cb.kind, start: s.day, battleScore: 0, score: 0 };
     s.wars[w.id] = w;
     this._wp = null;
+    this.pickWarGoals(w);
     // the defender calls allies, vassals and overlord
     const defCall = new Set([...b.allies, ...s.nations.filter((x) => x.alive && x.overlord === bid).map((x) => x.id)]);
     if (b.overlord >= 0) defCall.add(b.overlord);
@@ -462,24 +463,6 @@ export const DiplomacyMixin = {
     }
   },
 
-  updateWarScore(w) {
-    const s = this.s;
-    const devOf = (nids) => { let t = 0; for (const n of nids) for (const p of this.ownedProvinces(n)) t += s.prov[p].dev; return t || 1; };
-    const occ = (attackers, defenders) => {
-      let t = 0;
-      for (const d of defenders) for (const p of this.ownedProvinces(d)) {
-        const c = s.prov[p].controller;
-        if (attackers.includes(c)) t += s.prov[p].dev * (s.nations[d].capital === p ? 2 : 1);
-      }
-      return t;
-    };
-    const attOcc = occ(w.att, w.def) / devOf(w.def) * 100;
-    const defOcc = occ(w.def, w.att) / devOf(w.att) * 100;
-    const months = (s.day - w.start) / 30;
-    w.score = clamp(Math.round(attOcc * 0.9 - defOcc * 0.9 + (w.battleScore || 0) + (w.cb === 'conquest' ? 0 : 0) - (months > 24 ? (months - 24) * 0.2 * Math.sign(attOcc - defOcc - 0.0001) * 0 : 0)), -100, 100);
-    w.attOcc = attOcc; w.defOcc = defOcc;
-  },
-
   // Peace: demands made by `side` ('att' or 'def') of the other side.
   demandCost(w, side, d) {
     const s = this.s;
@@ -490,7 +473,8 @@ export const DiplomacyMixin = {
       const pr = s.prov[d.p];
       const capital = s.nations[pr.owner].capital === d.p;
       const claimed = pr.claims.includes(d.to);
-      return Math.round((pr.dev / tot * 90 + 3 + (capital ? 10 : 0)) * (claimed ? 0.7 : 1) * (w.cb === 'conquest' ? 1.2 : 1));
+      const goal = this.isWarGoal(w, side, d.p);
+      return Math.round((pr.dev / tot * 90 + 3 + (capital ? 10 : 0)) * (claimed ? 0.7 : 1) * (w.cb === 'conquest' ? 1.2 : 1) * (w.goals ? (goal ? 0.7 : 1.3) : 1));
     }
     if (d.type === 'gold') return Math.round(d.v / 8);
     if (d.type === 'vassal') return Math.round(55 + this.ownedProvinces(d.target).length * 1.2);
@@ -526,7 +510,7 @@ export const DiplomacyMixin = {
         this.setOwner(d.p, d.to ?? wl);
         for (const o of s.nations) if (o.alive && o.id !== (d.to ?? wl)) {
           const near = this.map.provinces[d.p].adj.some((e) => e.id < this.L && s.prov[e.id].owner === o.id);
-          if (near) o.ae[d.to ?? wl] = (o.ae[d.to ?? wl] || 0) + s.prov[d.p].dev * 1.5 * (CB_TYPES[w.cb]?.ae || 1);
+          if (near) o.ae[d.to ?? wl] = (o.ae[d.to ?? wl] || 0) + s.prov[d.p].dev * 1.5 * (CB_TYPES[w.cb]?.ae || 1) * (this.isWarGoal(w, side, d.p) ? 0.6 : 1.4);
         }
       } else if (d.type === 'gold') {
         const ln = s.nations[side === 'att' ? w.defLeader : w.attLeader];

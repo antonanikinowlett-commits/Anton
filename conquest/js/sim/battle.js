@@ -67,6 +67,8 @@ export const BattleMixin = {
     b[side].push(a.id); a.battle = b.id; a.path = []; a.prog = 0;
     b.startMen[side] += this.armyMen(a);
     for (const x of sideArmiesOf(this, b, side)) for (const r of x.regs) if (!r.routed) r.morale = Math.min(1, r.morale + 0.06);
+    const first = sideArmies(side)[0];
+    if (side === 'att' && !b.pincer && b.round <= 6 && first && first !== a && a.lastFrom !== undefined && first.lastFrom !== undefined && a.lastFrom !== first.lastFrom) { b.pincer = true; this.blog(b, `${a.name} strikes from a different road: the defenders are caught in a pincer!`); }
     this.checkFriction(b, side);
     this.blog(b, `${a.name} arrives to reinforce ${this.sideName(b, side)}!`);
   },
@@ -199,6 +201,7 @@ export const BattleMixin = {
       const ent = Math.max(...armies.map((a) => a.entrench || 0), 0);
       M.def += Math.min(0.15, ent * 0.01);
     }
+    if (b.pincer) { if (side === 'att') { M.atk += 0.06; M.flank += 0.1; } else M.moraleTaken += 0.08; }
     if (b.weather === 'rain') { M.ranged -= 0.3; M.charge -= 0.25; }
     if (b.friction && b.friction[side]) { M.atk -= 0.05; M.moraleTaken += 0.05; }
     if (b.naval) { M.charge -= 0.8; M.flank -= 0.3; M.ranged += 0.15; M.casualtiesTaken += 0.1; } // decks: no charges, grappling and missiles
@@ -338,6 +341,7 @@ export const BattleMixin = {
 
   battleRound(b) {
     b.round++;
+    if (this.checkRetreatOrders(b)) return;
     b.fx = [];
     // phase transitions
     const prevPhase = b.phase;
@@ -364,7 +368,7 @@ export const BattleMixin = {
       const c = cls(type);
       return (tc[c] || 1) * (1 + (c === 'cav' ? M.cav : c === 'rng' ? M.rng : c === 'inf' ? M.inf : 0));
     };
-    const xpF = (r) => 1 + (r.xp || 0) * 0.25;
+    const xpF = (r) => 1 + (r.xp || 0) * 0.35;
     const morF = (r) => 0.55 + 0.45 * Math.max(0, r.morale);
     // ── missile fire
     const volley = (side, M, EM, shooters, targets, f) => {
@@ -461,6 +465,7 @@ export const BattleMixin = {
       }
     }
     b.cas.att += casA; b.cas.def += casD;
+    if (b.attN >= 0 && b.defN >= 0) { const bw = this.warBetween(b.attN, b.defN); if (bw) { bw.cas ||= { att: 0, def: 0 }; const aSide = bw.att.includes(b.attN) ? 'att' : 'def'; bw.cas[aSide] += casA; bw.cas[aSide === 'att' ? 'def' : 'att'] += casD; } }
     b.hist.push({ r: b.round, a: this.sideMen(b, 'att', true), d: this.sideMen(b, 'def', true), ma: this.sideMorale(b, 'att'), md: this.sideMorale(b, 'def') });
     if (b.hist.length > 60) b.hist.shift();
     // ── resolution

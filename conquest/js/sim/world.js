@@ -12,6 +12,7 @@ export const WorldMixin = {
   initWorld() {
     const s = this.s;
     s.news ||= []; s.dynEvents ||= {}; s.coalitions ||= [];
+    for (const w of Object.values(s.wars)) if (!w.goals) this.pickWarGoals(w);
     for (const n of s.nations) n.world ||= { lastUltimatum: -9999, ultimatums: 0, lastProposal: -9999, coalCool: -9999 };
   },
   // ── news feed

@@ -24,6 +24,7 @@ import { ProjectsMixin } from './projects.js';
 import { ExplainMixin } from './explain.js';
 import { ProvincesMixin } from './provinces.js';
 import { WorldMixin } from './world.js';
+import { WarPlanMixin } from './warplan.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
 
@@ -242,6 +243,7 @@ export class Game {
     s.day++;
     this.dailyArmies();
     this.dailyFronts();
+    this.dailyOrders();
     this.dailyBattles();
     this.dailySieges();
     this.dailyConstruction();
@@ -323,4 +325,4 @@ export class Game {
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, WorldMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, WorldMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, WarPlanMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

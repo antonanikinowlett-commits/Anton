@@ -488,6 +488,7 @@ export const MilitaryMixin = {
       // reinforcement from manpower in friendly territory
       if (own && n && r.men < r.max && n.manpower > 0) {
         const add = Math.min(r.max - r.men, r.max * 0.03, n.manpower);
+        if (add > 0 && r.xp) r.xp *= r.men / (r.men + add * 0.6); // fresh recruits dilute a veteran regiment
         r.men += add; n.manpower -= add;
       }
     }
