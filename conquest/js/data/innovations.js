@@ -7,6 +7,8 @@
 //   excl (ids that can no longer be learned once this one is known),
 //   unlock (unit key), bld (building key it unlocks), law (law key it unlocks), note (extra rule text).
 // Everything that matters in play is in `mods`/`unlock`/`bld`/`law`, so UIs can render it with innovEffects().
+import { UNITS } from './units.js';
+import { BUILDINGS } from './buildings.js';
 export const BRANCHES = {
   military: { name: 'Military', icon: '⚔', blurb: 'Weapons, drill and fortification.' },
   civic: { name: 'Civic', icon: '📜', blurb: 'Law, learning and finance.' },
@@ -56,16 +58,16 @@ export const INNOVATIONS = [
   I('trebuchet_counter', 'Counterweight Trebuchet', '⚙', 'military', 0, 1200, 210, [], { siege: 0.3, supply: -0.03 }, 'Heavier stones, longer range, a baggage train to match. Unlocks Trebuchets.', { unlock: 'trebuchet', excl: ['castle_concentric'] }),
   // era 1 forks
   I('longbow_mass', 'Massed Longbow', '🎯', 'military', 1, 1270, 430, ['crossbow_guilds'], { rangedAtk: 0.14, infDef: -0.03 }, 'Disciplined archery in volleys. English and Welsh archers gain the longbow unit.', { unlock: 'longbowmen', excl: ['pavise'] }),
-  I('pavise', 'Pavise Shields', '🛡', 'military', 1, 1250, 380, ['crossbow_guilds'], { rangedAtk: 0.05, infDef: 0.06, fortDefense: 0.05 }, 'Large shields to shelter crossbowmen behind a wall of wood: slower to kill, slower to win.', { excl: ['longbow_mass'] }),
+  I('pavise', 'Pavise Shields', '🛡', 'military', 1, 1250, 380, ['crossbow_guilds'], { rangedAtk: 0.05, infDef: 0.06, fortDefense: 0.05 }, 'Large shields to shelter crossbowmen behind a wall of wood: slower to kill, slower to win.', { excl: ['longbow_mass'], unlock: 'arbalest' }),
   I('plate_cuirass', 'Plate Cuirass', '🛡', 'military', 1, 1290, 470, ['mail_hauberk'], { cavAtk: 0.06, infDef: 0.07, upkeepMult: 0.06 }, 'Plates over mail for those who can afford them.', { excl: ['pike_schiltron'] }),
   I('pike_schiltron', 'Schiltron Drill', '🔱', 'military', 1, 1280, 400, ['mail_hauberk'], { infDef: 0.1, upkeepMult: -0.04, cavAtk: -0.03 }, 'Dense spear hedgehogs repel cavalry and cost nothing to feed.', { excl: ['plate_cuirass'] }),
   I('standing_retinue', 'Paid Retinues', '💰', 'military', 1, 1270, 460, ['castle_concentric'], { discipline: 0.04, trainSpeed: 0.15, upkeepMult: 0.08, manpowerMult: -0.06 }, 'Indentured captains and wages instead of feudal service: better soldiers, fewer of them, all of them paid.', { excl: ['arriere_ban'] }),
   I('arriere_ban', 'Arrière-Ban', '📯', 'military', 1, 1260, 380, [], { manpowerMult: 0.12, discipline: -0.03, upkeepMult: -0.05, manpowerRegen: 0.1 }, 'The general summons of every able man: vast, cheap, ill-drilled hosts.', { excl: ['standing_retinue'] }),
   I('sapper_corps', 'Sapper Corps', '⛏', 'military', 1, 1280, 350, ['trebuchet_counter'], { siege: 0.25, supply: 0.05 }, 'Miners and engineers follow the army. Unlocks the Siege Workshop.', { bld: 'siegeworks' }),
   // era 2 forks
-  I('full_plate', 'Full Plate Harness', '♞', 'military', 2, 1350, 760, ['plate_cuirass'], { cavAtk: 0.1, infDef: 0.08, upkeepMult: 0.08, cavCost: 0.1 }, 'Articulated steel from head to toe, at the price of a manor.', { excl: ['halberd_drill'] }),
-  I('halberd_drill', 'Halberd Drill', '🪓', 'military', 2, 1380, 700, ['pike_schiltron'], { infAtk: 0.12, infDef: 0.04, cavCost: 0.05 }, 'Swiss-style polearm blocks that can attack as well as hold.', { excl: ['full_plate'] }),
-  I('bombard', 'Bombards', '💥', 'military', 2, 1340, 800, ['sapper_corps'], { siege: 0.6, upkeepMult: 0.05, fortDefense: -0.05 }, 'Gunpowder arrives at the siege: walls fall faster, treasuries empty faster.', { excl: ['star_forts'] }),
+  I('full_plate', 'Full Plate Harness', '♞', 'military', 2, 1350, 760, ['plate_cuirass'], { cavAtk: 0.1, infDef: 0.08, upkeepMult: 0.08, cavCost: 0.1 }, 'Articulated steel from head to toe, at the price of a manor.', { excl: ['halberd_drill'], unlock: 'heavy_knights' }),
+  I('halberd_drill', 'Halberd Drill', '🪓', 'military', 2, 1380, 700, ['pike_schiltron'], { infAtk: 0.12, infDef: 0.04, cavCost: 0.05 }, 'Swiss-style polearm blocks that can attack as well as hold.', { excl: ['full_plate'], unlock: 'halberdiers' }),
+  I('bombard', 'Bombards', '💥', 'military', 2, 1340, 800, ['sapper_corps'], { siege: 0.6, upkeepMult: 0.05, fortDefense: -0.05 }, 'Gunpowder arrives at the siege: walls fall faster, treasuries empty faster.', { excl: ['star_forts'], unlock: 'bombard' }),
   I('star_forts', 'Bastioned Walls', '🏯', 'military', 2, 1400, 820, ['castle_concentric'], { fortDefense: 0.25, buildCost: 0.06, siege: -0.05 }, 'Low thick walls laughing at cannon. Expensive to raise.', { excl: ['bombard'] }),
   I('mercenary_cond', 'Condottieri', '⚔', 'military', 2, 1330, 700, ['standing_retinue'], { discipline: 0.05, armyMorale: 0.05, recruitCost: -0.15, upkeepMult: 0.1 }, 'Free companies selling their swords: raise armies in a week, pay for them forever.', { excl: ['town_militias'] }),
   I('town_militias', 'Town Militias', '🔔', 'military', 2, 1320, 640, [], { manpowerMult: 0.12, defenseHome: 0.08, armyMorale: 0.03, discipline: -0.02 }, 'Every burgher drills on Sunday and answers the bell.', { excl: ['mercenary_cond'] }),
@@ -138,7 +140,7 @@ export const INNOV = Object.fromEntries(INNOVATIONS.map((i) => [i.id, i]));
 // Every effect of an innovation as UI-ready lines: [{ text, good, kind }]
 export function innovEffects(i) {
   const out = modLines(i.mods).map((l) => ({ ...l, kind: 'mod' }));
-  if (i.unlock) out.push({ text: `Unlocks: ${i.unlock === 'roman_law' ? 'Roman Law' : i.unlock}`, good: true, kind: 'unlock' });
-  if (i.bld) out.push({ text: `Unlocks building: ${i.bld}`, good: true, kind: 'building' });
+  if (i.unlock) out.push({ text: `Unlocks: ${i.unlock === 'roman_law' ? 'Roman Law' : UNITS[i.unlock]?.name || i.unlock}`, good: true, kind: 'unlock' });
+  if (i.bld) out.push({ text: `Unlocks building: ${BUILDINGS[i.bld]?.name || i.bld}`, good: true, kind: 'building' });
   return out;
 }

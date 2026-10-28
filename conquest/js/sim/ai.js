@@ -667,10 +667,11 @@ export const AIMixin = {
     const rich = n.iron > 20;
     add(can('varangians') ? 'varangians' : can('almogavars') ? 'almogavars' : rich ? 'men_at_arms' : 'levy_spear', 3);
     add('levy_spear', 3);
-    add('pikemen', cavHeavy ? 3 : 1);
-    add(can('longbowmen') ? 'longbowmen' : can('crossbowmen') && rich ? 'crossbowmen' : 'archers', 3);
+    add(can('halberdiers') ? 'halberdiers' : 'pikemen', cavHeavy ? 3 : 1);
+    add(can('longbowmen') ? 'longbowmen' : can('arbalest') && rich ? 'arbalest' : can('crossbowmen') && rich ? 'crossbowmen' : 'archers', 3);
+    if (can('bombard') && n.iron > 25 && n.timber > 20) add('bombard', 1);
     if (can('horse_archers')) add('horse_archers', 3);
-    if (n.horses > 8) add(can('mamluks') ? 'mamluks' : can('templars') ? 'templars' : 'knights', 2);
+    if (n.horses > 8) add(can('heavy_knights') && n.iron > 30 ? 'heavy_knights' : can('mamluks') ? 'mamluks' : can('templars') ? 'templars' : 'knights', 2);
     else add('light_cav', 1);
     if (this.atWar(n.id) && n.gold > 250) add('free_company', 2); // rich realms at war hire mercenaries
     const doctrine = regs.longbowmen || regs.horse_archers ? 'missile' : cavHeavy ? 'defensive' : regs.knights || regs.mamluks || regs.templars ? 'shock' : 'balanced';

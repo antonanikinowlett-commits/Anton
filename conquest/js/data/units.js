@@ -29,6 +29,15 @@ export const UNITS = {
     desc: 'Frontier light infantry of the Reconquista: javelins, short sword and no armour, superb in rough country.', req: { cultures: ['catalan', 'castilian', 'portuguese', 'basque'], unlock: 'almogavars' } },
   templars: { name: 'Military Order Knights', icon: '✠', cls: 'cav', men: 500, atk: 3.2, def: 2.6, armor: 0.8, morale: 1.6, charge: 3.6, anti: 0.6, ranged: 0, pursuit: 1.0, screen: 0.8, speed: 26, cost: { gold: 38, iron: 4, horses: 2 }, upkeep: 0.7, days: 140,
     desc: 'Templars, Hospitallers and Santiago knights: warrior-monks sworn never to retreat unless outnumbered three to one.', req: { religions: ['catholic'], unlock: 'templars' } },
+  // Unlocked by innovations (see data/innovations.js): the late-medieval answer to what came before.
+  halberdiers: { name: 'Halberdiers', icon: '🪓', cls: 'inf', men: 1000, atk: 2.7, def: 1.9, armor: 0.45, morale: 1.05, charge: 0.3, anti: 1.9, ranged: 0, pursuit: 0.5, screen: 0.7, speed: 20, cost: { gold: 18, iron: 3 }, upkeep: 0.32, days: 70,
+    desc: 'Swiss-style polearm blocks: they hold against horse and still hit hard. Replace pikes in any serious host.', req: { unlock: 'halberdiers' } },
+  heavy_knights: { name: 'Plate Knights', icon: '♞', cls: 'cav', men: 500, atk: 3.6, def: 3.0, armor: 1.0, morale: 1.4, charge: 4.3, anti: 0.6, ranged: 0, pursuit: 1.2, screen: 0.8, speed: 26, cost: { gold: 50, iron: 6, horses: 3 }, upkeep: 0.95, days: 150,
+    desc: 'Full-plate lancers: the finest shock troops in Christendom, and the dearest to keep.', req: { unlock: 'heavy_knights' } },
+  arbalest: { name: 'Pavise Crossbowmen', icon: '➶', cls: 'rng', men: 1000, atk: 0.9, def: 1.5, armor: 0.4, morale: 0.95, charge: 0, anti: 0.9, ranged: 2.6, pierce: 0.9, pursuit: 0.2, screen: 0.5, speed: 17, cost: { gold: 17, iron: 2, timber: 2 }, upkeep: 0.26, days: 65,
+    desc: 'Heavy crossbows behind a wall of pavises: slow to move, hard to dislodge, terrible to face.', req: { unlock: 'arbalest' } },
+  bombard: { name: 'Bombards', icon: '💥', cls: 'siege', men: 300, atk: 0.2, def: 0.2, armor: 0, morale: 0.6, charge: 0, anti: 0, ranged: 0.8, pursuit: 0, screen: 0, siege: 5.5, speed: 8, cost: { gold: 45, timber: 8, iron: 5 }, upkeep: 0.5, days: 120,
+    desc: 'Iron barrels hurling stone balls. Walls that held for years fall in weeks, but the guns crawl and cost a fortune.', req: { unlock: 'bombard' } },
   // Ships: fleets are ordinary armies made of these regiments. cls stays 'inf' so every roster/battle
   // path keeps working; `ship: true` marks sea units. Recruited only in a coastal province with a Harbour.
   cog: { name: 'Cogs', icon: '⛵', cls: 'inf', ship: true, men: 500, atk: 0.8, def: 1.6, armor: 0.2, morale: 0.8, charge: 0, anti: 0, ranged: 0.5, pursuit: 0.1, screen: 0.5, speed: 28, cost: { gold: 14, timber: 6 }, upkeep: 0.18, days: 60,
@@ -51,7 +60,7 @@ export const UNITS = {
     desc: 'Counterweight engines hurling 100 kg stones. Stone curtain walls finally had an answer.', req: { unlock: 'trebuchet', default: true } },
 };
 
-export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'light_cav', 'horse_archers', 'knights', 'mamluks', 'templars', 'free_company', 'merc_crossbowmen', 'mangonel', 'ram', 'siege_tower', 'trebuchet', 'cog', 'galley', 'longship'];
+export const UNIT_ORDER = ['levy_spear', 'men_at_arms', 'pikemen', 'halberdiers', 'varangians', 'almogavars', 'archers', 'longbowmen', 'crossbowmen', 'arbalest', 'light_cav', 'horse_archers', 'knights', 'heavy_knights', 'mamluks', 'templars', 'free_company', 'merc_crossbowmen', 'mangonel', 'ram', 'siege_tower', 'trebuchet', 'bombard', 'cog', 'galley', 'longship'];
 
 // Terrain multipliers on unit class effectiveness (attack/defence). Cavalry hates broken ground.
 export const TERRAIN_COMBAT = {
@@ -90,6 +99,6 @@ export function unitReqText(type) {
   if (r.govs) p.push(r.govs.join('/').replace(/_/g, ' '));
   if (r.tags) p.push('realm ' + r.tags.join('/'));
   if (r.religions && type !== 'templars') p.push(r.religions.join('/'));
-  p.push('or a national focus');
+  p.push(r.unlock === 'halberdiers' || r.unlock === 'heavy_knights' || r.unlock === 'arbalest' || r.unlock === 'bombard' ? 'the matching innovation' : 'or a national focus');
   return 'Requires ' + p.join(', or ');
 }

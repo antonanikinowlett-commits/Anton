@@ -164,11 +164,11 @@ export const ProgressionMixin = {
         else if (['researchSpeed', 'devGrowth'].includes(k)) w = 55;
         else w = 20;
         const kind = MOD_INFO[k]?.[1];
-        v += x * (kind === 'flat' ? 0.04 : kind === 'month' ? 3 : 1) * dir * w;
+        v += x * (kind === 'flat' ? 0.025 : kind === 'month' ? 2.5 : 1) * dir * (k === 'papalOpinion' ? 0 : w);
       }
       const lean = (0.7 + h(n.id, i.branch.length * 7 + i.branch.charCodeAt(0)) * 0.8) * (gl[i.branch] || 1) * (i.branch === 'sea' ? 0.5 + coastal : 1);
       const kb = INNOVATIONS.reduce((t, x) => t + (x.branch === i.branch && n.prog.known.includes(x.id) ? 1 : 0), 0);
-      const sc = v * lean * 5 / (1 + 0.25 * kb) - this.innovCost(n.id, i.id) * 0.03 + (h(n.id, i.id.length * 131 + i.id.charCodeAt(2)) - 0.5) * 12;
+      const sc = v * lean * 5 / (1 + 0.25 * kb) - this.innovCost(n.id, i.id) * 0.03 + (h(n.id, i.id.length * 131 + i.id.charCodeAt(2)) - 0.5) * 24;
       if (sc > bs) { bs = sc; best = i.id; }
     }
     if (best) n.prog.cur = best;
