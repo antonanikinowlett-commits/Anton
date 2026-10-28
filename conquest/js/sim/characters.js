@@ -117,7 +117,7 @@ export const CharactersMixin = {
     if (n.heir === c.id) n.heir = null;
     if (n.id === s.player && ['ruler', 'heir', 'general', 'minister'].includes(c.role)) {
       this.log(`${this.charName(c)} ${why}.`, { nation: n.id, type: 'court' });
-    }
+    } else if (c.role === 'ruler') this.log(`${this.rulerTitle(n)} ${this.charName(c)} of the ${n.name} ${why}.`, { nation: n.id, type: 'court' });
     this.recalcMods(n.id);
   },
   succession(n) {
