@@ -527,6 +527,7 @@ export const DiplomacyMixin = {
     }
     for (const x of [...winners, ...losers]) { const n = s.nations[x]; if (n) n.warExhaustion = Math.max(0, n.warExhaustion - 3); }
     s.nations[wl].prestige += 10;
+    { const ws = s.nations[wl].stats; ws.warsWon = (ws.warsWon || 0) + (demands.length || w.score * (side === 'att' ? 1 : -1) >= 10 ? 1 : 0); }
     const txt = demands.length ? demands.map((d) => (d.type === 'province' ? this.provName(d.p) : d.type === 'gold' ? `${d.v} gold` : d.type === 'vassal' ? 'vassalage' : 'humiliation')).join(', ') : 'white peace';
     this.log(`Peace: the ${w.name} ends. Terms: ${txt}.`, { nation: wl, type: 'diplo', important: [...winners, ...losers].includes(s.player) });
     this.endWar(w);

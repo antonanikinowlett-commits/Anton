@@ -97,7 +97,11 @@ export const WorldMixin = {
   monthlyUltimatums(p) {
     const s = this.s, w = p.world, hard = s.difficulty === 'hard';
     const gap = (hard ? 12 : 22) * 30;
-    if (s.day < (hard ? 100 : 160) || s.day - w.lastUltimatum < gap || this.atWar(p.id) || p.overlord >= 0) return;
+    if (!w.warned && s.day >= (hard ? 40 : 60) && !this.atWar(p.id)) {
+      const t0 = this.threats(p.id).find((t) => t.truceDays === 0 && t.ratio >= (hard ? 0.8 : 1.0));
+      if (t0) { w.warned = s.day; const X0 = s.nations[t0.nation]; this.notify({ title: 'A shadow on the border', icon: '🛡', text: `${X0.name} commands ${Math.round(t0.ratio * 100)}% of our strength${t0.cbs.length ? ' and holds a casus belli against us' : ''}. Expect demands within months: raise levies, seek allies, or fortify.` }); this.pushNews(`${X0.name} eyes ${p.name}.`, { type: 'diplo', nation: p.id }); }
+    }
+    if (s.day < (hard ? 100 : 130) || s.day - w.lastUltimatum < gap || this.atWar(p.id) || p.overlord >= 0) return;
     const first = w.ultimatums === 0;
     if (!first && this.rng() > (hard ? 0.4 : 0.22)) return;
     const myPow = this.power(p.id);

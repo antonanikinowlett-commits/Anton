@@ -62,7 +62,7 @@ export const AIMixin = {
       if (tree.length) {
         const war = this.atWar(n.id);
         tree.sort((a, b) => (war && a.x >= 4 && a.x <= 10 ? -1 : 0) - (war && b.x >= 4 && b.x <= 10 ? -1 : 0) || a.y - b.y || this.rng() - 0.5);
-        this.startFocus(n.id, tree[0].id);
+        for (const f of tree) if (!this.startFocus(n.id, f.id)) break;
       }
     }
     // laws (rarely)

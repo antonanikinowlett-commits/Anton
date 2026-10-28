@@ -146,6 +146,23 @@ function renderPapacy(ui, pb, g, n) {
   if (P.history.length) pb.append(H('<div class="section">Past holy wars</div>' + P.history.slice().reverse().map((h) => `<div class="small muted">${Math.floor(h.call / 365) + 1200}–${Math.floor(h.end / 365) + 1200}: ${h.kind === 'jihad' ? 'Jihad' : 'Crusade'} vs ${h.target} (${h.members.join(', ') || 'no participants'})</div>`).join('')));
 }
 
+function renderObjectives(ui, pb, g, n) {
+  const list = g.objectives(n.id);
+  const done = list.filter((o) => o.done), active = list.filter((o) => o.active), locked = list.filter((o) => o.locked);
+  const thr = g.threats(n.id).filter((t) => t.level >= 0.6).slice(0, 2), opp = g.opportunities(n.id).filter((o) => o.kind === 'war' || o.kind === 'alliance').slice(0, 3);
+  if (thr.length) pb.append(H('<div class="section">Threats</div>' + thr.map((t) => `<div class="small neg">⚠ ${g.s.nations[t.nation].name}: ${t.why.join(', ') || 'hostile'}</div>`).join('')));
+  if (opp.length) pb.append(H('<div class="section">Opportunities</div>' + opp.map((o) => `<div class="small pos">✦ ${o.text}</div>`).join('')));
+  pb.append(H(`<div class="muted small">Objectives guide the realm's first decades and pay real rewards. ${done.length} of ${list.length} complete.</div>`));
+  for (const o of active) {
+    const card = el('div', { class: 'card hl objective', style: { marginTop: '6px', cursor: o.tab ? 'pointer' : 'default' }, onclick: () => { if (o.tab) ui.openTab(o.tab); } });
+    card.innerHTML = ico(`<b>${sic(o.icon, 'star')} ${o.title}</b> <span class="muted small">${Math.min(o.value, o.goal)} / ${o.goal}</span><div class="small">${o.desc}</div><div class="small pos">Reward: ${o.rewardText}</div>`) + barHTML(o.value / o.goal, 'green');
+    pb.append(card);
+  }
+  if (!active.length && !done.length) pb.append(H('<p class="muted">No objectives yet.</p>'));
+  if (locked.length) pb.append(H(`<div class="section">Later</div>` + locked.map((o) => `<div class="small muted">🔒 ${o.title}</div>`).join('')));
+  if (done.length) pb.append(H(`<div class="section">Complete</div>` + done.map((o) => `<div class="small"><span class="pos">✔</span> ${o.title} <span class="muted">(${o.rewardText})</span></div>`).join('')));
+}
+
 function renderAchievements(ui, pb, g, n) {
   const p = n.prog;
   const hist = p.score.length ? p.score.map(([yr, v]) => `${yr}: ${v}`).join(' · ') : 'recorded every 5 years';
@@ -160,10 +177,10 @@ function renderAchievements(ui, pb, g, n) {
 registerPanel({ id: 'progress', icon: '📚', name: 'Progress', key: 'i', order: 55, wide: true, render(ui, pb) {
   const g = ui.g, n = ui.P;
   if (!n.prog) g._initProgFor(n);
-  const [tabs, cur] = subtabs(ui, 'progress', [['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['dec', 'Decisions'], ['pap', 'Papacy & Holy War'], ['ach', 'Achievements & Score']]);
+  const [tabs, cur] = subtabs(ui, 'progress', [['obj', 'Objectives'], ['innov', 'Innovations'], ['rank', 'Realm Rank'], ['amb', 'Ambitions'], ['dec', 'Decisions'], ['pap', 'Papacy & Holy War'], ['ach', 'Achievements & Score']]);
   pb.style.padding = '8px';
   pb.append(tabs);
-  ({ innov: renderInnovations, rank: renderRank, amb: renderAmbitions, dec: renderDecisions, pap: renderPapacy, ach: renderAchievements })[cur](ui, pb, g, n);
+  ({ obj: renderObjectives, innov: renderInnovations, rank: renderRank, amb: renderAmbitions, dec: renderDecisions, pap: renderPapacy, ach: renderAchievements })[cur](ui, pb, g, n);
 } });
 
 // End-of-game summary (the age ends in 1453). Shown once per session by AlertsMixin.updateAlerts.

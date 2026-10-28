@@ -49,7 +49,7 @@ registerPanel({ id: 'focus', icon: '🎯', name: 'National Focus', key: 'f', ord
   if (f) {
     const st = g.focusStatus(n.id, f);
     const d = el('div', { class: 'card' });
-    d.innerHTML = `<div style="font-size:42px;text-align:center">${f.icon}</div><div class="pname" style="text-align:center;font-size:17px">${f.name}</div><div class="small muted" style="text-align:center">${f.days} days · ${st}</div>
+    d.innerHTML = `<div style="font-size:42px;text-align:center">${f.icon}</div><div class="pname" style="text-align:center;font-size:17px">${f.name}</div><div class="small muted" style="text-align:center">${f.days} days · ${f.cost} gold · ${st}</div>
       <p class="small" style="font-style:italic">${f.desc || ''}</p><div class="section">Effects</div><div class="small">${g.describeEffects(f.effects).map((x) => '• ' + x).join('<br>')}</div>
       ${f.pre.length ? `<div class="section">Requires</div><div class="small">${f.pre.map((grp) => grp.map((x) => `<span class="${n.focus.done.includes(x) ? 'pos' : 'neg'}">${byId[x]?.name || x}</span>`).join(' or ')).join('<br>and ')}</div>` : ''}
       ${f.excl.length ? `<div class="section">Mutually exclusive with</div><div class="small neg">${f.excl.map((x) => byId[x]?.name || x).join(', ')}</div>` : ''}

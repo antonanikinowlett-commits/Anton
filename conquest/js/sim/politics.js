@@ -217,11 +217,18 @@ export const PoliticsMixin = {
     const st = this.focusStatus(nid, f);
     if (st !== 'available') return st === 'locked' ? 'Prerequisites not met' : st === 'excluded' ? 'Mutually exclusive with a chosen focus' : 'Not available';
     if (n.focus.cur) return 'Already pursuing a focus';
+    if ((f.cost || 0) > n.gold) return `Need ${f.cost} gold`;
+    n.gold -= f.cost || 0; this.bump(nid, 'gold', -(f.cost || 0), `Focus: ${f.name}`);
     n.focus.cur = fid; n.focus.prog = 0;
     this.emit('focus');
     return null;
   },
-  cancelFocus(nid) { const n = this.s.nations[nid]; n.focus.cur = null; n.focus.prog = 0; this.emit('focus'); },
+  cancelFocus(nid) {
+    const n = this.s.nations[nid];
+    const f = n.focus.cur && this.focusTree(nid).find((x) => x.id === n.focus.cur);
+    if (f && n.focus.prog < f.days * 0.25) n.gold += Math.round((f.cost || 0) / 2); // an early change of mind recovers half
+    n.focus.cur = null; n.focus.prog = 0; this.emit('focus');
+  },
   completeFocus(nid, f) {
     const n = this.s.nations[nid];
     n.focus.done.push(f.id); n.focus.cur = null; n.focus.prog = 0;
@@ -470,7 +477,7 @@ export const PoliticsMixin = {
     if (!q) return;
     const ev = this.eventDef(q.id);
     if (ev && ev.options && ev.options[idx]) this.applyEffects(s.player, ev.options[idx].effects, 'event:' + (ev.id || q.id));
-    if (s.dynEvents?.[q.id]) delete s.dynEvents[q.id];
+    if (s.dynEvents?.[q.id]) { delete s.dynEvents[q.id]; const w = (s.nations[s.player].world ||= {}); w.answered = (w.answered || 0) + 1; }
     this.emit('event');
   },
 };

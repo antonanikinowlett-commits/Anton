@@ -11,6 +11,7 @@ export const AlertsMixin = {
     const myBattles = Object.values(s.battles).filter((b) => !b.over && (b.attN === n.id || b.defN === n.id || b.att.concat(b.def).some((i) => s.armies[i]?.nation === n.id)));
     if (myBattles.length) A.push(['battle', '⚔', `${myBattles.length} battle(s) raging — click to watch`, () => this.battleViewer.open(myBattles[0].id), true, myBattles.length]);
     if (s.eventQueue.length) A.push(['event', '📜', 'An event awaits your decision', () => this.showEvent(), true, s.eventQueue.length]);
+    { const act = g.objectives(n.id).filter((o) => o.active); if (act.length && s.day > 20) A.push(['objective', '🎯', `Objective: ${act[0].title}`, () => { this.subtab.progress = 'obj'; this.openTab('progress'); }, false]); }
     if (s.peaceOffers?.length) A.push(['peace', '🕊', 'Peace offer received', () => this.openTab('wars'), true, s.peaceOffers.length]);
     if (!n.focus.cur && g.focusTree(n.id).some((f) => g.focusStatus(n.id, f) === 'available')) A.push(['focus', '🎯', 'A national focus is available', () => this.openTab('focus'), false]);
     if (n.prog && !n.prog.cur && s.day > 30 && g.hasResearchOptions(n.id)) A.push(['research', '📚', 'Nothing is being researched — choose an innovation', () => this.openTab('progress'), false]);
