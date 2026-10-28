@@ -78,6 +78,7 @@ export const AIMixin = {
     this.aiFronts(n);
     // economy
     this.aiBuild(n);
+    this.aiStances(n);
     this.aiRecruit(n);
     this.aiFleet(n);
     this.aiSeaInvasion(n);

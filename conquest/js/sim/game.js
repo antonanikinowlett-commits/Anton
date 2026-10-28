@@ -21,6 +21,8 @@ import { ReligionMixin } from './religion.js';
 import { TradeSimMixin } from './trade_sim.js';
 import { VassalsMixin } from './vassals.js';
 import { ProjectsMixin } from './projects.js';
+import { ExplainMixin } from './explain.js';
+import { ProvincesMixin } from './provinces.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
 
@@ -190,32 +192,36 @@ export class Game {
   }
 
   // ── modifiers
-  recalcMods(nid) {
+  // trace: optional array; every contribution is pushed as [label, mods, factor] (used by modSources / explain)
+  recalcMods(nid, trace) {
     const n = this.s.nations[nid];
     const M = {};
-    const add = (mods, f = 1) => { if (mods) for (const [k, v] of Object.entries(mods)) M[k] = (M[k] || 0) + v * f; };
-    for (const [cat, opt] of Object.entries(n.laws)) add(LAWS[cat]?.options[opt]?.mods);
-    for (const m of n.mods) if (!m.until || m.until > this.s.day) add(m.mods);
-    add(milDoctrineMods(n));
+    const add = (mods, f = 1, label) => { if (mods) { for (const [k, v] of Object.entries(mods)) M[k] = (M[k] || 0) + v * f; if (trace) trace.push([label || 'Other', mods, f]); } };
+    for (const [cat, opt] of Object.entries(n.laws)) add(LAWS[cat]?.options[opt]?.mods, 1, `Law: ${LAWS[cat]?.options[opt]?.name}`);
+    for (const m of n.mods) if (!m.until || m.until > this.s.day) add(m.mods, 1, this.modSrcLabel(m.src));
+    add(milDoctrineMods(n), 1, 'Military doctrine');
+    if (n.bmods) add(n.bmods.mods, 1, 'Buildings');
     const ruler = this.s.chars[n.ruler];
-    if (ruler) for (const t of ruler.traits) add(TRAITS[t].mods);
+    if (ruler) for (const t of ruler.traits) add(TRAITS[t].mods, 1, `Ruler trait: ${TRAITS[t].name || t}`);
     for (const role of COUNCIL_ROLES) {
       const c = this.s.chars[n.council[role]];
-      if (!c) { M.stabilityMonthly = (M.stabilityMonthly || 0) - 0.01; continue; }
+      if (!c) { add({ stabilityMonthly: -0.01 }, 1, `Vacant office: ${role}`); continue; }
       const sk = c.skills[ROLE_INFO[role].skill] + (ruler && role === 'chancellor' ? 0 : 0);
-      if (role === 'chancellor') add({ diplo: sk, aeDecay: sk * 0.02, claimSpeed: sk * 0.03 });
-      if (role === 'marshal') add({ discipline: sk * 0.004, manpowerMult: sk * 0.01, trainSpeed: sk * 0.02 });
-      if (role === 'steward') add({ taxMult: sk * 0.01, buildSpeed: sk * 0.02 });
-      if (role === 'spymaster') add({ unrest: -sk * 0.15, claimSpeed: sk * 0.02 });
-      if (role === 'chaplain') add({ legitimacyMonthly: sk * 0.006, clergyLoyalty: sk * 0.4, focusSpeed: sk * 0.01 });
-      for (const t of c.traits) if (TRAITS[t].mods) add(TRAITS[t].mods, 0.5);
+      const rl = `${ROLE_INFO[role] ? role[0].toUpperCase() + role.slice(1) : role} ${this.charName(c)} (skill ${sk})`;
+      if (role === 'chancellor') add({ diplo: sk, aeDecay: sk * 0.02, claimSpeed: sk * 0.03 }, 1, rl);
+      if (role === 'marshal') add({ discipline: sk * 0.004, manpowerMult: sk * 0.01, trainSpeed: sk * 0.02 }, 1, rl);
+      if (role === 'steward') add({ taxMult: sk * 0.01, buildSpeed: sk * 0.02 }, 1, rl);
+      if (role === 'spymaster') add({ unrest: -sk * 0.15, claimSpeed: sk * 0.02 }, 1, rl);
+      if (role === 'chaplain') add({ legitimacyMonthly: sk * 0.006, clergyLoyalty: sk * 0.4, focusSpeed: sk * 0.01 }, 1, rl);
+      for (const t of c.traits) if (TRAITS[t].mods) add(TRAITS[t].mods, 0.5, `${rl} trait`);
     }
-    if (n.gov === 'merchant_republic') add({ tradeMult: 0.25, manpowerMult: -0.2 });
-    if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 });
-    if (n.gov === 'imperial') add({ taxMult: 0.1 });
-    if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 });
-    if (n.stability) add({ taxMult: n.stability * 0.04, unrest: -n.stability * 1.5 });
-    if (n.warExhaustion) add({ unrest: n.warExhaustion * 0.4, manpowerMult: -n.warExhaustion * 0.01 });
+    if (n.gov === 'merchant_republic') add({ tradeMult: 0.25, manpowerMult: -0.2 }, 1, 'Merchant republic');
+    if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 }, 1, 'Tribal chiefdom');
+    if (n.gov === 'imperial') add({ taxMult: 0.1 }, 1, 'Imperial autocracy');
+    if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 }, 1, 'Theocracy');
+    if (n.stability) add({ taxMult: n.stability * 0.04, unrest: -n.stability * 1.5 }, 1, `Stability ${n.stability.toFixed(1)}`);
+    if (n.warExhaustion) add({ unrest: n.warExhaustion * 0.4, manpowerMult: -n.warExhaustion * 0.01 }, 1, `War exhaustion ${n.warExhaustion.toFixed(1)}`);
+    if (trace) return M;
     n._m = M;
     return M;
   }
@@ -243,8 +249,10 @@ export class Game {
     const s = this.s;
     for (const n of s.nations) {
       if (!n.alive) continue;
+      this.updateBuildingMods(n);
       this.recalcMods(n.id);
       const B = this.budget(n.id);
+      for (const [r, q] of Object.entries(n.bmods.use)) n[r] = Math.max(0, n[r] - q);
       n.gold += B.net;
       n.food = clamp(n.food + B.foodNet, -200, 300 + this.ownedProvinces(n.id).length * 6);
       n.iron = Math.max(0, n.iron + B.iron);
@@ -306,4 +314,4 @@ export class Game {
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

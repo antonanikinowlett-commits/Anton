@@ -4,6 +4,7 @@ import { GOVS, LAWS, COUNCIL_ROLES, ROLE_INFO } from '../data/government.js';
 import { TRAITS, GEN_TRAIT_POOL, PERS_TRAIT_POOL } from '../data/traits.js';
 import { groupOf, personName } from '../data/names.js';
 import { BUILDINGS } from '../data/buildings.js';
+import { STANCES, slotsFor } from '../data/stances.js';
 import { clamp, dateOf, pick } from '../util.js';
 
 export const TERRAIN_ECON = {
@@ -23,7 +24,7 @@ export const EconomyMixin = {
     let mp = 0;
     for (const p of this.ownedProvinces(nid)) {
       const pr = this.s.prov[p];
-      mp += pr.dev * 120 * (pr.controller === nid ? 1 : 0.3) * (1 + 0.25 * (pr.buildings.barracks || 0));
+      mp += pr.dev * 120 * (pr.controller === nid ? 1 : 0.3) * (1 + 0.25 * (pr.buildings.barracks || 0)) * (STANCES[pr.stance]?.mp ?? 1);
     }
     return Math.round(mp * (1 + this.mod(nid, 'manpowerMult')));
   },
@@ -39,8 +40,9 @@ export const EconomyMixin = {
     const iron = ((te.iron || 0) * 0.2 + (b.mine || 0) * (0.8 + (te.iron || 0) * 0.6)) * ctl;
     const timber = ((te.timber || 0) * 0.3 + (b.lumber || 0) * 1.2) * ctl;
     const horses = ((te.horses || 0) * 0.15 + (b.stables || 0) * 0.6) * ctl;
-    const goldMine = (b.mine || 0) * 0.12 * ctl;
-    return { tax, trade, food, iron, timber, horses, goldMine };
+    const goldMine = ((b.mine || 0) * 0.12 + (b.tollbridge || 0) * 0.45) * ctl;
+    const st = STANCES[pr.stance] || STANCES.balanced;
+    return { tax: tax * st.tax, trade, food: food > 0 ? food * (1 + (st.res - 1)) : food, iron: iron * st.res, timber: timber * st.res, horses: horses * st.res, goldMine };
   },
   // stacked income bonuses (laws, foci, innovations, ministers) have diminishing returns: +100% counts as +56%
   softMult(m) { return m > 0 ? m / (1 + m * 0.8) : m; },
@@ -51,6 +53,7 @@ export const EconomyMixin = {
       const i = this.provinceIncome(p, nid);
       B.tax += i.tax; B.trade += i.trade; B.mines += i.goldMine; B.food += i.food; B.iron += i.iron; B.timber += i.timber; B.horses += i.horses;
     }
+    B.taxRaw = B.tax; B.tradeRaw = B.trade;
     B.tax *= 1 + this.softMult(this.mod(nid, 'taxMult'));
     if (this.s.difficulty === 'hard' && nid !== this.s.player && !n.ai.horde) B.tax *= 1.2; // Hard: the AI realms are richer
     B.trade *= 1 + this.softMult(this.mod(nid, 'tradeMult'));
@@ -93,7 +96,7 @@ export const EconomyMixin = {
       if (pr.religion !== n.religion) target += 10 + this.mod(n.id, 'unrestInfidel') * 4;
       if (pr.heresy) target += 12;
       if (pr.controller !== pr.owner) target += 15;
-      target += this.mod(n.id, 'unrest') * 3 + pr.devast * 0.2 - (pr.buildings.church || 0) * 4 + (n.food < 0 ? 10 : 0);
+      target += (STANCES[pr.stance]?.unrest || 0) + this.mod(n.id, 'unrest') * 3 + pr.devast * 0.2 - (pr.buildings.church || 0) * 4 + (n.food < 0 ? 10 : 0);
       target += (3 - (n.estates.peasants?.loyalty ?? 50) / 20);
       pr.unrest = clamp(pr.unrest + (target - pr.unrest) * 0.08, 0, 100);
       pr.devast = Math.max(0, pr.devast - 2);
@@ -103,7 +106,7 @@ export const EconomyMixin = {
       }
       // development growth
       // slow, with diminishing returns: the richer a province, the harder it is to improve (soft cap ~20)
-      const growth = 0.0011 * (1 + (pr.buildings.farm || 0) * 0.25 + (pr.buildings.market || 0) * 0.2 + this.mod(n.id, 'devGrowth')) * Math.max(0, 1 - pr.dev / 20) * (pr.unrest > 40 ? 0 : 1) * (pr.controller === pr.owner ? 1 : 0);
+      const growth = 0.0011 * (STANCES[pr.stance]?.grow ?? 1) * (1 + (pr.buildings.farm || 0) * 0.25 + (pr.buildings.market || 0) * 0.2 + this.mod(n.id, 'devGrowth')) * Math.max(0, 1 - pr.dev / 20) * (pr.unrest > 40 ? 0 : 1) * (pr.controller === pr.owner ? 1 : 0);
       if (this.rng() < growth && pr.dev < 30) { pr.dev++; }
       if (sp && pr.garrison < 1) pr.garrison = Math.min(1, pr.garrison + 0.1);
       // rebellion
@@ -130,6 +133,22 @@ export const EconomyMixin = {
     n.gold -= cost; n[k] += qty;
     return null;
   },
+  slotsUsed(p) { let t = 0; for (const [k, v] of Object.entries(this.s.prov[p].buildings)) if (BUILDINGS[k]?.slot !== false) t += v; return t; },
+  // Realm-wide effects of special buildings: per-level mods (capped) and production chains that burn stockpiled goods.
+  // Recomputed monthly (before the budget) so recalcMods can just add n.bmods.
+  updateBuildingMods(n) {
+    const lv = {};
+    for (const p of this.ownedProvinces(n.id)) { const pr = this.s.prov[p]; if (pr.controller !== n.id) continue; for (const [k, v] of Object.entries(pr.buildings)) if (BUILDINGS[k]?.mods || BUILDINGS[k]?.chain) lv[k] = (lv[k] || 0) + v; }
+    const mods = {}, active = {}, use = {};
+    for (const [k, L] of Object.entries(lv)) {
+      const B = BUILDINGS[k];
+      let ok = true;
+      if (B.chain) for (const [r, q] of Object.entries(B.chain.use)) { if ((n[r] || 0) < q * L) ok = false; }
+      if (B.chain) { active[k] = ok; if (ok) for (const [r, q] of Object.entries(B.chain.use)) use[r] = (use[r] || 0) + q * L; }
+      for (const src of [B.mods, ok && B.chain?.mods]) if (src) for (const [m, v] of Object.entries(src)) { let t = (mods[m] || 0) + v * L; const c = B.cap?.[m]; if (c !== undefined) t = c < 0 ? Math.max(c, t) : Math.min(c, t); mods[m] = t; }
+    }
+    n.bmods = { mods, active, use, lv };
+  },
   countBuildings(nid, type) { let c = 0; for (const p of this.ownedProvinces(nid)) c += this.s.prov[p].buildings[type] || 0; return c; },
   maxUnrest(nid) { let m = 0; for (const p of this.ownedProvinces(nid)) m = Math.max(m, this.s.prov[p].unrest); return m; },
   buildCost(nid, p, type) {
@@ -144,10 +163,13 @@ export const EconomyMixin = {
     if (pr.owner !== nid) return 'Not your province';
     if (pr.controller !== nid) return 'Province is occupied';
     if (!B.allowed(sp)) return 'Not possible in this terrain';
+    if (B.minDev && pr.dev < B.minDev) return `Needs development ${B.minDev} (now ${pr.dev})`;
+    for (const [rk, rl] of Object.entries(B.req || {})) if ((pr.buildings[rk] || 0) < rl) return `Needs ${BUILDINGS[rk].name} level ${rl} in this province first`;
     if (B.innov && !this.s.nations[nid].unlocks.includes('bld:' + type)) return `Requires the innovation ${B.innov}`;
     const lvl = (pr.buildings[type] || 0) + pr.queue.filter((q) => q.type === type).length;
     if (lvl >= B.max) return 'Maximum level reached';
     if (pr.queue.length >= 2) return 'Construction queue full (2)';
+    if (B.slot !== false && this.slotsUsed(p) + pr.queue.filter((q) => BUILDINGS[q.type].slot !== false).length >= slotsFor(pr.dev)) return `No free building slot (${this.slotsUsed(p)}/${slotsFor(pr.dev)}): develop the province or choose what to build`;
     const c = this.buildCost(nid, p, type), n = this.s.nations[nid];
     for (const [k, v] of Object.entries(c)) if ((n[k] || 0) < v) return `Not enough ${k}`;
     return null;
@@ -177,5 +199,5 @@ export const EconomyMixin = {
       }
     }
   },
-  fortLevel(p) { const pr = this.s.prov[p]; if (!pr) return 0; return (pr.buildings.walls || 0) + (this.s.nations[pr.owner]?.capital === p ? 1 : 0); },
+  fortLevel(p) { const pr = this.s.prov[p]; if (!pr) return 0; return (pr.buildings.walls || 0) + (this.s.nations[pr.owner]?.capital === p ? 1 : 0) + (pr.buildings.townwalls || 0) + (STANCES[pr.stance]?.fort || 0); },
 };

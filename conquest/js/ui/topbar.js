@@ -4,6 +4,7 @@ import { el, fmt, signed, dateOf, MONTHS, season } from '../util.js';
 import { coaSVG } from './heraldry.js';
 import { icon } from './icons.js';
 import { GOVS } from '../data/government.js';
+import { explainTip } from './tips.js';
 
 // [key, icon, name, icon colour class]
 const MAIN = [['gold', 'coin', 'Gold', 'ic-gold'], ['food', 'wheat', 'Food', 'ic-amber'], ['manpower', 'people', 'Manpower', 'ic-blue'],
@@ -94,6 +95,7 @@ export const TopbarMixin = {
     const n = this.P, g = this.g, B = g.budget(n.id);
     const L = (a, b, cls = '') => `<div class="tt-line"><span>${a}</span><span class="${cls}">${b}</span></div>`;
     const sg = (v) => `<span class="${v < 0 ? 'neg' : 'pos'}">${signed(v, 1)}</span>`;
+    if (['gold', 'food', 'manpower', 'prestige', 'legitimacy', 'stability'].includes(k)) return explainTip(g.explain(n.id, k));
     switch (k) {
       case 'gold': return `<div class="tt-title">Treasury: ${fmt(n.gold, 1)} gold</div>${L('Taxes', sg(B.tax))}${L('Trade', sg(B.trade))}${B.nodes ? L('Trade routes', sg(B.nodes)) : ''}${L('Mines', sg(B.mines))}${B.tribute ? L('Tribute', sg(B.tribute)) : ''}<hr>${L('Army upkeep', sg(-B.armyUpkeep))}${L('Court & generals', sg(-B.court))}${L('Administration', sg(-B.admin))}${B.interest ? L('Debt interest', sg(-B.interest)) : ''}<hr>${L('<b>Monthly balance</b>', sg(B.net))}<div class="muted small">Negative gold reduces stability and angers the nobles.</div>`;
       case 'food': return `<div class="tt-title">Food stores: ${fmt(n.food)}</div>${L('Harvests (net of towns)', sg(B.food))}${L('Armies in the field', sg(-B.armyFood))}<hr>${L('<b>Monthly balance</b>', sg(B.foodNet))}<div class="muted small">Starvation: army attrition, morale loss, unrest and slower manpower. Build farms, keep armies in friendly land.</div>`;

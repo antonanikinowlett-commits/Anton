@@ -375,7 +375,7 @@ export const DiplomacyMixin = {
     if (why) return why;
     const s = this.s, a = s.nations[aid], b = s.nations[bid];
     const t = CB_TYPES[cb.kind] || CB_TYPES.conquest;
-    if (t.stab) { a.stability = Math.max(-3, a.stability + t.stab); a.legitimacy = Math.max(0, a.legitimacy - 15); }
+    if (t.stab) { a.stability = Math.max(-3, a.stability + t.stab); a.legitimacy = Math.max(0, a.legitimacy - 15); this.bump(aid, 'stability', t.stab, `Declared ${t.name}`); this.bump(aid, 'legitimacy', -15, `Declared ${t.name}`); }
     if (a.truces[bid] > s.day) { a.stability = Math.max(-3, a.stability - 2); a.prestige -= 20; }
     if (a.naps.includes(bid)) { a.stability = Math.max(-3, a.stability - 1); a.naps = a.naps.filter((x) => x !== bid); b.naps = b.naps.filter((x) => x !== aid); }
     const name = `${a.adj}-${b.adj} War`;
