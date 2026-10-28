@@ -368,5 +368,11 @@ const U2 = {
 
 export function buildFocusTree(n, game) {
   const tree = [...coreBranches(n, game), ...faithBranch(n), ...govBranch(n), ...(U[n.tag] ? U[n.tag]() : []), ...(U2[n.tag] ? U2[n.tag]() : []), ...(EXTRA[n.tag] || [])];
+  // every focus gets its own length and price: deeper rows are longer and dearer, the rest varies with what it does
+  const hash = (id) => { let x = 7; for (let i = 0; i < id.length; i++) x = (x * 31 + id.charCodeAt(i)) >>> 0; return x; };
+  for (const f of tree) {
+    if (f.days === 70) f.days = 45 + Math.max(0, f.y) * 14 + (hash(f.id) % 31);
+    if (f.cost === undefined) f.cost = Math.round((12 + Math.max(0, f.y) * 14 + f.effects.length * 6 + (hash(f.id + 'c') % 12)) / 5) * 5;
+  }
   return tree;
 }

@@ -1,6 +1,7 @@
 // Random and historical events. chance: monthly probability for an eligible realm.
 // Options share the focus effect vocabulary plus: unrest {v, n}, devLoss {n}, revolt {n}, mercs {regs}, food, gold.
 // followup {id, months}: schedule a chain event (chance 0 entries) for the same realm.
+import { EVENTS_V2 } from './events_v2.js';
 export const EVENTS = [
   { id: 'bountiful_harvest', title: 'A Bountiful Harvest', icon: '🌾', chance: 0.012, cond: (n, g) => g.season() === 'autumn',
     desc: 'The granaries overflow after a warm summer and gentle rains.',
@@ -266,6 +267,7 @@ export const EVENTS = [
     desc: 'The great barons bind themselves by oath to resist new taxes and demand a council of their own. They know the royal strongbox is full.',
     options: [{ text: 'Accept a baronial council', effects: [{ influence: { nobles: 6 } }, { loyalty: { nobles: 18 } }, { mods_t: { mods: { taxMult: -0.05 }, months: 24 } }] }, { text: 'Break the league by force', effects: [{ revolt: { n: 2, nobles: true } }, { prestige: 6 }, { loyalty: { nobles: -15 } }] }] },
 ];
+EVENTS.push(...EVENTS_V2);
 
 // Scripted historical events fire once on (or after) their date for the listed realms.
 export const HISTORY = [

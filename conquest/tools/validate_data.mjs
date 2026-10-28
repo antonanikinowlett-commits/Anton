@@ -13,7 +13,7 @@ const errs = [];
 const bad = (where, msg) => errs.push(`${where}: ${msg}`);
 const tags = new Set([...NATIONS.map((n) => n.tag), 'MON']);
 const ESTATES = new Set(['nobles', 'clergy', 'burghers', 'peasants']);
-const KEYS = new Set(['mods', 'mods_t', 'gold', 'prestige', 'iron', 'timber', 'horses', 'food', 'legitimacy', 'stability', 'manpower', 'claims', 'cb', 'unlock', 'build', 'law', 'loyalty', 'influence', 'opinion', 'gov', 'religion', 'unrest', 'devLoss', 'revolt', 'mercs', 'followup', 'holy']);
+const KEYS = new Set(['mods', 'mods_t', 'gold', 'prestige', 'iron', 'timber', 'horses', 'food', 'legitimacy', 'stability', 'manpower', 'claims', 'cb', 'unlock', 'build', 'law', 'loyalty', 'influence', 'opinion', 'gov', 'religion', 'unrest', 'devLoss', 'revolt', 'mercs', 'followup', 'holy', 'custom', 'war', 'transfer', 'truce', 'oppOf', 'ally', 'marry', 'joinWar', 'breakAlliance']);
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
 
 function checkMods(where, m) {

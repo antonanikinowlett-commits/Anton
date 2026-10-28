@@ -25,6 +25,7 @@ import { ExplainMixin } from './explain.js';
 import { ProvincesMixin } from './provinces.js';
 import { WorldMixin } from './world.js';
 import { WarPlanMixin } from './warplan.js';
+import { ObjectivesMixin } from './objectives.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
 
@@ -134,6 +135,7 @@ export class Game {
     const n = this.nationByTag(tag);
     this.s.player = n ? n.id : -1;
     if (n) { n.gold += 40; }
+    this.initObjectives();
   }
 
   get player() { return this.s.nations[this.s.player]; }
@@ -287,6 +289,7 @@ export class Game {
     this.monthlyVassals();
     this.monthlyEvents();
     this.monthlyWorld();
+    this.monthlyObjectives();
     this.emit('month');
   }
 
@@ -325,4 +328,4 @@ export class Game {
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, WorldMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, WarPlanMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, WorldMixin, ObjectivesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, WarPlanMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
