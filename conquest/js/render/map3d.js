@@ -195,7 +195,7 @@ export class MapView {
     progress('Painting the land', 0.9);
     try { await Promise.race([document.fonts.load('700 48px "Cormorant Garamond"'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* fallback serif */ }
     await tick();
-    const terrainCanvas = bakeTerrain(map);
+    const terrainCanvas = this.terrainCanvas = bakeTerrain(map);
     progress('Inking the borders', 0.93);
     await tick();
     const up = upsampleProvinces(map);

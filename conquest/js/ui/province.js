@@ -14,6 +14,8 @@ export const ProvinceMixin = {
     const p = this.selProv, g = this.g, s = this.s;
     const E = this.provEl;
     if (p < 0 || p === undefined) { E.classList.add('hidden'); this.provEl.classList.remove('shift'); return; }
+    // one card at a time: while armies are selected their card owns the bottom of the screen
+    if (this.selArmies.length) { E.classList.add('hidden'); return; }
     E.classList.remove('hidden');
     E.classList.toggle('shift', !!this.tab && !PANELS[this.tab]?.wide);
     const sp = this.v.map.provinces[p];

@@ -213,15 +213,24 @@ export class UI {
     const { W, H, pid, L, land } = this.v.map;
     if (this.v.minimapDirty || !this.mmImg) {
       this.v.minimapDirty = false;
+      // relief from the baked terrain texture shades the political colours
+      if (!this._mmTerr && this.v.terrainCanvas) {
+        const t = document.createElement('canvas'); t.width = cv.width; t.height = cv.height;
+        const tx = t.getContext('2d', { willReadFrequently: true }); tx.imageSmoothingQuality = 'high'; tx.drawImage(this.v.terrainCanvas, 0, 0, cv.width, cv.height);
+        this._mmTerr = tx.getImageData(0, 0, cv.width, cv.height).data;
+      }
+      const T = this._mmTerr;
       const img = ctx.createImageData(cv.width, cv.height);
       const D = this.v.colData;
       for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
-        const sx = Math.floor(x / cv.width * W), sy = Math.floor(y / cv.height * H), i = sy * W + sx, p = pid[i];
+        const sx = Math.floor((x + 0.5) / cv.width * W), sy = Math.floor((y + 0.5) / cv.height * H), i = sy * W + sx, p = pid[i];
         const o = (y * cv.width + x) * 4;
-        if (p < 0 || p >= L || land[i] !== 1) { img.data[o] = 21; img.data[o + 1] = 44; img.data[o + 2] = 62; img.data[o + 3] = 255; continue; }
+        if (p < 0 || p >= L || land[i] !== 1) { img.data[o] = 20; img.data[o + 1] = 42; img.data[o + 2] = 60; img.data[o + 3] = 255; continue; }
         const c0 = ci(p, 0), c1 = ci(p, 1);
-        img.data[o] = D[c0]; img.data[o + 1] = D[c0 + 1]; img.data[o + 2] = D[c0 + 2]; img.data[o + 3] = 255;
-        if (D[c1 + 3] && (x + y) % 3 === 0) { img.data[o] = D[c1]; img.data[o + 1] = D[c1 + 1]; img.data[o + 2] = D[c1 + 2]; }
+        let r = D[c0], g2 = D[c0 + 1], b = D[c0 + 2];
+        if (D[c1 + 3] && (x + y) % 3 === 0) { r = D[c1]; g2 = D[c1 + 1]; b = D[c1 + 2]; }
+        const k = T ? 0.62 + ((T[o] * 0.3 + T[o + 1] * 0.59 + T[o + 2] * 0.11) / 255 - 0.38) * 1.6 : 1;
+        img.data[o] = Math.min(255, r * k); img.data[o + 1] = Math.min(255, g2 * k); img.data[o + 2] = Math.min(255, b * k); img.data[o + 3] = 255;
       }
       this.mmImg = img;
     }
@@ -356,6 +365,7 @@ export class UI {
     this.selArmies = ids.filter((i) => this.s.armies[i]);
     this.v.selectArmies(this.selArmies);
     this.renderArmy();
+    this.renderProvince();
     if (fly && this.selArmies.length) { const a = this.s.armies[this.selArmies[0]]; this.v.flyToProvince(a.loc, 160); }
     this.emit('selectArmies', this.selArmies);
   }
