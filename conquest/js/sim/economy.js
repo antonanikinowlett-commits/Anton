@@ -133,6 +133,19 @@ export const EconomyMixin = {
     n.gold -= cost; n[k] += qty;
     return null;
   },
+  // Administrative capacity: how many provinces the crown can govern well. Realms keep what they start with plus a third;
+  // beyond it every extra province is a drag on taxes, order and legitimacy until laws, learning and rank raise the ceiling.
+  overextension(nid, adminCap) {
+    const n = this.s.nations[nid];
+    const load = this.ownedProvinces(nid).length;
+    if (!n || n.ai?.horde || !n.prog) return { load, cap: load, over: 0, parts: [] };
+    const rank = n.prog.rank || 0, start = n.startProv || load;
+    const ch = this.s.chars[n.council.steward];
+    const base = Math.max(35 + 50 * rank, start * 1.2);
+    const m = adminCap !== undefined ? adminCap : (n._m?.adminCap || 0);
+    const cap = Math.round(base * (1 + m + (ch ? ch.skills.stewardship * 0.008 : 0)));
+    return { load, cap, over: Math.max(0, Math.min(1.5, load / cap - 1)), parts: [['Realm rank and inherited administration', Math.round(base)], ['Laws, learning and steward', cap - Math.round(base)]] };
+  },
   slotsUsed(p) { let t = 0; for (const [k, v] of Object.entries(this.s.prov[p].buildings)) if (BUILDINGS[k]?.slot !== false) t += v; return t; },
   // Realm-wide effects of special buildings: per-level mods (capped) and production chains that burn stockpiled goods.
   // Recomputed monthly (before the budget) so recalcMods can just add n.bmods.

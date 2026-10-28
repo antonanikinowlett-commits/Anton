@@ -110,6 +110,14 @@ export const ExplainMixin = {
     return { key: 'legitimacy', title: 'Legitimacy', value: Math.round(n.legitimacy), min: 0, max: 100, change: r1(ch), unit: 'per month', parts, recent: this.recentChanges(nid, 'legitimacy'),
       effects: ['80+: +4% tax, +3% army morale', 'Above 60: +0.02 stability a month', 'Below 40: +1.5 unrest, −5 noble loyalty', 'Below 30: −0.04 stability a month', 'Below 25: pretenders may raise rebels', 'Below 20: +3 unrest, −12 noble loyalty, −5% tax'] };
   },
+  explain_admin(nid) {
+    const o = this.overextension(nid), n = this.s.nations[nid];
+    const parts = [{ label: 'Realm rank and inherited administration', value: o.parts[0][1] }];
+    for (const x of this.modSources(nid, 'adminCap')) parts.push({ label: x.label, value: Math.round(o.parts[0][1] * x.value), note: `${x.value > 0 ? '+' : ''}${Math.round(x.value * 100)}%` });
+    const ch = this.s.chars[n.council.steward];
+    if (ch) parts.push({ label: `Steward ${this.charName(ch)} (stewardship ${ch.skills.stewardship})`, value: Math.round(o.parts[0][1] * ch.skills.stewardship * 0.008) });
+    return { key: 'admin', title: 'Administrative capacity', value: o.load, max: o.cap, change: o.cap - o.load, unit: 'provinces of headroom', parts, note: o.over > 0 ? `Overextended by ${Math.round(o.over * 100)}%: tax −${Math.round(o.over * 25)}%, unrest +${(o.over * 2).toFixed(1)}, legitimacy −${(o.over * 3).toFixed(1)}/month.` : 'Provinces beyond capacity cost taxes, order and legitimacy. Raise it with laws (authority), chancery and records, a good steward, or higher rank.' };
+  },
   explain_prestige(nid) {
     const n = this.s.nations[nid];
     const parts = [{ label: 'Prestige fades (0.5% of the stock)', value: r1(-n.prestige * 0.005) }];

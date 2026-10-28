@@ -101,6 +101,7 @@ export class Game {
       if (!owned.length) { n.alive = false; continue; }
       const dev = owned.reduce((a, p) => a + s.prov[p].dev, 0);
       n.gold = Math.round(30 + dev * 0.5);
+      n.startProv = owned.length;
       n.maxManpower = this.calcMaxManpower(n.id);
       n.manpower = Math.round(n.maxManpower * 0.7);
       n.prestige = Math.round(Math.sqrt(dev) * 3);
@@ -225,6 +226,7 @@ export class Game {
     if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 }, 1, 'Tribal chiefdom');
     if (n.gov === 'imperial') add({ taxMult: 0.1 }, 1, 'Imperial autocracy');
     if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 }, 1, 'Theocracy');
+    { const oe = this.overextension(nid, M.adminCap || 0); if (oe.over > 0) add({ taxMult: -oe.over * 0.25, unrest: oe.over * 2, legitimacyMonthly: -oe.over * 0.3, stabilityMonthly: -oe.over * 0.01 }, 1, `Overextension (${oe.load} provinces, capacity ${oe.cap})`); }
     if (n.legitimacy >= 80) add({ taxMult: 0.04, armyMorale: 0.03 }, 1, 'Legitimacy above 80');
     else if (n.legitimacy < 20) add({ unrest: 3, nobleLoyalty: -12, taxMult: -0.05 }, 1, 'Illegitimate rule (below 20)');
     else if (n.legitimacy < 40) add({ unrest: 1.5, nobleLoyalty: -5 }, 1, 'Weak legitimacy (below 40)');

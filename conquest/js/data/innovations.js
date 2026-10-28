@@ -33,7 +33,7 @@ export const MOD_INFO = {
   legitimacyMonthly: ['Legitimacy per month', 'month', 1], stabilityMonthly: ['Stability per month', 'month', 1], prestigeMonthly: ['Prestige per month', 'month', 1],
   unrest: ['Unrest', 'flat', -1], unrestInfidel: ['Unrest from other faiths', 'flat', -1], diplo: ['Diplomatic reputation', 'flat', 1], decree: ['Royal decrees', 'flat', 1], crownBonus: ['Crown power', 'flat', 1],
   nobleLoyalty: ['Noble loyalty', 'flat', 1], clergyLoyalty: ['Clergy loyalty', 'flat', 1], burgherLoyalty: ['Burgher loyalty', 'flat', 1], peasantLoyalty: ['Peasant loyalty', 'flat', 1],
-  papalOpinion: ['Papal opinion', 'flat', 1], rulerSkill: ['Ruler skill', 'flat', 1],
+  adminCap: ['Administrative capacity', 'pct', 1], papalOpinion: ['Papal opinion', 'flat', 1], rulerSkill: ['Ruler skill', 'flat', 1],
 };
 // [{ text, good }] for a mods object, e.g. { text: 'Tax income +5%', good: true }
 export function modLines(mods) {
@@ -75,20 +75,20 @@ export const INNOVATIONS = [
   I('charters', 'Town Charters', '📜', 'civic', 0, 1190, 190, [], { taxMult: 0.05, nobleLoyalty: -3, burgherLoyalty: 4 }, 'Self-governing boroughs pay fixed dues, to the barons\' annoyance.', { excl: ['canon_law'] }),
   I('guild_system', 'Craft Guilds', '🔨', 'civic', 0, 1200, 200, [], { tradeMult: 0.06, buildSpeed: 0.08, devCost: 0.05 }, 'Masters, journeymen and apprentices. Unlocks Guild Halls.', { bld: 'guildhall', excl: ['royal_chancery'] }),
   I('canon_law', 'Canon Law', '✝', 'civic', 0, 1190, 170, [], { legitimacyMonthly: 0.02, clergyLoyalty: 4, papalOpinion: 10 }, 'Gratian\'s Decretum orders the Church courts.', { excl: ['charters'] }),
-  I('royal_chancery', 'Royal Chancery', '🖋', 'civic', 0, 1200, 220, [], { diplo: 1, claimSpeed: 0.15, aeDecay: 0.1, upkeepMult: 0.02 }, 'Written writs and records: a diplomatic service of clerks.', { excl: ['guild_system'] }),
+  I('royal_chancery', 'Royal Chancery', '🖋', 'civic', 0, 1200, 220, [], { diplo: 1, claimSpeed: 0.15, aeDecay: 0.1, upkeepMult: 0.02, adminCap: 0.1 }, 'Written writs and records: a diplomatic service of clerks.', { excl: ['guild_system'] }),
   // era 1
   I('universities', 'Universities', '🎓', 'civic', 1, 1250, 460, ['cathedral_schools'], { researchSpeed: 0.15, clergyLoyalty: -3 }, 'Bologna, Paris and Oxford. Unlocks the University building.', { bld: 'university', excl: ['scholasticism'] }),
   I('scholasticism', 'Scholastic Orthodoxy', '🕯', 'civic', 1, 1260, 400, ['canon_law'], { clergyLoyalty: 6, legitimacyMonthly: 0.03, unrest: -0.5, researchSpeed: 0.03 }, 'Aquinas reconciles reason and faith: the learned serve the Church.', { excl: ['universities'] }),
-  I('roman_law_rev', 'Revival of Roman Law', '⚖', 'civic', 1, 1250, 480, ['canon_law'], { taxMult: 0.04, nobleLoyalty: -6, unrest: -0.4 }, 'Justinian\'s code rediscovered: the prince is not bound by custom. Unlocks Roman Law.', { law: 'roman_law', unlock: 'roman_law', excl: ['parliaments'] }),
-  I('parliaments', 'Estates General', '🏛', 'civic', 1, 1265, 440, ['charters'], { stabilityMonthly: 0.01, nobleLoyalty: 4, burgherLoyalty: 5, taxMult: 0.03, decree: -1 }, 'Consent to taxation in return for a voice: the realm is governed with, not over, its estates.', { excl: ['roman_law_rev'] }),
-  I('double_entry', 'Double-Entry Bookkeeping', '🧮', 'civic', 1, 1290, 520, ['guild_system'], { taxMult: 0.07, tradeMult: 0.05, devCost: 0.04 }, 'Italian merchants master the ledger.', { excl: ['mendicant_orders'] }),
+  I('roman_law_rev', 'Revival of Roman Law', '⚖', 'civic', 1, 1250, 480, ['canon_law'], { taxMult: 0.04, nobleLoyalty: -6, unrest: -0.4, adminCap: 0.08 }, 'Justinian\'s code rediscovered: the prince is not bound by custom. Unlocks Roman Law.', { law: 'roman_law', unlock: 'roman_law', excl: ['parliaments'] }),
+  I('parliaments', 'Estates General', '🏛', 'civic', 1, 1265, 440, ['charters'], { stabilityMonthly: 0.01, nobleLoyalty: 4, burgherLoyalty: 5, taxMult: 0.03, decree: -1, adminCap: 0.06 }, 'Consent to taxation in return for a voice: the realm is governed with, not over, its estates.', { excl: ['roman_law_rev'] }),
+  I('double_entry', 'Double-Entry Bookkeeping', '🧮', 'civic', 1, 1290, 520, ['guild_system'], { taxMult: 0.07, tradeMult: 0.05, devCost: 0.04, adminCap: 0.05 }, 'Italian merchants master the ledger.', { excl: ['mendicant_orders'] }),
   I('mendicant_orders', 'Mendicant Preaching', '🕯', 'civic', 1, 1260, 400, ['canon_law'], { peasantLoyalty: 6, unrest: -0.8, taxMult: 0.02, clergyLoyalty: 3 }, 'Friars among the towns and villages keep the poor content.', { excl: ['double_entry'] }),
-  I('written_records', 'Written Records', '📖', 'civic', 1, 1280, 360, ['royal_chancery'], { buildCost: -0.06, claimSpeed: 0.1, aeDecay: 0.05 }, 'Cadastres, rolls and registers: the state knows what it owns.'),
+  I('written_records', 'Written Records', '📖', 'civic', 1, 1280, 360, ['royal_chancery'], { buildCost: -0.06, claimSpeed: 0.1, aeDecay: 0.05, adminCap: 0.1 }, 'Cadastres, rolls and registers: the state knows what it owns.'),
   // era 2
   I('banking_houses', 'Banking Houses', '🏦', 'civic', 2, 1340, 800, ['double_entry'], { taxMult: 0.08, tradeMult: 0.08, clergyLoyalty: -4 }, 'Bardi and Peruzzi finance kings. The Church frowns on usury.', { excl: ['royal_exchequer'] }),
-  I('royal_exchequer', 'Royal Exchequer', '👑', 'civic', 2, 1330, 720, ['written_records'], { taxMult: 0.1, nobleLoyalty: -6, burgherLoyalty: -3 }, 'Every shilling accounted for at Westminster: sharp, unloved royal fiscality.', { excl: ['banking_houses'] }),
+  I('royal_exchequer', 'Royal Exchequer', '👑', 'civic', 2, 1330, 720, ['written_records'], { taxMult: 0.1, nobleLoyalty: -6, burgherLoyalty: -3, adminCap: 0.08 }, 'Every shilling accounted for at Westminster: sharp, unloved royal fiscality.', { excl: ['banking_houses'] }),
   I('humanism', 'Early Humanism', '🎨', 'civic', 2, 1350, 760, [], { prestigeMonthly: 0.01, focusSpeed: 0.08, researchSpeed: 0.06, clergyLoyalty: -3 }, 'Petrarch rediscovers the classics; the court becomes brilliant and a little worldly.', { excl: ['vernacular_law'] }),
-  I('vernacular_law', 'Vernacular Records', '📖', 'civic', 2, 1320, 680, [], { stabilityMonthly: 0.01, unrest: -1, diplo: 1 }, 'Law and letters in the native tongue: the realm understands itself.', { excl: ['humanism'] }),
+  I('vernacular_law', 'Vernacular Records', '📖', 'civic', 2, 1320, 680, [], { stabilityMonthly: 0.01, unrest: -1, diplo: 1, adminCap: 0.08 }, 'Law and letters in the native tongue: the realm understands itself.', { excl: ['humanism'] }),
   I('standing_courts', 'Royal Courts of Justice', '⚖', 'civic', 2, 1320, 680, [], { unrest: -1, legitimacyMonthly: 0.02, upkeepMult: 0.02 }, 'Permanent benches replace roving justice.', { excl: ['inquisition'] }),
   I('inquisition', 'Inquisitorial Courts', '🔥', 'civic', 2, 1330, 620, ['canon_law'], { unrest: -1.5, unrestInfidel: -2, clergyLoyalty: 6, burgherLoyalty: -4, diplo: -1 }, 'Heresy is a crime: conformity is bought with fear.', { excl: ['standing_courts'] }),
   I('printing_prelude', 'Paper & Scriptoria', '📜', 'civic', 2, 1350, 600, ['written_records'], { researchSpeed: 0.1, buildCost: -0.04 }, 'Cheap rag paper spreads learning.'),

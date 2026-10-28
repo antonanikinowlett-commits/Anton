@@ -6,6 +6,7 @@ import { GOVS, LAWS } from '../../data/government.js';
 import { registerPanel } from './registry.js';
 import { H, traitChips, skills, barHTML, estName } from './common.js';
 import { RANKS } from '../../sim/progression.js';
+import { explainTip } from '../tips.js';
 
 registerPanel({ id: 'realm', icon: '👑', name: 'Realm', key: 'r', order: 10, render(ui, pb) {
   const g = ui.g, n = ui.P, s = g.s;
@@ -40,7 +41,7 @@ registerPanel({ id: 'realm', icon: '👑', name: 'Realm', key: 'r', order: 10, r
   const stat = (k, v, tip) => { const d = H(`<div class="stat"><b>${v}</b>${k}</div>`).firstChild; if (tip) d._tip = () => tip; return d; };
   grid.append(stat('Provinces', owned.length), stat('Development', dev), stat('Regiments', regs), stat('Monthly income', signed(B.net, 1), 'See the Economy tab for details'),
     stat('Manpower', fmt(n.manpower)), stat('Battles won/lost', `${n.stats.won}/${n.stats.lost}`), stat('Claims held', s.prov.filter((p) => p.claims.includes(n.id) && p.owner !== n.id).length, 'Provinces we have a claim on'),
-    stat('Allies', n.allies.length), stat('Vassals', s.nations.filter((x) => x.alive && x.overlord === n.id).length));
+    stat('Administration', `${owned.length}/${g.overextension(n.id).cap}`, explainTip(g.explain(n.id, 'admin'))), stat('Allies', n.allies.length), stat('Vassals', s.nations.filter((x) => x.alive && x.overlord === n.id).length));
   pb.append(grid);
   // national modifiers
   pb.append(el('div', { class: 'section' }, 'National Modifiers'));
