@@ -23,6 +23,7 @@ import { VassalsMixin } from './vassals.js';
 import { ProjectsMixin } from './projects.js';
 import { ExplainMixin } from './explain.js';
 import { ProvincesMixin } from './provinces.js';
+import { WorldMixin } from './world.js';
 import { kmPerPx } from '../world/proj.js';
 import { MAP_VERSION } from '../world/version.js';
 
@@ -123,6 +124,7 @@ export class Game {
     this.initProgression();
     this.initPapacy();
     this.initTrade();
+    this.initWorld();
     for (const n of s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
@@ -165,6 +167,7 @@ export class Game {
   provName(p) { return this.map.provinces[p].name; }
   log(text, opts = {}) {
     this.s.log.unshift({ day: this.s.day, text, ...opts });
+    if (opts.type === 'war' || opts.type === 'diplo' || opts.type === 'court') this.pushNews(text, opts);
     if (this.s.log.length > 250) this.s.log.length = 250;
     this.emit('log', text, opts);
   }
@@ -219,6 +222,9 @@ export class Game {
     if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 }, 1, 'Tribal chiefdom');
     if (n.gov === 'imperial') add({ taxMult: 0.1 }, 1, 'Imperial autocracy');
     if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 }, 1, 'Theocracy');
+    if (n.legitimacy >= 80) add({ taxMult: 0.04, armyMorale: 0.03 }, 1, 'Legitimacy above 80');
+    else if (n.legitimacy < 20) add({ unrest: 3, nobleLoyalty: -12, taxMult: -0.05 }, 1, 'Illegitimate rule (below 20)');
+    else if (n.legitimacy < 40) add({ unrest: 1.5, nobleLoyalty: -5 }, 1, 'Weak legitimacy (below 40)');
     if (n.stability) add({ taxMult: n.stability * 0.04, unrest: -n.stability * 1.5 }, 1, `Stability ${n.stability.toFixed(1)}`);
     if (n.warExhaustion) add({ unrest: n.warExhaustion * 0.4, manpowerMult: -n.warExhaustion * 0.01 }, 1, `War exhaustion ${n.warExhaustion.toFixed(1)}`);
     if (trace) return M;
@@ -266,6 +272,7 @@ export class Game {
       n.legitimacy = clamp(n.legitimacy + 0.1 + this.mod(n.id, 'legitimacyMonthly') * 10 - (n.gold < 0 ? 0.5 : 0), 0, 100);
       n.stability = clamp(n.stability + this.mod(n.id, 'stabilityMonthly') * 3 + (n.legitimacy > 60 ? 0.02 : n.legitimacy < 30 ? -0.04 : 0), -3, 3);
       n.warExhaustion = Math.max(0, n.warExhaustion - (this.atWar(n.id) ? 0.05 : 0.4));
+      if (n.legitimacy < 25 && this.rng() < 0.03 && this.ownedProvinces(n.id).length > 1) { this.spawnRebels(this.ownedProvinces(n.id).filter((p) => p !== n.capital)[0], true); this.log(`A pretender raises the banners against the ${n.name}!`, { nation: n.id, type: 'war', important: n.id === s.player }); }
       this.monthlyEstates(n);
       this.monthlyCharacters(n);
       this.monthlyDiplomacy(n);
@@ -277,6 +284,7 @@ export class Game {
     this.monthlyTrade();
     this.monthlyVassals();
     this.monthlyEvents();
+    this.monthlyWorld();
     this.emit('month');
   }
 
@@ -309,9 +317,10 @@ export class Game {
     this.initProgression();
     this.initPapacy();
     this.initTrade();
+    this.initWorld();
     for (const n of this.s.nations) if (n.alive) this.recalcMods(n.id);
     this.emit('reset');
   }
 }
 
-for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);
+for (const mixin of [CharactersMixin, ProgressionMixin, PapacyMixin, ReligionMixin, TradeSimMixin, VassalsMixin, EconomyMixin, EstatesMixin, ProjectsMixin, ExplainMixin, ProvincesMixin, WorldMixin, MilitaryMixin, BattleMixin, DiplomacyMixin, PoliticsMixin, AIMixin, FrontsMixin]) Object.assign(Game.prototype, mixin);

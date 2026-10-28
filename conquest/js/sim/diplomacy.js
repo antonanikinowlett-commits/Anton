@@ -10,6 +10,7 @@ export const CB_TYPES = {
   subjugation: { name: 'Subjugation of Heathens', desc: 'Bring the pagans to heel.', ae: 0.5, stab: 0 },
   reconquista: { name: 'Reconquista', desc: 'Retake Iberia for Christendom.', ae: 0.5, stab: 0 },
   insult: { name: 'Avenge Insult', desc: 'They insulted our honour.', ae: 1.2, stab: 0 },
+  coalition: { name: 'Coalition War', desc: 'Neighbours united against an aggressor.', ae: 0.3, stab: 0 },
   conquest: { name: 'War of Conquest', desc: 'No justification. -1 stability, -15 legitimacy, double aggressive expansion.', ae: 2, stab: -1 },
 };
 
@@ -287,6 +288,7 @@ export const DiplomacyMixin = {
     if (!side) return 'We are not part of that war';
     if (!s.nations[aid].allies.includes(allyId)) return 'Not our ally';
     if (w.att.includes(allyId) || w.def.includes(allyId)) return 'Already in the war';
+    if (allyId === this.s.player) { this.queueAllyCall(w, allyId, side, aid); return null; }
     const [sc, R] = this.acceptance(aid, allyId, 'arms');
     if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return this.refusal(R, `${b.name} declines`); }
     this.joinWar(w, allyId, side);
@@ -393,7 +395,7 @@ export const DiplomacyMixin = {
       if (x === aid || this.isAlly(x, aid) || w.att.includes(x) || w.def.includes(x)) continue;
       const ally = s.nations[x];
       if (!ally.alive || ally.overlord >= 0 && ally.overlord !== bid) continue;
-      if (x === s.player && !silent) { this.joinWar(w, x, 'def'); continue; }
+      if (x === s.player && !silent) { if (b.allies.includes(x)) this.queueAllyCall(w, x, 'def', bid, true); else this.joinWar(w, x, 'def'); continue; }
       if (this.opinion(x, bid) > -10 || ally.overlord === bid || ally.id === b.overlord) this.joinWar(w, x, 'def');
     }
     // the attacker calls allies (they may decline)
@@ -402,6 +404,7 @@ export const DiplomacyMixin = {
       if (w.def.includes(x) || w.att.includes(x)) continue;
       if (this.isAlly(x, bid)) continue;
       const ally = s.nations[x];
+      if (x === s.player && !silent && ally.overlord < 0) { this.queueAllyCall(w, x, 'att', aid, true); continue; }
       if (ally.overlord === aid || (x !== s.player && this.opinion(x, aid) > 30 && this.opinion(x, bid) < 20)) this.joinWar(w, x, 'att');
     }
     // aggressive expansion & reputation

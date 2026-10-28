@@ -108,7 +108,7 @@ export const ExplainMixin = {
     if (n.legitimacy > 80) parts.push({ label: 'Standing fades without deeds', value: this.s.difficulty === 'hard' ? -0.4 : -0.25 });
     const ch = parts.reduce((t, x) => t + x.value, 0);
     return { key: 'legitimacy', title: 'Legitimacy', value: Math.round(n.legitimacy), min: 0, max: 100, change: r1(ch), unit: 'per month', parts, recent: this.recentChanges(nid, 'legitimacy'),
-      effects: [n.legitimacy > 60 ? 'Above 60: +0.02 stability a month' : n.legitimacy < 30 ? 'Below 30: −0.04 stability a month; claimants stir' : 'Between 30 and 60: neutral'] };
+      effects: ['80+: +4% tax, +3% army morale', 'Above 60: +0.02 stability a month', 'Below 40: +1.5 unrest, −5 noble loyalty', 'Below 30: −0.04 stability a month', 'Below 25: pretenders may raise rebels', 'Below 20: +3 unrest, −12 noble loyalty, −5% tax'] };
   },
   explain_prestige(nid) {
     const n = this.s.nations[nid];

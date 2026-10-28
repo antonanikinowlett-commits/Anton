@@ -203,7 +203,7 @@ export const ProgressionMixin = {
     n.prestige += 15; n.legitimacy = Math.min(100, n.legitimacy + 5);
     this._applyRankMods(n);
     this.recalcMods(nid);
-    this.log(`${n.name} is raised to a ${RANKS[n.prog.rank]}.`, { nation: nid });
+    this.log(`${n.name} is raised to a ${RANKS[n.prog.rank]}.`, { nation: nid, type: 'court' });
     this.emit('coronation', nid, n.prog.rank);
     return true;
   },
@@ -229,7 +229,7 @@ export const ProgressionMixin = {
     if (f.rename) { n.name = f.rename.name; n.adj = f.rename.adj; }
     this.applyEffects(nid, f.effects, 'form:' + id);
     if (n.prog.rank < 2) { n.prog.rank = 2; this._applyRankMods(n); this.recalcMods(nid); }
-    this.log(`${n.name} is proclaimed.`, { nation: nid, important: nid === this.s.player });
+    this.log(`${n.name} is proclaimed.`, { nation: nid, type: 'court', important: nid === this.s.player });
     if (nid === this.s.player) this.notify({ nation: nid, text: `${f.name} proclaimed!` });
     return true;
   },
