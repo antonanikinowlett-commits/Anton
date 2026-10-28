@@ -2,6 +2,7 @@
 import { BIOME, tracePath } from '../world/mapgen.js';
 import { GEO } from '../../data/geo.js';
 import { fbm, hash2, clamp } from '../util.js';
+import { paintSymbols } from './symbols.js';
 
 export const UP = 2; // province texture upsampling factor
 
@@ -98,7 +99,8 @@ export function bakeTerrain(map) {
       const hy = (height[Math.min(i + W, W * H - 1)] - height[Math.max(i - W, 0)]) / 2300;
       const nx = -hx, ny = 1, nz = -hy, nl = Math.hypot(nx, ny, nz);
       const sh = clamp((nx * sun[0] + ny * sun[1] + nz * sun[2]) / nl, 0, 1);
-      const shade = 0.58 + sh * 0.6;
+      const rel = b === BIOME.MOUNT ? 1.6 : b === BIOME.HILLS ? 1.3 : 1;
+      const shade = 0.88 + (sh - 0.5) * 1.2 * rel;
       r *= shade; g *= shade; bl *= shade;
     } else if (land[i] === 2) { r = 60; g = 100; bl = 128; }
     else {
@@ -127,6 +129,7 @@ export function bakeTerrain(map) {
       ctx.beginPath(); tracePath(ctx, r.p, UP); ctx.stroke();
     }
   }
+  paintSymbols(ctx, map, UP);
   return c2;
 }
 
@@ -164,12 +167,61 @@ export function upsampleProvinces(map) {
       if (bc >= 5) sm[i] = bv;
     }
   }
-  const tex = new Uint8Array(W2 * H2 * 4);
-  for (let i = 0; i < W2 * H2; i++) {
-    const id = sm[i] + 1;
-    tex[i * 4] = id & 255; tex[i * 4 + 1] = (id >> 8) & 255; tex[i * 4 + 2] = sm[i] >= map.L ? 255 : 0; tex[i * 4 + 3] = 255;
+  return { ids: sm, W2, H2 };
+}
+
+// Smooth province edges. For every pixel near a boundary, blur each nearby province's indicator with a Gaussian
+// (sigma 1.2 px) and take the two strongest: the line between them is where their scores are equal, and its signed
+// distance / direction follow analytically from the scores and their gradients. The shader rebuilds an
+// anti-aliased line of constant screen width from (distance, direction) plus the pixel offset, so province lines and
+// colour edges are smooth curves at any zoom instead of raster stair-steps.
+export function buildEdgeField(map) {
+  const { W, H, pid } = map;
+  const N = W * H, R = 3, SIG = 1.2, inv2 = 1 / (2 * SIG * SIG), invS2 = 1 / (SIG * SIG);
+  const lab = new Int32Array(N);
+  for (let i = 0; i < N; i++) lab[i] = pid[i] + 1;       // 0 = outside any province
+  const bnd = new Uint8Array(N);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, c = lab[i];
+    if (x + 1 < W && lab[i + 1] !== c) bnd[i] = bnd[i + 1] = 1;
+    if (y + 1 < H && lab[i + W] !== c) bnd[i] = bnd[i + W] = 1;
   }
-  return { ids: sm, tex, W2, H2 };
+  const t1 = new Uint8Array(N), near = new Uint8Array(N);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (bnd[y * W + x]) for (let k = Math.max(0, x - R); k <= Math.min(W - 1, x + R); k++) t1[y * W + k] = 1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (t1[y * W + x]) for (let k = Math.max(0, y - R); k <= Math.min(H - 1, y + R); k++) near[k * W + x] = 1;
+  const taps = [];
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    const r2 = dx * dx + dy * dy;
+    if (r2 <= (R + 0.3) * (R + 0.3)) { const w = Math.exp(-r2 * inv2); taps.push([dx, dy, w, dx * w * invS2, dy * w * invS2]); }
+  }
+  const tex = new Uint8Array(N * 4), edge = new Uint8Array(N * 4);
+  const ids = new Int32Array(8), S = new Float32Array(8), GX = new Float32Array(8), GY = new Float32Array(8);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, o4 = i * 4, own = lab[i];
+    let other = 0, d = 4, nx = 0, ny = 0;
+    if (near[i]) {
+      let n = 0;
+      for (let k = 0; k < taps.length; k++) {
+        const t = taps[k], xx = x + t[0], yy = y + t[1];
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        const v = lab[yy * W + xx];
+        let j = 0;
+        while (j < n && ids[j] !== v) j++;
+        if (j === n) { if (n >= 8) continue; ids[n] = v; S[n] = 0; GX[n] = 0; GY[n] = 0; n++; }
+        S[j] += t[2]; GX[j] += t[3]; GY[j] += t[4];
+      }
+      let a = -1, b = -1;
+      for (let j = 0; j < n; j++) { if (ids[j] === own) a = j; else if (b < 0 || S[j] > S[b]) b = j; }
+      if (a >= 0 && b >= 0) {
+        other = ids[b];
+        const g = S[a] - S[b], gx = GX[a] - GX[b], gy = GY[a] - GY[b], gl = Math.hypot(gx, gy);
+        if (gl > 1e-3) { d = clamp(g / gl, -1.5, 4); nx = gx / gl; ny = gy / gl; }
+      }
+    }
+    tex[o4] = own & 255; tex[o4 + 1] = (own >> 8) & 255; tex[o4 + 2] = other & 255; tex[o4 + 3] = (other >> 8) & 255;
+    edge[o4] = Math.round((d + 2) / 8 * 255); edge[o4 + 1] = Math.round((nx * 0.5 + 0.5) * 255); edge[o4 + 2] = Math.round((ny * 0.5 + 0.5) * 255); edge[o4 + 3] = 255;
+  }
+  return { tex, edge, W, H };
 }
 
 export function depthTexture(map) {

@@ -2,7 +2,7 @@
 // instanced 3D buildings, trees and armies that appear as you zoom in, nation names laid
 // on the land, and a smooth RTS camera.
 import * as THREE from '../../vendor/three.module.js';
-import { bakeTerrain, upsampleProvinces, depthTexture, noiseTexture, UP } from './terrain.js';
+import { bakeTerrain, upsampleProvinces, buildEdgeField, depthTexture, noiseTexture, UP } from './terrain.js';
 import { MODELS } from './models.js';
 import { BIOME } from '../world/mapgen.js';
 import { UNITS } from '../data/units.js';
@@ -22,24 +22,37 @@ const BANDS = 4;      // up to 16 384 provinces
 const MAXP = TW * BANDS;
 // byte offset of province p's entry in colour-table row r (0 colour, 1 occupier, 2 owner+flags)
 export const ci = (p, r) => ((Math.floor(p / TW) * 4 + r) * TW + (p % TW)) * 4;
-const D_MIN = 14, D_MAX = 1150;
+const D_MIN = 28, D_MAX = 1150;
 
 const LAND_VS = `
 varying vec2 vUv; varying vec3 vN; varying vec3 vW;
 void main(){ vUv = uv; vN = normalize(normalMatrix * normal); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 
-const LAND_FS = `
-precision highp float;
-uniform sampler2D tTerrain, tProv, tCol, tNoise;
-uniform vec2 provSize; uniform float uPolAlpha, uBorderAlpha, uTime, uNear, uSnow, uTerrainMode;
-uniform vec3 uSun;
-varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+const GLSL_COMMON = `
 float dec(vec4 c){ return floor(c.r*255.0+0.5) + floor(c.g*255.0+0.5)*256.0; }
+float dec2(vec2 c){ return floor(c.x*255.0+0.5) + floor(c.y*255.0+0.5)*256.0; }
 vec4 colFor(float id, float row){ float i = id - 1.0; float band = floor(i / 4096.0); return texture2D(tCol, vec2((i - band*4096.0 + 0.5)/4096.0, (band*4.0 + row + 0.5)/16.0)); }
 float ownerOf(float id){ if(id<0.5) return -1.0; vec4 c = colFor(id,2.0); return dec(c); }
+float luma(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
+// signed distance (texels) from this fragment to the nearest province line, positive inside its own province
+float edgeDist(vec2 tc){ vec4 ed = texture2D(tEdge, tc/provSize); return ed.r*8.0 - 2.0 + dot(ed.gb*2.0-1.0, fract(tc)-0.5); }
+`;
+
+const LAND_FS = `
+precision highp float;
+uniform sampler2D tTerrain, tProv, tEdge, tCol, tNoise;
+uniform vec2 provSize; uniform float uPolAlpha, uBorderAlpha, uTime, uNear, uSnow, uTerrainMode, uL, uFar, uRealmW, uProvW;
+uniform vec3 uSun;
+varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+${GLSL_COMMON}
+vec3 stylePol(vec3 c, float id){
+  c = mix(vec3(luma(c)), c, 0.84);                       // watercolour: slightly muted
+  float h = fract(sin(id*12.9898)*43758.5453);
+  return c * (0.955 + 0.09*h);                           // every province has its own wash
+}
 void main(){
   vec4 pc = texture2D(tProv, vUv);
-  float id = dec(pc);
+  float id = dec2(pc.rg), oid = dec2(pc.ba);
   vec3 base = texture2D(tTerrain, vUv).rgb;
   float dn = texture2D(tNoise, vW.xz*0.23).r; float dn2 = texture2D(tNoise, vW.xz*0.031).r;
   base *= mix(1.0, 0.93 + 0.14*dn, uNear) * (0.97 + 0.06*dn2);
@@ -51,51 +64,70 @@ void main(){
   float alt = smoothstep(4.5, 7.5, vW.y);
   float snow = clamp(uSnow * (north * smoothstep(0.42, 0.55, dn*0.5 + dn2*0.5 + north*0.3) + alt * 0.8), 0.0, 0.8);
   lit = mix(lit, vec3(0.93,0.95,0.98)*(0.78+0.3*lam), snow);
-  if (id < 0.5 || pc.b > 0.5) { gl_FragColor = vec4(lit, 1.0); return; }
+  if (id < 0.5 || id > uL) { gl_FragColor = vec4(lit, 1.0); return; }
   vec4 c0 = colFor(id,0.0); vec4 c1 = colFor(id,1.0); vec4 c2 = colFor(id,2.0);
   float own = dec(c2);
-  vec3 pol = c0.rgb;
+  vec2 tc = vUv*provSize;
+  vec2 gd = fwidth(tc);
+  float tpp = max(0.5*(gd.x+gd.y), 0.0004);              // texels per screen pixel
+  float f = edgeDist(tc);
+  bool oLand = oid > 0.5 && oid <= uL && abs(oid-id) > 0.5;
+  float aa = max(0.75*tpp, 0.05);
+  vec3 pol = stylePol(c0.rgb, id);
   if (c1.a > 0.5) { float st = step(0.5, fract((vW.x - vW.z)*0.45)); pol = mix(pol, c1.rgb, st*0.9); }
-  float a = uPolAlpha * c0.a * (1.0 - uTerrainMode);
-  vec3 col = mix(lit, pol*(0.78+0.3*lam), a);
-  // borders: compare neighbours a screen-size-aware distance away
-  vec2 o1 = fwidth(vUv)*1.5;
-  float pb = 0.0, cb = 0.0;
-  float n0 = dec(texture2D(tProv, vUv + vec2(o1.x, 0.0)));
-  float n1 = dec(texture2D(tProv, vUv - vec2(o1.x, 0.0)));
-  float n2 = dec(texture2D(tProv, vUv + vec2(0.0, o1.y)));
-  float n3 = dec(texture2D(tProv, vUv - vec2(0.0, o1.y)));
-  if (abs(n0-id)>0.5 || abs(n1-id)>0.5 || abs(n2-id)>0.5 || abs(n3-id)>0.5) {
-    pb = 1.0;
-    if ((abs(n0-id)>0.5 && abs(ownerOf(n0)-own)>0.5) || (abs(n1-id)>0.5 && abs(ownerOf(n1)-own)>0.5) ||
-        (abs(n2-id)>0.5 && abs(ownerOf(n2)-own)>0.5) || (abs(n3-id)>0.5 && abs(ownerOf(n3)-own)>0.5)) cb = 1.0;
+  float oOwn = own;
+  if (oLand) {
+    vec4 d0 = colFor(oid,0.0); oOwn = ownerOf(oid);
+    vec3 polO = stylePol(d0.rgb, oid);
+    pol = mix(polO, pol, smoothstep(-aa, aa, f));       // anti-aliased colour edge
   }
-  col = mix(col, col*0.35, pb*uBorderAlpha);
-  vec3 bc = mix(pol*0.35, vec3(0.06,0.05,0.04), 0.5);
-  col = mix(col, bc, cb*0.85*(1.0-uTerrainMode*0.5));
+  // political wash keeps the baked relief, texture and hill-shading
+  float tl = luma(base);
+  float detail = tl - luma(texture2D(tTerrain, vUv, 3.0).rgb);   // local relief and symbols, stripped of the base tone
+  vec3 polS = pol * (0.60 + 0.95*tl) * (0.80 + 0.30*lam) * (1.0 + detail*mix(1.5, 0.45, uFar));
+  float pap = texture2D(tNoise, vW.xz*0.8).r*0.5 + texture2D(tNoise, vW.xz*0.11).r*0.5;
+  polS *= mix(1.0, 0.92 + 0.16*pap, uFar);               // paper grain when far away
+  float a = uPolAlpha * c0.a * (1.0 - uTerrainMode);
+  vec3 col = mix(lit, polS, a);
+  // borders: constant screen-space width, anti-aliased
+  float af = abs(f);
+  bool realm = oLand && abs(oOwn - own) > 0.5;
+  float rHalf = max(0.5*uRealmW*tpp, 0.12), pHalf = max(0.5*uProvW*tpp, 0.07);   // never thinner than the field's precision
+  float rLine = realm ? 1.0 - smoothstep(rHalf - aa, rHalf + aa, af) : 0.0;
+  float pLine = (oLand && !realm) ? 1.0 - smoothstep(pHalf - aa, pHalf + aa, af) : 0.0;
+  if (realm) {                                              // soft inner glow in the realm colour
+    float gw = 7.0*tpp;
+    float glow = (1.0 - smoothstep(0.0, gw, max(f, 0.0))) * step(-aa, f);
+    col = mix(col, mix(c0.rgb*0.55, col, 0.35), glow*0.55*(1.0-uTerrainMode*0.6));
+  }
+  vec3 ink = vec3(0.12,0.095,0.07);
+  col = mix(col, col*0.55, pLine*uBorderAlpha);
+  vec3 bc = mix(c0.rgb*0.22, ink, 0.55);
+  col = mix(col, bc, rLine*0.92*(1.0-uTerrainMode*0.4));
+  float anyLine = max(pLine, rLine);
   // flags: 1 selected, 2 hovered, 4 highlighted target, 8 claimed
-  float f = floor(c2.b*255.0+0.5);
-  float sel = mod(f,2.0), hov = mod(floor(f/2.0),2.0), tgt = mod(floor(f/4.0),2.0), clm = mod(floor(f/8.0),2.0);
+  float fl = floor(c2.b*255.0+0.5);
+  float sel = mod(fl,2.0), hov = mod(floor(fl/2.0),2.0), tgt = mod(floor(fl/4.0),2.0), clm = mod(floor(fl/8.0),2.0);
   if (clm > 0.5) { float st = step(0.88, fract((vW.x + vW.z)*0.55)); col = mix(col, vec3(1.0,0.92,0.55), st*0.22); }
   if (hov > 0.5) col = mix(col, vec3(1.0,0.97,0.85), 0.16);
   if (tgt > 0.5) col = mix(col, vec3(0.95,0.25,0.15), 0.22 + 0.1*sin(uTime*5.0));
-  float neg = mod(floor(f/16.0),2.0);
-  if (neg > 0.5 && tgt < 0.5) { col = mix(col, vec3(1.0,0.95,0.8), 0.12); col = mix(col, vec3(0.95,0.8,0.4), pb*0.6); }
-  if (neg > 0.5 && tgt > 0.5) col = mix(col, vec3(1.0,0.85,0.3), pb);
-  if (sel > 0.5) { col = mix(col, vec3(1.0,0.9,0.55), 0.22 + 0.06*sin(uTime*3.0)); col = mix(col, vec3(1.0,0.85,0.3), pb); }
+  float neg = mod(floor(fl/16.0),2.0);
+  float edgeAll = oLand ? 1.0 - smoothstep(1.2*tpp - aa, 1.2*tpp + aa, af) : 0.0;
+  if (neg > 0.5 && tgt < 0.5) { col = mix(col, vec3(1.0,0.95,0.8), 0.12); col = mix(col, vec3(0.95,0.8,0.4), edgeAll*0.7); }
+  if (neg > 0.5 && tgt > 0.5) col = mix(col, vec3(1.0,0.85,0.3), edgeAll);
+  if (sel > 0.5) { col = mix(col, vec3(1.0,0.9,0.55), 0.20 + 0.06*sin(uTime*3.0)); col = mix(col, vec3(1.0,0.85,0.3), edgeAll); }
   gl_FragColor = vec4(col, 1.0);
 }`;
 
 const WATER_FS = `
 precision highp float;
-uniform sampler2D tDepth, tNoise, tProv, tCol; uniform float uTime, uNear; uniform vec3 uSun; uniform vec2 provSize;
+uniform sampler2D tDepth, tNoise, tProv, tEdge, tCol; uniform float uTime, uNear, uL, uFar; uniform vec3 uSun; uniform vec2 provSize;
 varying vec2 vUv; varying vec3 vN; varying vec3 vW;
-float dec(vec4 c){ return floor(c.r*255.0+0.5) + floor(c.g*255.0+0.5)*256.0; }
-vec4 colFor(float id, float row){ float i = id - 1.0; float band = floor(i / 4096.0); return texture2D(tCol, vec2((i - band*4096.0 + 0.5)/4096.0, (band*4.0 + row + 0.5)/16.0)); }
+${GLSL_COMMON}
 void main(){
   float d = texture2D(tDepth, vUv).r;
-  vec3 deep = vec3(0.075,0.19,0.30), shallow = vec3(0.22,0.44,0.50);
-  vec3 col = mix(shallow, deep, smoothstep(0.0, 0.5, d));
+  vec3 deep = vec3(0.075,0.185,0.29), shallow = vec3(0.20,0.42,0.48);
+  vec3 col = mix(shallow, deep, smoothstep(0.0, 0.42, d));
   // gentle swell: two slow noise layers, stronger when zoomed in
   float n1 = texture2D(tNoise, vW.xz*0.15 + vec2(uTime*0.010, uTime*0.006)).r;
   float n2 = texture2D(tNoise, vW.xz*0.27 - vec2(uTime*0.008, uTime*0.012)).r;
@@ -105,20 +137,24 @@ void main(){
   vec3 H = normalize(normalize(uSun) + V);
   float spec = pow(max(dot(N,H),0.0), 80.0) * mix(0.015, 0.45, uNear*uNear);
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-  col = mix(col, vec3(0.55,0.68,0.75), fres*0.25) + spec;
-  float foam = smoothstep(0.045, 0.0, d) * (0.55+0.45*sin(uTime*1.3 + n1*9.0)) * uNear;
-  col = mix(col, vec3(0.86,0.9,0.9), foam*0.3);
-  vec4 pc = texture2D(tProv, vUv); float id = dec(pc);
-  if (id > 0.5 && pc.b > 0.5) {
-    vec2 o = max(vec2(1.5)/provSize, fwidth(vUv)*1.2);
-    float b = 0.0;
-    if (abs(dec(texture2D(tProv, vUv+vec2(o.x,0.0)))-id)>0.5 || abs(dec(texture2D(tProv, vUv+vec2(0.0,o.y)))-id)>0.5) b = 1.0;
-    col = mix(col, col*1.18, b*0.4*uNear);
+  col = mix(col, vec3(0.62,0.74,0.78), fres*0.25) + spec;
+  // soft shore: pale band and animated foam where the sea meets the land
+  float shore = smoothstep(0.16, 0.0, d);
+  float foam = smoothstep(0.05, 0.0, d) * (0.6+0.4*sin(uTime*1.3 + n1*9.0));
+  col = mix(col, vec3(0.62,0.80,0.78), shore*0.26);
+  col = mix(col, vec3(0.93,0.96,0.94), foam*(0.25 + 0.35*uNear));
+  vec4 pc = texture2D(tProv, vUv); float id = dec2(pc.rg);
+  if (id > uL) {
+    vec2 tc = vUv*provSize; vec2 gd = fwidth(tc); float tpp = max(0.5*(gd.x+gd.y), 0.0004);
+    float oid = dec2(pc.ba); float af = abs(edgeDist(tc));
+    float b = (oid > uL) ? 1.0 - smoothstep(0.5*tpp, 1.5*tpp, af) : 0.0;
+    col = mix(col, col*1.22, b*0.35*uNear);
     vec4 c2 = colFor(id,2.0); float f = floor(c2.b*255.0+0.5);
+    float edgeAll = (oid > uL) ? 1.0 - smoothstep(1.0*tpp, 2.2*tpp, af) : 0.0;
     if (mod(floor(f/2.0),2.0) > 0.5) col = mix(col, vec3(0.7,0.85,1.0), 0.12);
-    if (mod(f,2.0) > 0.5) col = mix(col, vec3(1.0,0.9,0.5), 0.2);
+    if (mod(f,2.0) > 0.5) { col = mix(col, vec3(1.0,0.9,0.5), 0.2); col = mix(col, vec3(1.0,0.88,0.4), edgeAll); }
   }
-  gl_FragColor = vec4(col, 0.93 - smoothstep(0.035, 0.0, d)*0.45);
+  gl_FragColor = vec4(col, 0.94 - smoothstep(0.03, 0.0, d)*0.5);
 }`;
 
 export class MapView {
@@ -152,6 +188,7 @@ export class MapView {
     sun.position.copy(this.sunDir).multiplyScalar(100);
     this.scene.add(sun);
     progress('Painting the land', 0.9);
+    try { await Promise.race([document.fonts.load('700 48px "Cormorant Garamond"'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* fallback serif */ }
     await tick();
     const terrainCanvas = bakeTerrain(map);
     progress('Inking the borders', 0.93);
@@ -161,8 +198,11 @@ export class MapView {
     const tTerrain = new THREE.CanvasTexture(terrainCanvas);
     tTerrain.flipY = false; tTerrain.colorSpace = THREE.SRGBColorSpace; tTerrain.anisotropy = R.capabilities.getMaxAnisotropy();
     tTerrain.generateMipmaps = true; tTerrain.minFilter = THREE.LinearMipmapLinearFilter;
-    const tProv = new THREE.DataTexture(up.tex, up.W2, up.H2, THREE.RGBAFormat);
+    const ef = buildEdgeField(map);
+    const tProv = new THREE.DataTexture(ef.tex, ef.W, ef.H, THREE.RGBAFormat);
     tProv.magFilter = tProv.minFilter = THREE.NearestFilter; tProv.needsUpdate = true;
+    const tEdge = new THREE.DataTexture(ef.edge, ef.W, ef.H, THREE.RGBAFormat);
+    tEdge.magFilter = tEdge.minFilter = THREE.NearestFilter; tEdge.needsUpdate = true;
     this.colData = new Uint8Array(TW * BANDS * 4 * 4);
     const tCol = this.tCol = new THREE.DataTexture(this.colData, TW, BANDS * 4, THREE.RGBAFormat);
     tCol.magFilter = tCol.minFilter = THREE.NearestFilter; tCol.needsUpdate = true;
@@ -176,8 +216,8 @@ export class MapView {
     await tick();
     this.buildHeights();
     this.uniforms = {
-      tTerrain: { value: tTerrain }, tProv: { value: tProv }, tCol: { value: tCol }, tNoise: { value: tNoise }, tDepth: { value: tDepth },
-      provSize: { value: new THREE.Vector2(up.W2, up.H2) }, uPolAlpha: { value: 0.7 }, uBorderAlpha: { value: 0.4 }, uTime: { value: 0 }, uNear: { value: 0 },
+      tTerrain: { value: tTerrain }, tProv: { value: tProv }, tEdge: { value: tEdge }, uL: { value: map.L }, uFar: { value: 0 }, uRealmW: { value: 2 }, uProvW: { value: 1 }, tCol: { value: tCol }, tNoise: { value: tNoise }, tDepth: { value: tDepth },
+      provSize: { value: new THREE.Vector2(ef.W, ef.H) }, uPolAlpha: { value: 0.7 }, uBorderAlpha: { value: 0.4 }, uTime: { value: 0 }, uNear: { value: 0 },
       uSnow: { value: 0 }, uTerrainMode: { value: 0 }, uSun: { value: this.sunDir },
     };
     // terrain mesh
@@ -238,13 +278,32 @@ export class MapView {
       const e = height[i];
       h[i] = land[i] === 1 ? 0.06 + Math.max(0, e) * HS : land[i] === 2 ? -0.12 : Math.max(-2.2, e * 0.0006) - 0.1;
     }
-    // soften
+    // soften the land
     const s = new Float32Array(h);
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
       const i = y * W + x;
       if (land[i] !== 1) continue;
-      s[i] = (h[i] * 4 + h[i - 1] + h[i + 1] + h[i - W] + h[i + W]) / 8;
+      s[i] = (h[i] * 4 + h[i - 1] + h[i + 1] - 0 + h[i - W] + h[i + W]) / 8;
       if (land[i - 1] !== 1 || land[i + 1] !== 1 || land[i - W] !== 1 || land[i + W] !== 1) s[i] = Math.max(0.05, s[i]);
+    }
+    // smooth coastline: blur the land mask (and the land height it carries) and cross the waterline on the 0.55 contour,
+    // so the shore is a rounded curve rather than the 1-px staircase of the raster
+    const blur = (src) => {
+      const t = new Float32Array(W * H), o = new Float32Array(W * H);
+      const K = [1, 4, 6, 4, 1];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let a = 0; for (let k = -2; k <= 2; k++) a += src[y * W + Math.min(W - 1, Math.max(0, x + k))] * K[k + 2]; t[y * W + x] = a / 16; }
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let a = 0; for (let k = -2; k <= 2; k++) a += t[Math.min(H - 1, Math.max(0, y + k)) * W + x] * K[k + 2]; o[y * W + x] = a / 16; }
+      return o;
+    };
+    const m0 = new Float32Array(W * H), lh = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) if (land[i] === 1) { m0[i] = 1; lh[i] = s[i]; }
+    const m1 = blur(blur(m0)), l1 = blur(blur(lh));
+    for (let i = 0; i < W * H; i++) {
+      const m = m1[i];
+      if (m <= 0.02 || m >= 0.98) continue;
+      const hl = Math.max(0.06, l1[i] / m), hs = land[i] === 1 ? Math.min(-0.1, h[i] - 0.1) : s[i];
+      const t = Math.min(1, Math.max(0, (m - 0.42) / 0.2));
+      s[i] = hs + (hl - hs) * (t * t * (3 - 2 * t));
     }
     this.hgt = s;
   }
@@ -329,15 +388,16 @@ export class MapView {
       (e > 2400 - Math.max(0, (lat[y] ?? 45) - 45) * 30 ? snow : rock).push(ent);
     }
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
-    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), tint = new THREE.Color();
     this.peaks = [[MODELS.peak(), rock], [MODELS.peakSnow(), snow]].map(([geo, list]) => {
       const m = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length));
       list.forEach(([x, z, sc, r], i) => {
         q.setFromAxisAngle(up, r * 6.28);
-        M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.05, z), q, new THREE.Vector3(sc * 1.7, sc * (1.2 + r * 0.5), sc * 1.7));
+        M.compose(new THREE.Vector3(x, this.groundY(x, z) - 0.05, z), q, new THREE.Vector3(sc * 1.15, sc * (1.2 + r * 0.6), sc * 1.15));
         m.setMatrixAt(i, M);
+        m.setColorAt(i, tint.setScalar(0.82 + ((r * 7.31) % 1) * 0.36));
       });
-      m.instanceMatrix.needsUpdate = true; m.frustumCulled = false;
+      m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.frustumCulled = false;
       this.scene.add(m);
       return m;
     });
@@ -547,7 +607,7 @@ export class MapView {
     if (!el) {
       el = document.createElement('div');
       el.className = 'army-counter';
-      el.innerHTML = '<div class="ac-flag"></div><div class="ac-num"></div><div class="ac-bar"><i></i></div>';
+      el.innerHTML = '<div class="ac-body"><div class="ac-flag"></div><div class="ac-num"></div><div class="ac-bar"><i></i></div></div><div class="ac-pips"></div><div class="ac-pole"></div>';
       el.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
       el.addEventListener('click', (e) => { e.stopPropagation(); this.emit('armyClick', a.id, e); });
       el.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); this.emit('rightClick', a.loc, e); });
@@ -560,17 +620,24 @@ export class MapView {
     if (!vis) { el.style.display = 'none'; return; }
     el.style.display = '';
     const sx = (this.V3.x + 1) / 2 * rect.width, sy = (1 - this.V3.y) / 2 * rect.height;
-    const scale = clamp(1.25 - this.cam.d / 900, 0.6, 1.05);
+    const scale = clamp(1.15 - this.cam.d / 1500, 0.62, 1.05);
     el.style.transform = `translate(${sx | 0}px, ${sy | 0}px) translate(-50%, -100%) scale(${scale.toFixed(2)})`;
     const n = s.nations[a.nation];
     const mine = a.nation === s.player;
     const hostile = s.player >= 0 && (a.nation < 0 ? a.rebelOf === s.player : g.atWar(s.player, a.nation));
+    if (this.cam.d > 950 && !mine && !hostile && !a.battle) { el.style.display = 'none'; return; }   // keep the far view readable
     const men = g.armyMen(a);
     const isFleet = a.regs.length > 0 && a.regs.every((r) => UNITS[r.type].ship);
-    const key = `${Math.round(men / 100)}|${Math.round(g.armyMorale(a) * 20)}|${this.sel.armies.includes(a.id)}|${!!a.battle}|${hostile}|${a.retreating}|${!!a.atSea}|${isFleet}`;
+    const key = `${Math.round(men / 100)}|${Math.round(g.armyMorale(a) * 20)}|${this.sel.armies.includes(a.id)}|${!!a.battle}|${hostile}|${a.retreating}|${!!a.atSea}|${isFleet}|${a.regs.length}`;
     if (el._k === key) return;
     el._k = key;
     el.querySelector('.ac-flag').style.background = n ? n.color : '#111';
+    // one pip per regiment, grouped by arm: cavalry, infantry, missile, siege, ships
+    const order = { cav: 0, inf: 1, rng: 2, siege: 3, ship: 4 };
+    const kinds = a.regs.map((r) => (UNITS[r.type].ship ? 'ship' : UNITS[r.type].cls || 'inf')).sort((x, y) => order[x] - order[y]);
+    const pk = kinds.slice(0, 10).join(',') + (kinds.length > 10 ? '+' : '');
+    const pe = el.querySelector('.ac-pips');
+    if (pe._k !== pk) { pe._k = pk; pe.innerHTML = kinds.slice(0, 10).map((k) => `<i class="${k}"></i>`).join(''); }
     el.querySelector('.ac-num').innerHTML = (isFleet ? icon('ship') + ' ' : '') + (men >= 1000 ? (men / 1000).toFixed(men >= 10000 ? 0 : 1) + 'k' : Math.round(men));
     el.querySelector('.ac-bar i').style.width = `${Math.round(g.armyMorale(a) * 100)}%`;
     el.classList.toggle('mine', mine);
@@ -703,7 +770,7 @@ export class MapView {
     for (const p of list) this.setFlag(p, 4, true);
   }
 
-  // ── labels
+  // ── labels: small-caps names that follow the shape of each realm, set along its spine
   refreshLabels() {
     this.dirty = true;
     const g = this.game, s = g.s, P = this.map.provinces;
@@ -730,20 +797,45 @@ export class MapView {
       for (const p of best) { const dx = P[p].cx - mx, dz = P[p].cy - mz; sxx += dx * dx * P[p].area; szz += dz * dz * P[p].area; sxz += dx * dz * P[p].area; }
       sxx /= W; szz /= W; sxz /= W;
       let ang = 0.5 * Math.atan2(2 * sxz, sxx - szz);
-      if (Math.abs(ang) > 0.9) ang = ang * 0.3;
-      const major = Math.sqrt(Math.max(1, (sxx + szz) / 2 + Math.sqrt(((sxx - szz) / 2) ** 2 + sxz * sxz)));
-      const minor = Math.sqrt(Math.max(1, (sxx + szz) / 2 - Math.sqrt(((sxx - szz) / 2) ** 2 + sxz * sxz)));
+      if (Math.abs(ang) > 1.1) ang = ang * 0.35;
+      const tr = (sxx + szz) / 2, df = Math.sqrt(((sxx - szz) / 2) ** 2 + sxz * sxz);
+      const major = Math.sqrt(Math.max(1, tr + df)), minor = Math.sqrt(Math.max(1, tr - df));
+      // spine: area-weighted mean of the perpendicular offset in slices along the axis, fitted with a parabola
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+      const bins = new Map();
+      let umin = 1e9, umax = -1e9;
+      for (const p of best) {
+        const dx = P[p].cx - mx, dz = P[p].cy - mz, u = dx * ca + dz * sa, v = -dx * sa + dz * ca;
+        umin = Math.min(umin, u); umax = Math.max(umax, u);
+        const k = Math.round(u / Math.max(4, major * 0.35));
+        const e = bins.get(k) || [0, 0, 0]; e[0] += u * P[p].area; e[1] += v * P[p].area; e[2] += P[p].area; bins.set(k, e);
+      }
+      let A0 = 0, A1 = 0, A2 = 0;
+      const pts = [...bins.values()].map((e) => [e[0] / e[2], e[1] / e[2], e[2]]);
+      if (pts.length >= 3) {
+        // weighted least squares v = a + b u + c u^2
+        let S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0, T0 = 0, T1 = 0, T2 = 0;
+        for (const [u, v, w] of pts) { S0 += w; S1 += w * u; S2 += w * u * u; S3 += w * u ** 3; S4 += w * u ** 4; T0 += w * v; T1 += w * u * v; T2 += w * u * u * v; }
+        const M = [[S0, S1, S2, T0], [S1, S2, S3, T1], [S2, S3, S4, T2]];
+        for (let i = 0; i < 3; i++) {
+          let pv = i; for (let r = i + 1; r < 3; r++) if (Math.abs(M[r][i]) > Math.abs(M[pv][i])) pv = r;
+          [M[i], M[pv]] = [M[pv], M[i]];
+          if (Math.abs(M[i][i]) < 1e-9) continue;
+          for (let r = 0; r < 3; r++) if (r !== i) { const f = M[r][i] / M[i][i]; for (let c = i; c < 4; c++) M[r][c] -= f * M[i][c]; }
+        }
+        if ([0, 1, 2].every((i) => Math.abs(M[i][i]) > 1e-9)) { A0 = M[0][3] / M[0][0]; A1 = M[1][3] / M[1][1]; A2 = M[2][3] / M[2][2]; }
+      }
       const text = labelName(n).toUpperCase();
-      const len = Math.max(1, major * 3.0);
-      const tex = textTexture(text, n.color);
-      const aspect = tex.image.width / tex.image.height;
-      const h = clamp(Math.min(len / aspect, minor * 1.5), 2.5, 70);
-      const w = h * aspect;
+      const len = Math.max(8, Math.min((umax - umin) * 0.92 + major * 0.9, major * 3.2));
+      const maxCurve = minor * 0.9;
+      const vAt = (u) => clamp(A0 + A1 * u + A2 * u * u, -maxCurve, maxCurve);
+      const tex = textTexture(text, n.color, len, vAt, minor);
+      const { vmid, wWorld: w, hWorld: h, hFont } = tex.userData;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
       m.rotation.x = -Math.PI / 2; m.rotation.z = -ang;
-      m.position.set(mx, 6, mz);
+      m.position.set(mx - sa * vmid, 6, mz + ca * vmid);
       m.renderOrder = 10;
-      m.userData = { size: h };
+      m.userData = { size: hFont };
       this.labelGroup.add(m);
     }
   }
@@ -854,6 +946,7 @@ export class MapView {
     const gy = this.groundY(c.x, c.z);
     this.camera.position.set(c.x, gy + c.d * Math.sin(pitch), c.z + c.d * Math.cos(pitch));
     this.camera.lookAt(c.x, gy, c.z);
+    this.camera.near = Math.max(0.3, c.d * 0.04); // keeps the depth buffer precise enough that water never z-fights with low land
     this.camera.far = c.d * 4 + 600;
     this.camera.updateProjectionMatrix();
   }
@@ -1014,15 +1107,21 @@ export class MapView {
     const near = clamp((260 - c.d) / 200, 0, 1);
     this.uniforms.uTime.value = t;
     this.uniforms.uNear.value = near;
-    this.uniforms.uPolAlpha.value = 0.2 + 0.62 * (1 - near);
-    this.uniforms.uBorderAlpha.value = clamp((520 - c.d) / 380, 0, 1) * 0.65;
+    const far = clamp((c.d - 380) / 520, 0, 1);
+    this.uniforms.uPolAlpha.value = 0.30 + 0.56 * (1 - near);
+    this.uniforms.uBorderAlpha.value = clamp((780 - c.d) / 420, 0, 1) * 0.85;
+    this.uniforms.uFar.value = far;
+    this.uniforms.uRealmW.value = 1.5 + 1.1 * (1 - far) + 0.6 * near;
+    this.uniforms.uProvW.value = 0.9 + 0.5 * near;
     const showDetail = c.d < 300;
     const lowQ = this.quality === 'low';
     for (const m of this.trees) m.visible = c.d < 240 && !lowQ;
-    for (const m of this.peaks) m.visible = c.d < 520 && !lowQ;
+    for (const m of this.peaks) m.visible = c.d < 420 && !lowQ;
     for (const m of Object.values(this.bmesh)) m.visible = showDetail;
+    const pxPerUnit = this.canvas.clientHeight / (0.65 * c.d) * 0.9;
     for (const l of this.labelGroup.children) {
-      const op = clamp((c.d - 110) / 160, 0, 1) * clamp((l.userData.size * 34 - c.d) / 200 + 0.6, 0.15, 1);
+      const px = l.userData.size * pxPerUnit;                       // on-screen height of one letter
+      const op = clamp((px - 7) / 6, 0, 1) * clamp((90 - px) / 40, 0, 1) * (0.72 + 0.2 * far);
       l.material.opacity = op;
       l.visible = op > 0.02;
     }
@@ -1062,24 +1161,41 @@ function labelName(n) {
   return n.name.replace(/^(Kingdom|Duchy|County|Principality|Grand Principality|Margraviate|Republic|Tsardom|Banate|Sultanate|Empire) of (the )?/, '').replace(/ Republic$/, '').replace(/^Holy Roman Empire$/, 'Holy Roman Empire');
 }
 
-function textTexture(text, color) {
-  const fs = 96;
+function textTexture(text, color, lenWorld, vAt, minor) {
+  const fs = 64, track = fs * 0.24;
+  const probe = document.createElement('canvas').getContext('2d');
+  const font = `700 ${fs}px "Cormorant Garamond", "Cormorant", Georgia, serif`;
+  probe.font = font;
+  const widths = [...text].map((ch) => probe.measureText(ch).width + track);
+  const total = widths.reduce((a, b) => a + b, 0) - track;
+  const hFont = clamp(Math.min(lenWorld / (total / fs), minor * 0.8), 2.0, 20);   // world height of one em
+  const ppu = fs / hFont, uSpan = total / ppu;
+  const vs = []; const N = 24;
+  for (let i = 0; i <= N; i++) vs.push(vAt(-uSpan / 2 + uSpan * i / N));
+  const vmin = Math.min(...vs), vmax = Math.max(...vs), vmid = (vmin + vmax) / 2;
+  const hWorld = (vmax - vmin) + hFont * 1.6;
   const cv = document.createElement('canvas');
+  cv.width = Math.ceil(uSpan * ppu + fs * 1.2); cv.height = Math.ceil(hWorld * ppu);
   const ctx = cv.getContext('2d');
-  ctx.font = `700 ${fs}px Cinzel, "Trajan Pro", Georgia, serif`;
-  const w = Math.ceil(ctx.measureText(text).width + fs * 0.6 + text.length * fs * 0.12);
-  cv.width = w; cv.height = Math.ceil(fs * 1.4);
-  ctx.font = `700 ${fs}px Cinzel, "Trajan Pro", Georgia, serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  if ('letterSpacing' in ctx) ctx.letterSpacing = `${fs * 0.12}px`;
+  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const [r, g, b] = hexToRgb(color);
-  const dark = `rgb(${r * 0.3 | 0},${g * 0.3 | 0},${b * 0.3 | 0})`;
-  ctx.lineWidth = fs * 0.1; ctx.strokeStyle = 'rgba(255,248,230,0.55)';
-  ctx.strokeText(text, w / 2, cv.height / 2);
-  ctx.fillStyle = dark;
-  ctx.fillText(text, w / 2, cv.height / 2);
+  const dark = `rgb(${r * 0.28 | 0},${g * 0.28 | 0},${b * 0.28 | 0})`;
+  let x = -total / 2;
+  for (let i = 0; i < text.length; i++) {
+    const u = (x + (widths[i] - track) / 2) / ppu;
+    const v = vAt(u), rot = Math.atan2(vAt(Math.min(uSpan / 2, u + 0.6)) - vAt(Math.max(-uSpan / 2, u - 0.6)), 1.2);
+    ctx.save();
+    ctx.translate(cv.width / 2 + u * ppu, cv.height / 2 + (v - vmid) * ppu);
+    ctx.rotate(rot);
+    ctx.lineWidth = fs * 0.15; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(247,238,216,.6)';
+    ctx.strokeText(text[i], 0, 0);
+    ctx.fillStyle = dark; ctx.fillText(text[i], 0, 0);
+    ctx.restore();
+    x += widths[i];
+  }
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
+  t.userData = { vmid, wWorld: cv.width / ppu, hWorld: cv.height / ppu, hFont };
   return t;
 }

@@ -220,19 +220,17 @@ export const MODELS = {
     part(cyl(5), '#5a3e26', { y: 0.05, sx: 0.04, sy: 0.1, sz: 0.04 }),
     part(cone(6), '#ffffff', { y: 0.38, sx: 0.17, sy: 0.7, sz: 0.17 }),
   ]),
-  peak: () => merge([ // rocky mountain: stacked irregular cones, strata shading
-    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
-    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
-    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
-    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
+  peak: () => merge([ // rocky mountain: slender cones, lit and shaded strata
+    part(cone(5), '#8f8271', { y: 0.62, sx: 1.1, sy: 1.25, sz: 1.0, ry: 0.3 }),
+    part(cone(5), '#a89b88', { x: 0.38, y: 0.4, z: 0.12, sx: 0.75, sy: 0.8, sz: 0.7, ry: 1.1 }),
+    part(cone(4), '#766a5a', { x: -0.42, y: 0.32, z: 0.2, sx: 0.7, sy: 0.64, sz: 0.62, ry: 2 }),
   ]),
   peakSnow: () => merge([ // high peak with snow cap
-    part(cone(6), '#6e665c', { y: 0.45, sx: 1.5, sy: 0.9, sz: 1.3, ry: 0.3 }),
-    part(cone(5), '#857c70', { x: 0.25, y: 0.55, z: 0.1, sx: 0.9, sy: 1.1, sz: 0.85, ry: 1.1 }),
-    part(cone(5), '#9a9084', { x: -0.1, y: 0.8, z: -0.05, sx: 0.6, sy: 0.8, sz: 0.6 }),
-    part(cone(5), '#ffffff', { x: -0.1, y: 1.08, z: -0.05, sx: 0.36, sy: 0.4, sz: 0.36 }),
-    part(cone(5), '#fafcff', { x: 0.25, y: 0.98, z: 0.1, sx: 0.46, sy: 0.4, sz: 0.44, ry: 1.1 }),
-    part(cone(5), '#5a5248', { x: -0.55, y: 0.3, z: 0.25, sx: 0.8, sy: 0.6, sz: 0.7, ry: 2 }),
+    part(cone(5), '#8f8271', { y: 0.62, sx: 1.1, sy: 1.25, sz: 1.0, ry: 0.3 }),
+    part(cone(5), '#a89b88', { x: 0.38, y: 0.4, z: 0.12, sx: 0.75, sy: 0.8, sz: 0.7, ry: 1.1 }),
+    part(cone(4), '#766a5a', { x: -0.42, y: 0.32, z: 0.2, sx: 0.7, sy: 0.64, sz: 0.62, ry: 2 }),
+    part(cone(5), '#ffffff', { y: 1.04, sx: 0.4, sy: 0.44, sz: 0.38, ry: 0.3 }),
+    part(cone(5), '#f3f6fa', { x: 0.38, y: 0.66, z: 0.12, sx: 0.3, sy: 0.3, sz: 0.28, ry: 1.1 }),
   ]),
   palm: () => merge([
     part(cyl(5), '#7a5a36', { y: 0.3, sx: 0.04, sy: 0.6, sz: 0.04, rz: 0.1 }),
