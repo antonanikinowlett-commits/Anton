@@ -19,7 +19,7 @@ export const WorldMixin = {
   pushNews(text, opts = {}, kind) {
     const s = this.s;
     if (/honours the call to arms|embargo|guarantees the independence/.test(text)) return;
-    const k = kind || NEWS_TYPES[opts.type] || 'world';
+    const k = kind || (/^(Revolt!|A pretender|The rebels)/.test(text) ? 'unrest' : NEWS_TYPES[opts.type]) || 'world';
     s.news ||= [];
     const last = s.news[0];
     if (last && last.text === text && s.day - last.day < 5) return;
