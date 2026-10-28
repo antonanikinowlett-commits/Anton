@@ -2,6 +2,8 @@
 // selection and event wiring. The other parts are mixins in sibling modules (topbar, alerts,
 // province, army, peace, menu); panel contents live in ./panels/*.js.
 import { el } from '../util.js';
+import { icon, iconize } from './icons.js';
+import { installEmojiPatch } from './emoji_patch.js';
 import { coaSVG } from './heraldry.js';
 import { PANELS, TABS } from './panels.js';
 import { BattleViewer } from './battleview.js';
@@ -17,9 +19,21 @@ export { TABS } from './panels.js';
 export { terrainTip, unitTip } from './tips.js';
 
 const MODES = [
-  ['political', '🗺', 'Political'], ['terrain', '⛰', 'Terrain'], ['terrainType', '🌲', 'Terrain types (combat)'], ['diplomacy', '🤝', 'Diplomacy'], ['religion', '✝', 'Religion'],
-  ['culture', '🗣', 'Culture'], ['development', '🏘', 'Development'], ['supply', '🌾', 'Supply limit'], ['attrition', '☠', 'Attrition risk (green: safe, red: armies bleed men; winter, desert, famine, poor supply; open sea is red)'], ['fort', '🏰', 'Forts'], ['unrest', '🔥', 'Unrest'],
+  ['political', 'map', 'Political', 'Realms and borders'], ['terrain', 'mountain', 'Terrain', 'Relief without political colour'], ['terrainType', 'tree', 'Combat terrain', 'Terrain types and their battle modifiers'],
+  ['diplomacy', 'handshake', 'Diplomacy', 'Allies, enemies and opinion of you'], ['religion', 'cross', 'Religion', 'Faith of every province'], ['culture', 'people', 'Culture', 'Cultural groups'],
+  ['development', 'houses', 'Development', 'Size and wealth of provinces'], ['supply', 'wheat', 'Supply limit', 'How many troops the land can feed'],
+  ['attrition', 'skull', 'Attrition risk', 'Green: safe. Red: armies bleed men (winter, desert, famine, poor supply; open sea)'], ['fort', 'castle', 'Forts', 'Fortification levels'], ['unrest', 'flame', 'Unrest', 'Revolt risk'],
 ];
+// Dock: panels are grouped; the rail shows one button per group and the panel header shows the group's tabs.
+const GROUPS = [
+  { id: 'gov', name: 'Realm', icon: 'crown', panels: ['realm', 'court', 'laws', 'focus'] },
+  { id: 'mil', name: 'Military', icon: 'swords', panels: ['military'] },
+  { id: 'eco', name: 'Economy', icon: 'coin', panels: ['economy', 'trade', 'treasury', 'ledger'] },
+  { id: 'dip', name: 'Diplomacy', icon: 'handshake', panels: ['diplomacy', 'wars'] },
+  { id: 'prog', name: 'Progress', icon: 'book', panels: ['progress'] },
+];
+const PANEL_ICON = { realm: 'crown', court: 'pillars', laws: 'scroll', focus: 'target', diplomacy: 'handshake', wars: 'flame', progress: 'book', military: 'swords', economy: 'bag', trade: 'anchor', treasury: 'bank', ledger: 'chart' };
+const groupOf = (id) => GROUPS.find((g) => g.panels.includes(id)) || { id: 'x', name: 'Other', icon: 'grid', panels: [id] };
 export const SPEEDS = [0, 0.7, 1.5, 3, 6, 14]; // days per second
 
 export class UI {
@@ -39,6 +53,7 @@ export class UI {
   get P() { return this.g.player; }
 
   build() {
+    installEmojiPatch();
     const R = this.root;
     R.innerHTML = '';
     this.topbar = el('div', { id: 'topbar' }); R.append(this.topbar);
@@ -49,26 +64,42 @@ export class UI {
     this.armyEl = el('div', { id: 'army', class: 'frame hidden' }); R.append(this.armyEl);
     this.modesEl = el('div', { id: 'modes' }); R.append(this.modesEl);
     this.toasts = el('div', { id: 'toasts' }); R.append(this.toasts);
+    if (!document.getElementById('banners')) document.body.append(el('div', { id: 'banners' }));
     this.buildOutliner();
     this.buildTopbar(); this.buildTabs(); this.buildModes();
     this.setupTooltips(); this.setupKeys(); this.hook();
   }
 
 
-  // ── tabs & side panel
+  // ── dock & side panel
   buildTabs() {
     this.tabsEl.innerHTML = '';
-    for (const t of TABS) {
-      const e = el('div', { class: 'tab', id: 'tab-' + t.id, onclick: () => this.openTab(this.tab === t.id ? null : t.id) }, t.icon, el('span', { class: 'key' }, t.key.toUpperCase()));
-      e._tip = () => `<div class="tt-title">${t.name}</div><span class="muted">Shortcut: ${t.key.toUpperCase()}</span>`;
+    const present = new Set(TABS.map((t) => t.id));
+    const known = new Set(GROUPS.flatMap((g) => g.panels));
+    const groups = GROUPS.map((g) => ({ ...g, panels: g.panels.filter((p) => present.has(p)) })).filter((g) => g.panels.length);
+    const extra = TABS.filter((t) => !known.has(t.id));
+    if (extra.length) groups.push({ id: 'more', name: 'More', icon: 'grid', panels: extra.map((t) => t.id) });
+    this.groups = groups;
+    for (const g of groups) {
+      const keys = g.panels.map((id) => TABS.find((t) => t.id === id).key.toUpperCase()).join(' ');
+      const e = el('div', { class: 'tab', id: 'grp-' + g.id, onclick: () => {
+        const cur = this.tab && g.panels.includes(this.tab);
+        this.openTab(cur ? null : (this._lastInGroup?.[g.id] && g.panels.includes(this._lastInGroup[g.id]) ? this._lastInGroup[g.id] : g.panels[0]));
+      } }, el('span', { html: icon(g.icon) }), el('span', { class: 'lbl' }, g.name));
+      e._tip = () => `<div class="tt-title">${g.name}</div><span class="muted">${g.panels.map((id) => PANELS[id].name + ' <b>' + PANELS[id].key.toUpperCase() + '</b>').join('<br>')}</span>`;
+      void keys;
       this.tabsEl.append(e);
     }
   }
   openTab(id) {
     this.tab = id;
-    for (const t of TABS) this.tabsEl.querySelector('#tab-' + t.id).classList.toggle('on', t.id === id);
+    const grp = id ? groupOf(id) : null;
+    if (grp) (this._lastInGroup ||= {})[grp.id] = id;
+    for (const e of this.tabsEl.children) e.classList.toggle('on', !!grp && e.id === 'grp-' + grp.id);
     if (!id) { this.panel.classList.add('hidden'); this.provEl.classList.remove('shift'); this.emit('tab', null); return; }
+    const first = this.panel.classList.contains('hidden');
     this.panel.classList.remove('hidden');
+    if (first) { this.panel.style.animation = 'none'; void this.panel.offsetWidth; this.panel.style.animation = ''; }
     this.renderPanel(true);
     this.emit('tab', id);
   }
@@ -83,24 +114,56 @@ export class UI {
     const sc = body ? body.scrollTop : 0;
     this.panel.innerHTML = '';
     const tdef = TABS.find((t) => t.id === this.tab);
-    this.panel.append(el('div', { class: 'ph' }, el('div', { class: 'frame-title' }, tdef.icon + '  ' + tdef.name), el('span', { class: 'x', onclick: () => this.openTab(null) }, '✕')));
+    const grp = (this.groups || []).find((g) => g.panels.includes(this.tab));
+    const ph = el('div', { class: 'ph' }, el('div', { class: 'top' },
+      el('div', { class: 'frame-title' }, el('span', { html: icon(PANEL_ICON[this.tab] || 'grid') }), tdef.name),
+      el('span', { class: 'x', onclick: () => this.openTab(null), html: icon('x') })));
+    if (grp && grp.panels.length > 1) {
+      const gt = el('div', { class: 'grouptabs' });
+      for (const id of grp.panels) {
+        const d = PANELS[id];
+        gt.append(el('div', { class: 'gtab' + (id === this.tab ? ' on' : ''), id: 'tab-' + id, onclick: () => this.openTab(id) }, el('span', { html: icon(PANEL_ICON[id] || 'grid') }), d.name.replace(/ & .*/, '')));
+      }
+      ph.append(gt);
+    } else ph.append(el('div', { style: { height: '12px' } }));
+    this.panel.append(ph);
     const pb = el('div', { class: 'pb scroll' });
     this.panel.append(pb);
     P.render(this, pb);
     pb.scrollTop = sc;
+    this.refreshTabDots();
+  }
+  // alerts.js tells us which panels want attention
+  setTabDots(set) { this._dotPanels = set; this.refreshTabDots(); }
+  refreshTabDots() {
+    const set = this._dotPanels || new Set();
+    for (const g of this.groups || []) {
+      const e = this.tabsEl.querySelector('#grp-' + g.id);
+      if (!e) continue;
+      const on = g.panels.some((p) => set.has(p)), d = e.querySelector('.dot');
+      if (on && !d) e.append(el('span', { class: 'dot' })); else if (!on && d) d.remove();
+    }
+    for (const t of TABS) {
+      const e = this.panel.querySelector('#tab-' + t.id);
+      if (!e) continue;
+      const on = set.has(t.id), d = e.querySelector('.dot');
+      if (on && !d) e.append(el('span', { class: 'dot' })); else if (!on && d) d.remove();
+    }
   }
 
   // ── map modes & minimap
   buildModes() {
-    const bar = el('div', { class: 'modebar frame' });
-    for (const [id, ic, nm] of MODES) {
-      const b = el('div', { class: 'mode' + (id === this.v.mode ? ' on' : ''), onclick: () => { this.v.setMode(id); [...bar.children].forEach((c) => c.classList.toggle('on', c._id === id)); } }, ic);
-      b._id = id; b._tip = () => `<b>${nm}</b> map mode`;
-      bar.append(b);
-    }
-    this.mm = el('canvas', { id: 'minimap', width: 260, height: 238 });
-    const wrap = el('div', { class: 'frame', style: { padding: '3px' } }, this.mm);
-    this.modesEl.append(bar, wrap);
+    const cur = () => MODES.find((m) => m[0] === this.v.mode) || MODES[0];
+    this.modeBtn = el('div', { class: 'modebtn frame', id: 'modebtn', onclick: (e) => { e.stopPropagation(); this.toggleModeMenu(); } });
+    const paint = () => { const m = cur(); this.modeBtn.innerHTML = `${icon(m[1])}<span>${m[2]}</span>${icon('chevu')}`; };
+    paint();
+    this.v.on('mode', () => { paint(); if (this.modeMenu) this.toggleModeMenu(false); });
+    this.modeBtn._tip = () => 'Change what the map shows';
+    this.mm = el('canvas', { id: 'minimap', width: 204, height: 150 });
+    const wrap = el('div', { class: 'frame mm-wrap' }, this.mm);
+    this.modesEl.append(this.modeBtn, wrap);
+    this._modesDoc = () => this.toggleModeMenu(false);
+    document.addEventListener('pointerdown', (e) => { if (this.modeMenu && !this.modeMenu.contains(e.target) && !this.modeBtn.contains(e.target)) this.toggleModeMenu(false); });
     const go = (e) => {
       const r = this.mm.getBoundingClientRect();
       this.v.flyTo((e.clientX - r.left) / r.width * this.v.map.W, (e.clientY - r.top) / r.height * this.v.map.H);
@@ -109,6 +172,19 @@ export class UI {
     this.mm.addEventListener('pointerdown', (e) => { down = true; go(e); });
     window.addEventListener('pointerup', () => { down = false; });
     this.mm.addEventListener('pointermove', (e) => { if (down) go(e); });
+  }
+  toggleModeMenu(force) {
+    const open = force === undefined ? !this.modeMenu : force;
+    if (this.modeMenu) { this.modeMenu.remove(); this.modeMenu = null; }
+    if (!open) return;
+    const menu = el('div', { class: 'modemenu frame' });
+    for (const [id, ic, nm, desc] of MODES) {
+      const row = el('div', { class: 'mode' + (id === this.v.mode ? ' on' : ''), onclick: (e) => { e.stopPropagation(); this.v.setMode(id); this.sfx?.('click'); } }, el('span', { html: icon(ic) }), nm);
+      row._tip = () => `<div class="tt-title">${nm}</div>${desc}`;
+      menu.append(row);
+    }
+    this.modeBtn.append(menu);
+    this.modeMenu = menu;
   }
   drawMinimap() {
     const cv = this.mm, ctx = cv.getContext('2d');
@@ -120,7 +196,7 @@ export class UI {
       for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
         const sx = Math.floor(x / cv.width * W), sy = Math.floor(y / cv.height * H), i = sy * W + sx, p = pid[i];
         const o = (y * cv.width + x) * 4;
-        if (p < 0 || p >= L || land[i] !== 1) { img.data[o] = 22; img.data[o + 1] = 52; img.data[o + 2] = 74; img.data[o + 3] = 255; continue; }
+        if (p < 0 || p >= L || land[i] !== 1) { img.data[o] = 21; img.data[o + 1] = 44; img.data[o + 2] = 62; img.data[o + 3] = 255; continue; }
         const c0 = ci(p, 0), c1 = ci(p, 1);
         img.data[o] = D[c0]; img.data[o + 1] = D[c0 + 1]; img.data[o + 2] = D[c0 + 2]; img.data[o + 3] = 255;
         if (D[c1 + 3] && (x + y) % 3 === 0) { img.data[o] = D[c1]; img.data[o + 1] = D[c1 + 1]; img.data[o + 2] = D[c1 + 2]; }
@@ -130,7 +206,7 @@ export class UI {
     ctx.putImageData(this.mmImg, 0, 0);
     const c = this.v.cam;
     const vw = c.d * 1.35, vh = c.d * 0.8;
-    ctx.strokeStyle = '#f0d48a'; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#f3dc9c'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 3;
     ctx.strokeRect((c.x - vw / 2) / W * cv.width, (c.z - vh / 2) / H * cv.height, vw / W * cv.width, vh / H * cv.height);
     // player's armies
     ctx.fillStyle = '#fff';
@@ -189,14 +265,25 @@ export class UI {
   }
 
   // ── toasts, alerts and modals
-  toast(title, text, icon = '📜', onclick, level = 'info') {
+  toast(title, text, icon = 'scroll', onclick, level = 'info') {
     // Settings: 'important' hides routine feedback, 'critical' shows only war, peace, revolt and ruin (errors always show)
     const v = this.settings?.toasts || 'all';
     if (v !== 'all' && icon !== '🚫' && level !== 'critical' && !(v === 'important' && level === 'important')) return;
-    const t = el('div', { class: 'toast frame', onclick: () => { onclick && onclick(); t.remove(); } }, el('div', { class: 'ti' }, icon), el('div', {}, el('div', { class: 'tt' }, title), el('div', { class: 'small' }, text)));
+    const t = el('div', { class: 'toast frame lv-' + level, onclick: () => { onclick && onclick(); t.remove(); } }, el('div', { class: 'ti' }, icon), el('div', {}, el('div', { class: 'tt' }, title), el('div', { class: 'small muted' }, text)));
     this.toasts.prepend(t);
-    while (this.toasts.children.length > 5) this.toasts.lastChild.remove();
-    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 6500);
+    while (this.toasts.children.length > 4) this.toasts.lastChild.remove();
+    this.sfx?.(level === 'critical' ? 'alert' : 'toast');
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, level === 'critical' ? 9000 : 6000);
+  }
+  // Big centred announcement (war declared, peace, coronation, battle). kind: 'war' | 'peace' | 'gold' | 'battle'
+  banner(kicker, title, sub = '', kind = 'gold') {
+    const host = document.getElementById('banners');
+    if (!host) return;
+    const b = el('div', { class: 'banner ' + kind }, el('div', { class: 'bn-k' }, kicker), el('div', { class: 'bn-t' }, title), sub ? el('div', { class: 'bn-s' }, sub) : null);
+    host.append(b);
+    while (host.children.length > 2) host.firstChild.remove();
+    setTimeout(() => b.remove(), 3900);
+    if (kind === 'war') { const f = el('div', { id: 'flash', style: { background: 'radial-gradient(circle, rgba(255,120,90,.45), rgba(255,120,90,0) 65%)' } }); document.body.append(f); setTimeout(() => f.remove(), 800); }
   }
   modal(build, { dismiss = true, cls = '' } = {}) {
     const back = el('div', { class: 'modal-back' });

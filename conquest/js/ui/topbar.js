@@ -1,8 +1,15 @@
-// Top bar: realm, resources with breakdown tooltips, date and game speed.
+// Top bar: realm badge, resource pills with breakdown tooltips, date and game speed.
 // Mixed into UI.prototype (this = the UI).
-import { el, fmt, signed, dateStr } from '../util.js';
+import { el, fmt, signed, dateOf, MONTHS, season } from '../util.js';
 import { coaSVG } from './heraldry.js';
+import { icon } from './icons.js';
 import { GOVS } from '../data/government.js';
+
+// [key, icon, name, icon colour class]
+const MAIN = [['gold', 'coin', 'Gold', 'ic-gold'], ['food', 'wheat', 'Food', 'ic-amber'], ['manpower', 'people', 'Manpower', 'ic-blue'],
+  ['prestige', 'star', 'Prestige', 'ic-violet'], ['legitimacy', 'crown', 'Legitimacy', 'ic-gold'], ['stability', 'scales', 'Stability', 'ic-teal']];
+const MORE = [['iron', 'hammer', 'Iron', ''], ['timber', 'log', 'Timber', ''], ['horses', 'horse', 'Horses', ''], ['warExhaustion', 'skull', 'War Exhaustion', 'ic-red']];
+const SPEED_NAMES = ['Paused', 'Slow', 'Normal', 'Fast', 'Faster', 'Fastest'];
 
 export const TopbarMixin = {
   // ── top bar
@@ -10,52 +17,78 @@ export const TopbarMixin = {
     const n = this.P;
     this.topbar.innerHTML = '';
     const realm = el('div', { class: 'realm', onclick: () => this.openTab('realm') });
-    realm.innerHTML = `${coaSVG(n.coa, 30)}<div><div class="nm">${n.name}</div><div class="rl" id="tb-ruler"></div></div>`;
+    realm.innerHTML = `${coaSVG(n.coa, 32)}<div style="min-width:0"><div class="nm">${n.name}</div><div class="rl" id="tb-ruler"></div></div>`;
     this.topbar.append(realm);
     this.resEl = el('div', { class: 'res' });
-    const R = [
-      ['gold', '🪙', 'Gold'], ['food', '🌾', 'Food'], ['manpower', '👥', 'Manpower'], ['iron', '⚒', 'Iron'], ['timber', '🪵', 'Timber'], ['horses', '🐎', 'Horses'],
-      ['prestige', '⭐', 'Prestige'], ['legitimacy', '👑', 'Legitimacy'], ['stability', '⚖', 'Stability'], ['warExhaustion', '💀', 'War Exhaustion'],
-    ];
     this.resItems = {};
-    for (const [k, ic, nm] of R) {
-      const it = el('div', { class: 'res-item' }, el('div', { class: 'v' }, el('span', { class: 'ic' }, ic), el('span', { class: 'vv' }, '')), el('div', { class: 'd' }, nm));
+    const pill = (k, ic, nm, cls) => {
+      const it = el('div', { class: 'res-item', id: 'res-' + k }, el('span', { html: icon(ic, { cls }) }), el('div', { class: 'v' }, el('span', { class: 'vv' }, '')));
       it._tip = () => this.resTip(k);
       this.resItems[k] = it;
-      this.resEl.append(it);
-    }
+      return it;
+    };
+    for (const [k, ic, nm, cls] of MAIN) this.resEl.append(pill(k, ic, nm, cls));
+    const more = el('div', { class: 'res-item more', onclick: () => this.toggleMoreRes() }, el('span', { html: icon('chevd') }), el('span', { class: 'tiny', id: 'more-lbl' }, 'More'));
+    more._tip = () => 'Iron, timber, horses and war exhaustion';
+    this.moreBtn = more;
+    this.resEl.append(more);
+    for (const [k, ic, nm, cls] of MORE) pill(k, ic, nm, cls);
+    this.moreEl = el('div', { id: 'more-res', class: 'frame hidden' });
+    for (const [k, , nm] of MORE) { const it = this.resItems[k]; it.classList.add('mr'); it.dataset.nm = nm; this.moreEl.append(it); }
+    this.root.append(this.moreEl);
     this.topbar.append(this.resEl);
     const tb = el('div', { class: 'timebox' });
     this.dateEl = el('div', { class: 'date', onclick: () => this.togglePause() });
     this.dateEl._tip = () => '<b>Space</b> pause · <b>1–5</b> game speed';
     this.speedsEl = el('div', { class: 'speeds' });
-    for (let i = 1; i <= 5; i++) this.speedsEl.append(el('div', { class: 'sp', onclick: () => this.setSpeed(i) }));
-    tb.append(el('div', { class: 'btn icon', onclick: () => this.togglePause(), id: 'pausebtn' }, '⏸'), this.dateEl, this.speedsEl,
-      el('div', { class: 'btn icon menu-btn', onclick: () => this.gameMenu(), 'data-tip': 'Game menu: save, load, settings' }, '☰'));
+    for (let i = 1; i <= 5; i++) { const sp = el('div', { class: 'sp', onclick: () => this.setSpeed(i) }); sp._tip = () => `${SPEED_NAMES[i]} <span class="muted">(${i})</span>`; this.speedsEl.append(sp); }
+    this.playBtn = el('div', { class: 'playbtn', id: 'pausebtn', onclick: () => this.togglePause() });
+    tb.append(this.dateEl, this.playBtn, this.speedsEl,
+      el('div', { class: 'btn icon ghost menu-btn', onclick: () => this.gameMenu(), 'data-tip': 'Game menu: save, load, settings', html: icon('menu', { size: 18 }) }));
     this.topbar.append(tb);
+    this._moreOpen = false;
     this.updateTopbar();
+  },
+  toggleMoreRes() {
+    this._moreOpen = !this._moreOpen;
+    this.moreEl.classList.toggle('hidden', !this._moreOpen);
+    this.moreBtn.classList.toggle('open', this._moreOpen);
+    if (this._moreOpen) {
+      const r = this.moreBtn.getBoundingClientRect();
+      this.moreEl.style.left = Math.max(8, r.left + r.width / 2 - 100) + 'px';
+      this.updateTopbar();
+    }
   },
   updateTopbar() {
     const n = this.P, g = this.g;
     if (!n) return;
     const B = this._budget && this._budgetDay === this.s.day ? this._budget : (this._budget = g.budget(n.id), this._budgetDay = this.s.day, this._budget);
-    const set = (k, v, cls) => { const e = this.resItems[k].querySelector('.vv'); e.textContent = v; e.className = 'vv ' + (cls || ''); };
-    set('gold', `${fmt(n.gold)} (${signed(B.net, 1)})`, n.gold < 0 ? 'neg' : B.net < 0 ? 'neg' : '');
-    set('food', `${fmt(n.food)} (${signed(B.foodNet, 1)})`, n.food < 0 ? 'neg' : B.foodNet < 0 ? 'neg' : '');
+    const set = (k, v, cls, sub) => {
+      const e = this.resItems[k].querySelector('.vv');
+      const html = sub ? `${v}<small class="${sub[1]}">${sub[0]}</small>` : v;
+      if (e._h !== html) { e._h = html; e.innerHTML = html; }
+      e.className = 'vv ' + (cls || '');
+    };
+    const dl = (v, d = 1) => [signed(v, d), v < 0 ? 'neg' : 'pos'];
+    set('gold', fmt(n.gold), n.gold < 0 ? 'neg' : '', dl(B.net));
+    set('food', fmt(n.food), n.food < 0 ? 'neg' : '', dl(B.foodNet));
     set('manpower', `${fmt(n.manpower)}`, n.manpower < n.maxManpower * 0.15 ? 'neg' : '');
     set('iron', fmt(n.iron)); set('timber', fmt(n.timber)); set('horses', fmt(n.horses));
     set('prestige', fmt(n.prestige)); set('legitimacy', Math.round(n.legitimacy), n.legitimacy < 40 ? 'neg' : '');
     set('stability', signed(n.stability, 1), n.stability < 0 ? 'neg' : n.stability > 0 ? 'pos' : '');
     set('warExhaustion', n.warExhaustion.toFixed(1), n.warExhaustion > 5 ? 'neg' : '');
-    this.resItems.warExhaustion.style.display = n.warExhaustion > 0.05 ? '' : 'none';
-    this.dateEl.textContent = dateStr(this.s.day);
+    const lbl = document.getElementById('more-lbl');
+    if (lbl) lbl.textContent = n.warExhaustion > 0.05 ? `+4 · ${n.warExhaustion.toFixed(1)} WE` : 'More';
+    const d = dateOf(this.s.day);
+    const html = `${d.d} ${MONTHS[d.m]} ${d.y}<small>${this.speed ? SPEED_NAMES[this.speed] : 'Paused'} · ${season(this.s.day)}</small>`;
+    if (this.dateEl._h !== html) { this.dateEl._h = html; this.dateEl.innerHTML = html; }
     this.dateEl.classList.toggle('paused', this.speed === 0);
-    [...this.speedsEl.children].forEach((e, i) => e.classList.toggle('on', i < (this.speed || this.lastSpeed) && this.speed > 0));
+    [...this.speedsEl.children].forEach((e, i) => e.classList.toggle('on', i < (this.speed || 0) && this.speed > 0));
     const rl = this.topbar.querySelector('#tb-ruler');
     const r = this.s.chars[n.ruler];
     if (rl) rl.textContent = `${g.rulerTitle(n)} ${g.charName(r)} · ${GOVS[n.gov].name}`;
-    const pb = this.topbar.querySelector('#pausebtn');
-    if (pb) pb.textContent = this.speed === 0 ? '▶' : '⏸';
+    const want = this.speed === 0 ? 'play' : 'pause';
+    if (this.playBtn._w !== want) { this.playBtn._w = want; this.playBtn.innerHTML = icon(want); }
   },
   resTip(k) {
     const n = this.P, g = this.g, B = g.budget(n.id);

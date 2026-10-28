@@ -38,10 +38,7 @@ export const AlertsMixin = {
     if (!n.lawVote && n.prestige > 40 && this.s.day > 60 && this.s.day % 365 < 3) A.push(['law', '📜', 'Consider reforming the laws', () => this.openTab('laws'), false]);
     const tabOf = { research: 'progress', ambition: 'progress', crown: 'progress', form: 'progress', hoard: 'economy', ambition: 'progress', crown: 'progress', spend: 'treasury', focus: 'focus', council: 'court', law: 'laws', peace: 'wars', gold: 'economy', food: 'economy', idle: 'military', general: 'military' };
     const tabs = new Set(A.map((a) => tabOf[a[0]]).filter(Boolean));
-    for (const t of this.tabsEl.children) {
-      const on = tabs.has(t.id.slice(4)), d = t.querySelector('.dot');
-      if (on && !d) t.append(el('span', { class: 'dot' })); else if (!on && d) d.remove();
-    }
+    this.setTabDots(tabs);
     const key = A.map((a) => a[0] + (a[5] || '')).join(',');
     if (key === this._alertKey) return;
     this._alertKey = key;

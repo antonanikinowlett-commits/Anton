@@ -1,6 +1,7 @@
 // Outliner: collapsible right-side list of armies, fronts, sieges and construction.
 // Mixed into UI.prototype (this = the UI).
 import { el, fmt } from '../util.js';
+import { icon } from './icons.js';
 
 export const OutlinerMixin = {
   buildOutliner() {
@@ -8,6 +9,7 @@ export const OutlinerMixin = {
     this.root.append(this.outEl);
     this._outKey = null;
     this._outOpen = this._outOpen || { Goals: true, Recent: true, Armies: true, Fronts: true, Sieges: true, Construction: true };
+    if (this._outCollapsed === undefined) this._outCollapsed = true;
     this.root.classList.toggle('out-closed', !!this._outCollapsed);
   },
   outlinerData() {
@@ -50,14 +52,17 @@ export const OutlinerMixin = {
     E.innerHTML = '';
     E.classList.toggle('collapsed', !!this._outCollapsed);
     this.root.classList.toggle('out-closed', !!this._outCollapsed);
-    const head = el('div', { class: 'ph', onclick: () => { this._outCollapsed = !this._outCollapsed; this._outKey = null; this.updateOutliner(); } },
-      el('div', { class: 'frame-title grow' }, this._outCollapsed ? '☰' : 'Outliner'), el('span', { class: 'x' }, this._outCollapsed ? '◀' : '▶'));
+    const chip = (ic, n) => (n ? `<span>${icon(ic)}${n}</span>` : '');
+    const head = el('div', { class: 'ph', onclick: () => { this._outCollapsed = !this._outCollapsed; this._outKey = null; this.updateOutliner(); this.sfx?.('click'); } },
+      el('div', { class: 'frame-title' }, 'Outliner'),
+      el('div', { class: 'oc', html: this._outCollapsed ? chip('swords', D.armies.length) + chip('shield', D.frs.length) + chip('castle', D.sieges.length) + chip('hammer', D.cons.length) : '' }),
+      el('span', { class: 'x', html: icon(this._outCollapsed ? 'chevd' : 'chevu') }));
     E.append(head);
     if (this._outCollapsed) return;
     const body = el('div', { class: 'ob scroll' });
     const sec = (name, count, rows) => {
       const open = this._outOpen[name];
-      body.append(el('div', { class: 'osec', onclick: () => { this._outOpen[name] = !open; this._outKey = null; this.updateOutliner(); } }, (open ? '▾ ' : '▸ ') + name, el('span', { class: 'muted' }, ' ' + count)));
+      body.append(el('div', { class: 'osec', onclick: () => { this._outOpen[name] = !open; this._outKey = null; this.updateOutliner(); } }, el('span', { html: icon(open ? 'chevd' : 'chevr'), style: { width: '12px', display: 'inline-flex' } }), name, el('span', { class: 'muted' }, ' ' + count)));
       if (open) for (const r of rows) body.append(r);
     };
     const row = (icon, label, right, fn, cls = '') => el('div', { class: 'orow ' + cls, onclick: fn }, el('span', { class: 'oi' }, icon), el('span', { class: 'grow' }, label), el('span', { class: 'muted small' }, right));

@@ -1,4 +1,5 @@
 // Shared helpers: seeded randomness, noise, math and formatting.
+import { iconize, hasEmoji } from './ui/icons.js';
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
@@ -125,10 +126,15 @@ export function el(tag, attrs = {}, ...kids) {
     if (k === 'class') e.className = v;
     else if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
     else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
-    else if (k === 'html') e.innerHTML = v;
+    else if (k === 'html') e.innerHTML = iconize(v);
     else e.setAttribute(k, v === true ? '' : v);
   }
-  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  for (const c of kids.flat()) {
+    if (c === null || c === undefined || c === false) continue;
+    if (c instanceof Node) { e.append(c); continue; }
+    const t = String(c);
+    if (hasEmoji(t)) e.insertAdjacentHTML('beforeend', iconize(t.replace(/&/g, '&amp;').replace(/</g, '&lt;'))); else e.append(document.createTextNode(t));
+  }
   return e;
 }
 
