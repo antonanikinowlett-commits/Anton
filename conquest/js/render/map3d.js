@@ -40,7 +40,7 @@ float edgeDist(vec2 tc){ vec4 ed = texture2D(tEdge, tc/provSize); return ed.r*8.
 
 const LAND_FS = `
 precision highp float;
-uniform sampler2D tTerrain, tProv, tEdge, tCol, tNoise;
+uniform sampler2D tTerrain, tProv, tEdge, tCol, tNoise, tDepth;
 uniform vec2 provSize; uniform float uPolAlpha, uBorderAlpha, uTime, uNear, uSnow, uTerrainMode, uL, uFar, uRealmW, uProvW;
 uniform vec3 uSun;
 varying vec2 vUv; varying vec3 vN; varying vec3 vW;
@@ -64,7 +64,11 @@ void main(){
   float alt = smoothstep(4.5, 7.5, vW.y);
   float snow = clamp(uSnow * (north * smoothstep(0.42, 0.55, dn*0.5 + dn2*0.5 + north*0.3) + alt * 0.8), 0.0, 0.8);
   lit = mix(lit, vec3(0.93,0.95,0.98)*(0.78+0.3*lam), snow);
-  if (id < 0.5 || id > uL) { gl_FragColor = vec4(lit, 1.0); return; }
+  if (id < 0.5 || id > uL) {
+    // the sea bed only matters in the shallows; open water is a flat deep tone (no stray bake artefacts)
+    float sd = texture2D(tDepth, vUv).r;
+    gl_FragColor = vec4(mix(lit, vec3(0.07,0.17,0.26), smoothstep(0.08, 0.3, sd)), 1.0); return;
+  }
   vec4 c0 = colFor(id,0.0); vec4 c1 = colFor(id,1.0); vec4 c2 = colFor(id,2.0);
   float own = dec(c2);
   vec2 tc = vUv*provSize;
@@ -109,10 +113,11 @@ void main(){
   float fl = floor(c2.b*255.0+0.5);
   float sel = mod(fl,2.0), hov = mod(floor(fl/2.0),2.0), tgt = mod(floor(fl/4.0),2.0), clm = mod(floor(fl/8.0),2.0);
   if (clm > 0.5) { float st = step(0.88, fract((vW.x + vW.z)*0.55)); col = mix(col, vec3(1.0,0.92,0.55), st*0.22); }
-  if (hov > 0.5) col = mix(col, vec3(1.0,0.97,0.85), 0.16);
+  if (hov > 0.5) { col = mix(col, vec3(1.0,0.97,0.85), 0.16); float eh = oLand ? 1.0 - smoothstep(max(1.3*tpp, 0.08) - aa, max(1.3*tpp, 0.08) + aa, af) : 0.0; col = mix(col, vec3(1.0,0.96,0.8), eh*0.6); }
   if (tgt > 0.5) col = mix(col, vec3(0.95,0.25,0.15), 0.22 + 0.1*sin(uTime*5.0));
   float neg = mod(floor(fl/16.0),2.0);
-  float edgeAll = oLand ? 1.0 - smoothstep(1.2*tpp - aa, 1.2*tpp + aa, af) : 0.0;
+  float eW = max(1.7*tpp, 0.10);
+  float edgeAll = oLand ? 1.0 - smoothstep(eW - aa, eW + aa, af) : 0.0;
   if (neg > 0.5 && tgt < 0.5) { col = mix(col, vec3(1.0,0.95,0.8), 0.12); col = mix(col, vec3(0.95,0.8,0.4), edgeAll*0.7); }
   if (neg > 0.5 && tgt > 0.5) col = mix(col, vec3(1.0,0.85,0.3), edgeAll);
   if (sel > 0.5) { col = mix(col, vec3(1.0,0.9,0.55), 0.20 + 0.06*sin(uTime*3.0)); col = mix(col, vec3(1.0,0.85,0.3), edgeAll); }

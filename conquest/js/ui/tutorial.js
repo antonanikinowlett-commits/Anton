@@ -72,8 +72,13 @@ export class Tutorial {
     if (st.next) row.append(el('div', { class: 'btn primary small', onclick: () => { if (st.last) { this.stop(); return; } this.i++; this.show(); } }, st.last ? 'Finish' : 'Next ›'));
     row.append(el('div', { class: 'btn small', onclick: () => this.stop() }, 'Skip tutorial'));
     this.card.append(row);
-    document.body.append(this.card);
+    this.col().prepend(this.card);
     this.place(st);
+  }
+  col() {
+    let c = document.getElementById('guide-col');
+    if (!c) { c = el('div', { id: 'guide-col' }); document.body.append(c); }
+    return c;
   }
   place(st) {
     // The card lives in the right-hand column (below the outliner) so it never sits on top of a control;
@@ -82,7 +87,7 @@ export class Tutorial {
     this.card.style.visibility = modal ? 'hidden' : '';
     if (modal) this.ring?.remove();
     const out = document.getElementById('outliner');
-    this.card.style.top = Math.max(124, (out ? out.getBoundingClientRect().bottom : 114) + 10) + 'px';
+    this.col().style.top = Math.max(124, (out ? out.getBoundingClientRect().bottom : 114) + 10) + 'px';
     const sel = st.target && st.target.replace(/^#tab-(\w+)$/, (m, id) => this.ui.tabTarget(id));
     const tgt = sel && document.querySelector(sel);
     if (tgt && tgt.offsetParent !== null) {
@@ -109,7 +114,8 @@ export class Tutorial {
     this.seen.add(id);
     store.set('cc_hints', JSON.stringify([...this.seen]));
     const h = el('div', { class: 'tut-hint frame' }, el('div', { class: 'tt' }, '💡 ' + title), el('div', { class: 'small', html: text }), el('div', { class: 'btn small', style: { marginTop: '6px' }, onclick: () => h.remove() }, 'Understood'));
-    document.body.append(h);
+    this.col().append(h);
+    this.col().style.top = Math.max(124, (document.getElementById('outliner')?.getBoundingClientRect().bottom ?? 114) + 10) + 'px';
     setTimeout(() => h.remove(), 25000);
   }
   watch() {

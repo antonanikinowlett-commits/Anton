@@ -4,6 +4,7 @@ import { coaSVG } from '../heraldry.js';
 import { CB_TYPES } from '../../sim/diplomacy.js';
 import { registerPanel } from './registry.js';
 import { describeDemand } from './common.js';
+import { icon } from '../icons.js';
 
 registerPanel({ id: 'wars', icon: '🔥', name: 'Wars & Peace', key: 'x', order: 80, render(ui, pb) {
   const g = ui.g, n = ui.P, s = g.s;
@@ -20,7 +21,7 @@ registerPanel({ id: 'wars', icon: '🔥', name: 'Wars & Peace', key: 'x', order:
   }
   const mine = g.warsOf(n.id);
   pb.append(el('div', { class: 'section' }, 'Our Wars'));
-  if (!mine.length) pb.append(el('div', { class: 'small muted' }, 'The realm is at peace. To start a war, pick a target in Diplomacy; you need a casus belli to avoid stability penalties.'));
+  if (!mine.length) pb.append(el('div', { class: 'empty', html: `<div class="ic-green">${icon('dove', { size: 46 })}</div><div class="empty-t">The realm is at peace</div><div class="small muted">To start a war, pick a target in Diplomacy. Without a casus belli it costs stability.</div>` }));
   for (const w of mine) pb.append(warCard(ui, w, true));
   const others = Object.values(s.wars).filter((w) => !mine.includes(w));
   if (others.length) {

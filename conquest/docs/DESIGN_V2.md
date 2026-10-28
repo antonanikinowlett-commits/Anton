@@ -123,3 +123,14 @@ Settings (`cc_settings.sound`). No external files; default volume 0.5.
   principal axis, small caps, letter-spaced, 0.55 opacity; fade out at close zoom.
 - Armies: banner standards (flag in realm colour, pole, strength pip row by unit class: ●inf ▲cav ◆siege ◗ranged),
   never a bare number; size scales with zoom.
+
+## 10. Implementation notes (for other workstreams)
+- **Adding a panel**: `registerPanel({ id, icon, name, key, render })` as before. To put it in a dock group add its id to `GROUPS` in `js/ui/ui.js` (otherwise it lands in a "More" group) and an icon name to `PANEL_ICON`. Panel markup should use the component classes above (`.card`, `.stat-grid`, `.section`, `.chip`, `.btn.primary`, `.bar`, `.empty`).
+- **Icons**: write emoji in strings if you like — `el()`, `innerHTML` and `textContent` convert every emoji in `icons.js`'s `EMOJI` table to an inline SVG (`emoji_patch.js`). Prefer `icon('name')` / `unitIcon(type)` for new code; add new glyphs to `ICONS` (24×24, `currentColor`).
+- **Feedback**: `ui.sfx('click'|'panel'|'toast'|'alert'|'coin'|'horn'|'clash'|'fanfare'|'page'|'peace'|'error')`, `ui.banner(kicker, title, sub, 'war'|'peace'|'gold')`, `ui.toast(title, text, iconOrEmoji, onclick, level)`; `view.flashProvince(p)` for a battle ring.
+- **Map**: borders come from `buildEdgeField` (terrain.js) → `tProv`/`tEdge` textures; `LAND_FS` in `map3d.js` draws the political wash, constant-width realm/province lines and selection outlines. Terrain symbols are painted by `symbols.js` into the baked texture.
+- **Tools**: `node tools/shots.cjs <dir> 1600x900 r,m,i` (start screen, map, panels; env `SEL=1 EVENT=1 UIX=1 ZOOM=0`), `node tools/mapshot.cjs <dir> 1600x900 x,z,d …` (camera in map px).
+
+## 11. Status
+Done: identity + tokens, top bar, dock groups, panel chrome, tech graph, army cards, treasury cards, start screen, tutorial guide column, banners/toasts, WebAudio sfx + settings, smooth borders, painterly far-zoom wash, symbols, curved labels, banner standards.
+Ideas next: per-realm label emblems, animated unit pips in battle, ledger sparklines, vellum treaty view for peace deals.

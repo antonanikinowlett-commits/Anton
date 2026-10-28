@@ -22,7 +22,8 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1822; color: var(--tx-1); font-family: var(--ui); font-size: 14px; line-height: 1.4;
-  user-select: none; -webkit-user-select: none; font-feature-settings: "tnum", "cv11"; -webkit-font-smoothing: antialiased; }
+  user-select: none; -webkit-user-select: none; font-feature-settings: "tnum", "cv11"; font-variant-numeric: lining-nums; -webkit-font-smoothing: antialiased; }
+button, input, select, .date, .stat b, .pname, .frame-title, .toast .tt { font-variant-numeric: lining-nums; }
 #app { position: fixed; inset: 0; }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: default; }
 #overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
@@ -138,8 +139,9 @@ select option { background: var(--ink-850); }
 .res-item .v .vv small { font-size: 11px; font-weight: 500; margin-left: 4px; opacity: .9; }
 .res-item .d { display: none; }
 .res-item.more { cursor: pointer; padding: 5px 9px; color: var(--tx-2); } .res-item.more.open { background: rgba(232, 197, 109, .12); border-color: rgba(232, 197, 109, .4); }
-#more-res { position: absolute; top: 56px; z-index: 25; padding: var(--s3); display: grid; grid-template-columns: repeat(2, auto); gap: 8px 22px; }
-#more-res .mr { display: flex; align-items: center; gap: 8px; font-weight: 600; } #more-res .mr small { color: var(--tx-3); font-weight: 400; margin-left: auto; }
+#more-res { position: absolute; top: 60px; z-index: 25; padding: var(--s2); display: grid; grid-template-columns: 1fr; gap: 2px; min-width: 200px; border-radius: var(--r2); }
+#more-res .res-item { background: none; border: 0; border-radius: var(--r1); padding: 6px 10px; } #more-res .res-item:hover { background: rgba(255,255,255,.06); }
+#more-res .res-item::after { content: attr(data-nm); color: var(--tx-3); font-size: 12px; font-weight: 500; margin-left: auto; padding-left: 18px; }
 .timebox { display: flex; align-items: center; gap: var(--s2); flex: 0 0 auto; }
 .date { font-family: var(--display); font-size: 21px; font-weight: 700; color: var(--gold-300); min-width: 138px; text-align: right; cursor: pointer; line-height: 1; white-space: nowrap; }
 .date small { display: block; font-family: var(--ui); font-size: 10px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--tx-3); margin-top: 3px; }
@@ -290,7 +292,7 @@ select option { background: var(--ink-850); }
 @keyframes toastOut { to { transform: translateY(-10px); opacity: 0; } }
 
 /* ── announcement banners */
-#banners { position: fixed; left: 0; right: 0; top: 24%; z-index: 80; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+#banners { position: fixed; left: 0; right: 0; top: 36%; z-index: 80; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .banner { min-width: 460px; max-width: 80vw; padding: 20px 56px 22px; text-align: center; position: relative; animation: bannerIn .5s var(--ease), bannerOut .6s ease-in 3.2s forwards;
   background: linear-gradient(90deg, transparent, rgba(7, 11, 18, .92) 14%, rgba(7, 11, 18, .92) 86%, transparent); }
 .banner::before, .banner::after { content: ''; position: absolute; left: 6%; right: 6%; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-400), transparent); }
@@ -407,7 +409,9 @@ select option { background: var(--ink-850); }
 .dz-go { width: 100%; }
 
 /* ── tutorial: a guide card in the right-hand column, never over the controls */
-.tut { position: fixed; z-index: 70; right: 14px; top: 124px; width: 320px; padding: 14px 16px 14px; animation: toastIn .4s var(--ease); border-radius: var(--r3); overflow: hidden; }
+#guide-col { position: fixed; z-index: 70; right: 14px; top: 124px; width: 320px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; max-height: calc(100vh - 360px); overflow: hidden; }
+#guide-col > * { pointer-events: auto; }
+.tut { position: relative; width: 320px; padding: 14px 16px 14px; animation: toastIn .4s var(--ease); border-radius: var(--r3); overflow: hidden; }
 .tut .tp-bar { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255, 255, 255, .08); } .tut .tp-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-600), var(--gold-300)); transition: width .4s var(--ease); }
 .tut .tp { font-size: 10px; color: var(--gold-400); letter-spacing: .16em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
 .tut .tt { font-family: var(--display); color: var(--tx-1); font-size: 24px; font-weight: 700; margin-bottom: 6px; line-height: 1.05; }
@@ -416,7 +420,7 @@ select option { background: var(--ink-850); }
 .tut .row { margin-top: 12px; }
 .tut-ring { position: fixed; z-index: 69; pointer-events: none; border: 2px solid var(--gold-300); border-radius: var(--r2); box-shadow: 0 0 22px rgba(232, 197, 109, .6); animation: ring 1s infinite alternate; transition: all .25s var(--ease); }
 @keyframes ring { to { box-shadow: 0 0 6px rgba(232, 197, 109, .3); } }
-.tut-hint { position: fixed; z-index: 69; right: 14px; bottom: 236px; width: 320px; padding: 12px 14px; animation: toastIn .3s var(--ease); border-radius: var(--r2); }
+.tut-hint { position: relative; width: 320px; padding: 12px 14px; animation: toastIn .3s var(--ease); border-radius: var(--r2); }
 .tut-hint .tt { font-family: var(--display); color: var(--gold-300); font-size: 19px; font-weight: 700; }
 
 /* ── template designer */
@@ -494,3 +498,11 @@ select option { background: var(--ink-850); }
 
 /* the guide card keeps the right-hand column clear: wide panels give way to it */
 #ui.tut-on #panel.wide { width: min(1120px, calc(100vw - 88px - 352px)); }
+
+.empty { text-align: center; padding: 28px 16px; border: 1px dashed var(--line-2); border-radius: var(--r2); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.empty-t { font-family: var(--display); font-size: 24px; font-weight: 700; }
+
+.btn:hover:not(.disabled):not([disabled]) { transform: translateY(-1px); }
+.btn:active { transform: translateY(1px) !important; }
+:focus-visible { outline: 2px solid var(--gold-400); outline-offset: 2px; border-radius: 4px; }
+.tab:focus-visible, .btn:focus-visible { outline-offset: 1px; }
