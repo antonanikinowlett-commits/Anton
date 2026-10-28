@@ -56,7 +56,7 @@ export class Tutorial {
     this.show();
     this.timer = setInterval(() => this.check(), 300);
   }
-  stop() { this.active = false; clearInterval(this.timer); this.card?.remove(); this.ring?.remove(); }
+  stop() { this.active = false; clearInterval(this.timer); this.card?.remove(); this.ring?.remove(); this.ui.root.classList.remove('tut-on'); }
   show() {
     const S = this.steps();
     this.card?.remove(); this.ring?.remove();
@@ -65,8 +65,9 @@ export class Tutorial {
     if (st.onEnter) st.onEnter();
     // skip steps the player has already accomplished
     if (st.done && st.done() && !st.next) { this.i++; return this.show(); }
+    this.ui.root.classList.add('tut-on');
     this.card = el('div', { class: 'tut frame' });
-    this.card.innerHTML = `<div class="tt">${st.t}</div><div class="tx">${st.x}</div><div class="tp">Step ${this.i + 1} of ${S.length}</div>`;
+    this.card.innerHTML = `<div class="tp-bar"><i style="width:${Math.round(100 * (this.i + 1) / S.length)}%"></i></div><div class="tp">Guide · step ${this.i + 1} of ${S.length}</div><div class="tt">${st.t}</div><div class="tx">${st.x}</div>`;
     const row = el('div', { class: 'row', style: { marginTop: '8px' } });
     if (st.next) row.append(el('div', { class: 'btn primary small', onclick: () => { if (st.last) { this.stop(); return; } this.i++; this.show(); } }, st.last ? 'Finish' : 'Next ›'));
     row.append(el('div', { class: 'btn small', onclick: () => this.stop() }, 'Skip tutorial'));
@@ -75,29 +76,21 @@ export class Tutorial {
     this.place(st);
   }
   place(st) {
-    // never sit on top of an event dialog; stay clear of an open side panel
+    // The card lives in the right-hand column (below the outliner) so it never sits on top of a control;
+    // a pulsing ring marks the thing it talks about.
     const modal = document.querySelector('.modal-back');
-    const pan = document.querySelector('#panel:not(.hidden)');
     this.card.style.visibility = modal ? 'hidden' : '';
     if (modal) this.ring?.remove();
-    const tgt = st.target && document.querySelector(st.target);
+    const out = document.getElementById('outliner');
+    this.card.style.top = Math.max(124, (out ? out.getBoundingClientRect().bottom : 114) + 10) + 'px';
+    const sel = st.target && st.target.replace(/^#tab-(\w+)$/, (m, id) => this.ui.tabTarget(id));
+    const tgt = sel && document.querySelector(sel);
     if (tgt && tgt.offsetParent !== null) {
       const r = tgt.getBoundingClientRect();
       this.ring ||= el('div', { class: 'tut-ring' });
       if (!this.ring.isConnected) document.body.append(this.ring);
       Object.assign(this.ring.style, { left: r.left - 5 + 'px', top: r.top - 5 + 'px', width: r.width + 10 + 'px', height: r.height + 10 + 'px' });
-      let x = r.right + 16, y = r.top;
-      if (x + 370 > innerWidth) x = Math.max(10, r.left - 376);
-      if (r.width > innerWidth * 0.5) { x = r.left + 20; y = r.bottom + 14; }
-      if (y + 220 > innerHeight) y = innerHeight - 240;
-      Object.assign(this.card.style, { left: x + 'px', top: Math.max(64, y) + 'px' });
-    } else {
-      this.ring?.remove();
-      const pr = pan && pan.getBoundingClientRect();
-      if (pr && pr.right + 376 < innerWidth - 270) Object.assign(this.card.style, { left: pr.right + 16 + 'px', top: '110px', transform: '' });
-      else if (pr) this.card.style.visibility = 'hidden';
-      else Object.assign(this.card.style, { left: '50%', top: '110px', transform: 'translateX(-50%)' });
-    }
+    } else this.ring?.remove();
   }
   check() {
     if (!this.active) return;

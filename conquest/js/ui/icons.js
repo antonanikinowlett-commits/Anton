@@ -23,7 +23,7 @@ export const ICONS = {
   anchor: '<path fill-rule="evenodd" d="M12 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z M12 3.2a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6z"/><path d="M11 6h2v14h-2z M8 9h8v1.8H8z M3 14h2c0 3 3 5 7 5s7-2 7-5h2c0 5-4 8-9 8s-9-3-9-8z"/>',
   cross: '<path d="M10.5 2h3v6.5H20v3h-6.5V22h-3V11.5H4v-3h6.5z"/>',
   orthodox: '<path d="M10.8 2h2.4v3H18v2H6V5h4.8zM10.8 5h2.4v17h-2.4zM5 9.5h14v2.2H5zM8 17l8-2.2v2L8 19z"/>',
-  coin: '<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/><path d="M11 8h2v8h-2z"/>',
+  coin: '<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15z M12 7.5l3.5 4.5-3.5 4.5L8.5 12z"/>',
   pillars: '<path d="M12 2l10 5v2H2V7z M4 10h3v8H4z M10.5 10h3v8h-3z M17 10h3v8h-3z M2 19h20v3H2z"/>',
   scales: '<path d="M11 4h2v15h-2z M7 20h10v2H7z M3 6h18v2H3z M5.5 8l3.5 7H2z M18.5 8l3.5 7h-7z M2 15.5h7a3.5 3 0 0 1-7 0z M15 15.5h7a3.5 3 0 0 1-7 0z"/>',
   bag: '<path fill-rule="evenodd" d="M8 2h8l-2 4c4 2 6 6 6 11 0 3-2 5-8 5s-8-2-8-5c0-5 2-9 6-11z M10.5 11.5h3v1.5h-3z M10.5 14.5h3V16h-3z"/>',
@@ -97,6 +97,7 @@ export const ICONS = {
   eye: '<path fill-rule="evenodd" d="M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7z M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>',
   gem: '<path d="M6 3h12l4 6-10 13L2 9z"/>',
   hourglass: '<path d="M6 2h12v2l-5 7 5 7v4H6v-4l5-7-5-7z"/>',
+  pin: '<path fill-rule="evenodd" d="M12 2a6.500 6.500 0 0 0-6.500 6.500C5.500 13 12 22 12 22s6.500-9 6.500-13.500A6.500 6.500 0 0 0 12 2z M12 6a2.500 2.500 0 1 1 0 5 2.500 2.500 0 0 1 0-5z"/>',
   drop: '<path d="M12 2s7 7.5 7 13a7 7 0 0 1-14 0c0-5.5 7-13 7-13z"/>',
   grid: '<path d="M3 3h8v8H3z M13 3h8v8h-8z M3 13h8v8H3z M13 13h8v8h-8z"/>',
 };
@@ -160,3 +161,11 @@ export function iconize(html) {
   }
   return out + str.slice(last).replace(EMOJI_RE, (x, e) => icon(EMOJI[e]));
 }
+
+// Regiment type -> pictogram, used by the military panels and map pips.
+export const UNIT_ICON = {
+  levy_spear: 'spear', men_at_arms: 'helmet', pikemen: 'trident', varangians: 'axe', almogavars: 'sword', archers: 'bow', longbowmen: 'bow', crossbowmen: 'crossbow',
+  light_cav: 'horse', knights: 'horse', horse_archers: 'horse', mamluks: 'crescent', templars: 'cross', mangonel: 'trebuchet', trebuchet: 'trebuchet', ram: 'hammer',
+  cog: 'ship', galley: 'ship', longship: 'ship',
+};
+export const unitIcon = (type, opts) => icon(UNIT_ICON[type] || 'sword', opts);

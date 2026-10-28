@@ -4,6 +4,7 @@
 import { el } from '../util.js';
 import { icon, iconize } from './icons.js';
 import { installEmojiPatch } from './emoji_patch.js';
+import { sfx } from './sfx.js';
 import { coaSVG } from './heraldry.js';
 import { PANELS, TABS } from './panels.js';
 import { BattleViewer } from './battleview.js';
@@ -48,6 +49,7 @@ export class UI {
     this.battleViewer = new BattleViewer(this);
   }
   on(ev, fn) { (this.listeners[ev] ||= []).push(fn); }
+  sfx(name) { sfx.play(name); }
   emit(ev, ...a) { for (const f of this.listeners[ev] || []) f(...a); }
   get s() { return this.g.s; }
   get P() { return this.g.player; }
@@ -67,7 +69,20 @@ export class UI {
     if (!document.getElementById('banners')) document.body.append(el('div', { id: 'banners' }));
     this.buildOutliner();
     this.buildTopbar(); this.buildTabs(); this.buildModes();
-    this.setupTooltips(); this.setupKeys(); this.hook();
+    this.setupTooltips(); this.setupKeys(); this.hook(); this.setupSounds();
+  }
+
+  // click feedback on every interactive chrome element, plus a context unlock for WebAudio
+  setupSounds() {
+    if (this._soundsOn) return;
+    this._soundsOn = true;
+    const CLICKABLE = '.btn, .tab, .gtab, .subtab, .mode, .modebtn, .card.click, .lawopt, .bslot, .nitem, .tech-node, .fnode, .res-item.more, .alert, .x, .reg, .orow, .osec, .playbtn, .speeds .sp';
+    document.addEventListener('pointerdown', (e) => {
+      sfx.unlock();
+      const t = e.target.closest && e.target.closest(CLICKABLE);
+      if (!t || t.classList.contains('disabled') || t.hasAttribute('disabled')) return;
+      sfx.play(t.classList.contains('tab') || t.classList.contains('gtab') ? 'panel' : 'click');
+    }, true);
   }
 
 
@@ -90,6 +105,12 @@ export class UI {
       void keys;
       this.tabsEl.append(e);
     }
+  }
+  // selector of the control that opens a panel: its tab in the open panel's header, else the dock button of its group
+  tabTarget(id) {
+    if (this.panel && !this.panel.classList.contains('hidden') && this.panel.querySelector('#tab-' + id)) return '#panel #tab-' + id;
+    const g = (this.groups || []).find((x) => x.panels.includes(id));
+    return g ? '#grp-' + g.id : '#tabs';
   }
   openTab(id) {
     this.tab = id;
@@ -386,6 +407,22 @@ export class UI {
       if (['War!', 'Peace Offer'].includes(n.title) && this.settings?.pauseOnWar !== false) this.setSpeed(0);
     });
     g.on('event', () => { if (!this._eventOpen) this.showEvent(); });
+    g.on('log', (text, o) => {
+      if (!o || !o.important) return;
+      let m;
+      if (o.type === 'war' && (m = /^(.+) declares war on (.+)! \((.+)\)$/.exec(text))) { this.banner('War declared', `${m[1]} · ${m[2]}`, m[3], 'war'); sfx.play('horn'); }
+      else if ((m = /^Peace: the (.+) ends\. Terms: (.+)\.$/.exec(text))) { this.banner('Peace', `The ${m[1]} is ended`, m[2], 'peace'); sfx.play('peace'); }
+    });
+    g.on('coronation', (nid, rank) => {
+      if (nid !== this.s.player) return;
+      const n = this.s.nations[nid];
+      this.banner('Coronation', `${n.name} is raised`, `Henceforth a ${g.rankInfo(nid).name || 'greater realm'}`, 'gold');
+      sfx.play('fanfare');
+    });
+    g.on('battle', (id) => {
+      const b = this.s.battles[id], pl = this.s.player;
+      if (b && (b.attN === pl || b.defN === pl)) { sfx.play('clash'); this.v.flashProvince?.(b.prov); }
+    });
     // a freshly mustered army announces itself, is selected and the camera goes to it
     g.on('mustered', (id) => {
       const a = this.s.armies[id]; if (!a) return;
