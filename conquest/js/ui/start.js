@@ -33,45 +33,79 @@ const BLURB = {
 };
 const GREAT = ['ENG', 'FRA', 'HRE', 'BYZ', 'CAS', 'ALM', 'AYY', 'HUN', 'VEN', 'SIC', 'POL', 'DEN', 'RUM', 'PAP'];
 
+// Title art, drawn in code: a gilded crown over a laurel rule.
+const CROWN_SVG = `<svg class="crown-art" viewBox="0 0 140 104" width="112" aria-hidden="true">
+  <defs>
+    <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1c4"/><stop offset=".45" stop-color="#e8b94e"/><stop offset="1" stop-color="#8a5c14"/></linearGradient>
+    <linearGradient id="cg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <clipPath id="cc"><path d="M14 84 L22 30 L48 58 L70 14 L92 58 L118 30 L126 84 Z"/></clipPath>
+  </defs>
+  <path d="M14 84 L22 30 L48 58 L70 14 L92 58 L118 30 L126 84 Z" fill="url(#cg)" stroke="#5a3a0c" stroke-width="2.5" stroke-linejoin="round"/>
+  <g clip-path="url(#cc)"><rect class="shine" x="-60" y="0" width="50" height="104" fill="url(#cg2)" transform="skewX(-20)"/></g>
+  <path d="M30 70 L36 44 L52 64 L70 30 L88 64 L104 44 L110 70" fill="none" stroke="#fff3c8" stroke-opacity=".55" stroke-width="1.6" stroke-linejoin="round"/>
+  <rect x="12" y="84" width="116" height="14" rx="4" fill="url(#cg)" stroke="#5a3a0c" stroke-width="2.5"/>
+  <g fill="#c8372f" stroke="#5a1a14" stroke-width="1.4"><circle cx="40" cy="91" r="3.6"/><circle cx="70" cy="91" r="3.6"/><circle cx="100" cy="91" r="3.6"/></g>
+  <g fill="#fff3c8" stroke="#5a3a0c" stroke-width="1.6"><circle cx="22" cy="28" r="5.5"/><circle cx="70" cy="12" r="6.5"/><circle cx="118" cy="28" r="5.5"/></g>
+</svg>`;
+const RULE_SVG = `<svg class="rule-art" viewBox="0 0 320 16" width="260" aria-hidden="true"><path d="M0 8 H128 M192 8 H320" stroke="#b2832a" stroke-width="1.2" opacity=".8"/><path d="M160 1 L169 8 L160 15 L151 8 Z" fill="#e8c56d" stroke="#7a5a1c"/><circle cx="138" cy="8" r="2.5" fill="#e8c56d"/><circle cx="182" cy="8" r="2.5" fill="#e8c56d"/></svg>`;
+const DIFF_TEXT = ['', 'A mighty realm: forgiving, with many ways to win.', 'A solid state with room to grow, but real rivals.', 'Contested borders and few resources. Expect hardship.', 'A fragile realm among giants. Only for the bold.'];
+
 export class StartScreen {
-  constructor(ui, onStart) { this.ui = ui; this.g = ui.g; this.v = ui.v; this.onStart = onStart; this.sel = null; }
+  constructor(ui, onStart) { this.ui = ui; this.g = ui.g; this.v = ui.v; this.onStart = onStart; this.sel = null; this.hard = false; this.tut = true; }
   show() {
     const g = this.g;
     this.root = el('div', { id: 'start' });
+    const hero = el('div', { class: 'start-hero' });
+    hero.innerHTML = `${CROWN_SVG}<div class="t1">Crown <em>&amp;</em> Conquest</div>${RULE_SVG}<div class="t2">Europe · Anno Domini MCC</div>`;
     const left = el('div', { class: 'start-left frame' });
-    left.append(el('div', { class: 'start-title' }, el('div', { class: 't1' }, 'Crown & Conquest'), el('div', { class: 't2' }, 'EUROPE · ANNO DOMINI MCC')));
     const save = store.get('cc_saves');
     if (save && JSON.parse(save).length) {
       const last = JSON.parse(save).slice(-1)[0];
-      left.append(el('div', { class: 'row', style: { padding: '0 10px 8px' } }, el('div', { class: 'btn primary grow', style: { justifyContent: 'center' }, onclick: () => { this.close(); this.ui.emit('load', last.key); } }, `▶ Continue: ${last.name}`)));
+      left.append(el('div', { class: 'row', style: { padding: '12px 12px 0' } }, el('div', { class: 'btn primary grow', style: { justifyContent: 'center' }, onclick: () => { this.close(); this.ui.emit('load', last.key); } }, `▶ Continue: ${last.name}`)));
     }
-    left.append(el('div', { class: 'section', style: { margin: '0 10px' } }, 'Choose your realm', el('span', { class: 'tiny muted' }, 'or click the map')));
+    const head = el('div', { class: 'section', style: { margin: '14px 16px 8px' } }, 'Choose your realm', el('span', { class: 'tiny muted' }, 'or click the map'));
+    left.append(head);
+    const search = el('input', { type: 'text', placeholder: 'Search realms…', class: 'start-search', oninput: (e) => this.filter(e.target.value) });
+    left.append(el('div', { style: { padding: '0 14px 6px' } }, search));
     const list = el('div', { class: 'nlist scroll' });
     const nations = g.s.nations.filter((n) => n.alive);
     const power = new Map(nations.map((n) => [n.id, g.power(n.id)]));
     const rank = [...nations].sort((a, b) => power.get(b.id) - power.get(a.id));
-    const diff = (n) => { const r = rank.indexOf(n); return r < 10 ? 1 : r < 25 ? 2 : r < 45 ? 3 : 4; };
+    this.diff = (n) => { const r = rank.indexOf(n); return r < 10 ? 1 : r < 25 ? 2 : r < 45 ? 3 : 4; };
     const DN = ['', 'Easy', 'Normal', 'Hard', 'Very hard'];
     const groups = [['Great Powers', nations.filter((n) => GREAT.includes(n.tag))], ['Kingdoms & Principalities', nations.filter((n) => !GREAT.includes(n.tag) && n.gov !== 'tribal')], ['Tribes & Hordes', nations.filter((n) => n.gov === 'tribal')]];
-    this.items = new Map();
+    this.items = new Map(); this.heads = [];
     for (const [title, ns] of groups) {
-      list.append(el('div', { class: 'tag', style: { margin: '8px 4px 4px' } }, title));
+      const h = el('div', { class: 'tag grp-head' }, title);
+      list.append(h); this.heads.push([h, []]);
       ns.sort((a, b) => power.get(b.id) - power.get(a.id));
       for (const n of ns) {
-        const d = diff(n);
+        const d = this.diff(n);
         const it = el('div', { class: 'nitem', onclick: () => this.select(n.id) });
-        it.innerHTML = `${coaSVG(n.coa, 24)}<span class="grow nn">${n.name}</span><span class="diff d${d}">${DN[d]}</span>`;
+        it.dataset.name = n.name.toLowerCase();
+        it.innerHTML = `${coaSVG(n.coa, 28)}<div class="grow"><div class="nn">${n.name}</div><div class="tiny muted">${GOVS[n.gov].name} · ${g.ownedProvinces(n.id).length} provinces</div></div><span class="diff d${d}">${DN[d]}</span>`;
         list.append(it);
         this.items.set(n.id, it);
+        this.heads[this.heads.length - 1][1].push(it);
       }
     }
     left.append(list);
-    this.right = el('div', { class: 'start-right frame hidden' });
-    this.root.append(left, this.right);
+    this.right = el('div', { class: 'dossier hidden' });
+    const foot = el('div', { class: 'start-foot' });
+    foot.append(el('div', { class: 'btn ghost small', onclick: () => this.ui.settingsModal() }, '⚙ Settings'));
+    this.root.append(hero, left, this.right, foot);
     document.getElementById('ui').append(this.root);
     this.onClick = (p) => { if (p >= 0 && p < g.L) this.select(g.s.prov[p].owner); };
     this.v.on('provinceClick', this.onClick);
     this.select(g.nationByTag('FRA').id, false);
+  }
+  filter(q) {
+    q = q.trim().toLowerCase();
+    for (const [h, its] of this.heads) {
+      let any = false;
+      for (const it of its) { const ok = !q || it.dataset.name.includes(q); it.style.display = ok ? '' : 'none'; any ||= ok; }
+      h.style.display = any ? '' : 'none';
+    }
   }
   select(nid, fly = true) {
     const g = this.g, n = g.s.nations[nid];
@@ -84,19 +118,30 @@ export class StartScreen {
     const owned = g.ownedProvinces(nid);
     const nb = g.neighbours(nid).map((x) => g.s.nations[x]).sort((a, b) => g.power(b.id) - g.power(a.id)).slice(0, 6);
     const men = g.armiesOf(nid).reduce((t, a) => t + g.armyMen(a), 0);
+    const d = this.diff(n), DN = ['', 'Easy', 'Normal', 'Hard', 'Very hard'];
     this.right.classList.remove('hidden');
-    this.right.innerHTML = `<div style="padding:12px"><div class="row" style="gap:12px">${coaSVG(n.coa, 64)}<div><div class="pname" style="font-size:20px">${n.name}</div><div class="muted small">${GOVS[n.gov].name} · ${n.religion} · ${n.culture}</div></div></div>
-      <div class="row" style="margin-top:10px"><span class="portrait">${portraitSVG(r, g, 56)}</span><div><b>${g.rulerTitle(n)} ${g.charName(r)}</b><div class="small muted">age ${r ? g.age(r) : '?'}</div></div></div>
-      <p style="font-style:italic;line-height:1.4">${BLURB[n.tag] || `A ${GOVS[n.gov].name.toLowerCase()} of ${owned.length} provinces. Survive among powerful neighbours, and perhaps one day rival them.`}</p>
+    this.right.style.animation = 'none'; void this.right.offsetWidth; this.right.style.animation = '';
+    this.right.innerHTML = `<div class="dz-top"><div class="dz-coa">${coaSVG(n.coa, 84)}</div><div class="grow"><div class="dz-name">${n.name}</div>
+        <div class="dz-chips"><span>${GOVS[n.gov].name}</span><span>${n.religion}</span><span>${n.culture}</span></div></div></div>
+      <div class="dz-diff d${d}"><b>${DN[d]}</b> · ${DIFF_TEXT[d]}</div>
+      <div class="dz-ruler"><span class="portrait">${portraitSVG(r, g, 54)}</span><div><div class="tag">${g.rulerTitle(n)}</div><div class="dz-rn">${g.charName(r)}</div><div class="small dz-mut">age ${r ? g.age(r) : '?'}</div></div></div>
+      <p class="dz-blurb">${BLURB[n.tag] || `A ${GOVS[n.gov].name.toLowerCase()} of ${owned.length} provinces. Survive among powerful neighbours, and perhaps one day rival them.`}</p>
       <div class="stat-grid"><div class="stat"><b>${owned.length}</b>Provinces</div><div class="stat"><b>${fmt(men)}</b>Soldiers</div><div class="stat"><b>${fmt(n.gold)}</b>Gold</div></div>
-      <div class="section">Neighbours</div><div class="row wrap">${nb.map((x) => `<span class="chip">${coaSVG(x.coa, 14)} ${x.name}</span>`).join('')}</div></div>`;
-    const foot = el('div', { style: { padding: '0 12px 12px' } });
-    const tut = el('input', { type: 'checkbox', checked: 'checked', id: 'tutchk' });
-    foot.append(el('label', { class: 'row small', style: { marginBottom: '8px' } }, tut, 'Play with the interactive tutorial'));
-    const diff = el('select', { id: 'diffsel' }, el('option', { value: 'normal' }, 'Normal'), el('option', { value: 'hard' }, 'Hard: richer, warlike rivals who target you'));
-    foot.append(el('label', { class: 'row small', style: { marginBottom: '8px', gap: '8px' } }, 'Difficulty', diff));
-    foot.append(el('div', { class: 'btn primary', style: { width: '100%', justifyContent: 'center', fontSize: '17px', padding: '9px' }, onclick: () => { const t = tut.checked; this.close(); this.onStart(n.tag, t, diff.value); } }, `⚔  Rule the ${n.adj}`));
+      <div class="dz-nb"><span class="tag">Neighbours</span>${nb.map((x) => `<span class="chip">${coaSVG(x.coa, 14)} ${x.name}</span>`).join('')}</div>`;
+    const foot = el('div', { class: 'dz-foot' });
+    const tut = el('input', { type: 'checkbox', id: 'tutchk' });
+    tut.checked = this.tut; tut.onchange = () => { this.tut = tut.checked; };
+    foot.append(el('label', { class: 'row small' }, tut, 'Guided tutorial'));
+    const seg = el('div', { class: 'seg' });
+    const diffSel = el('input', { type: 'hidden', id: 'diffsel', value: this.hard ? 'hard' : 'normal' });
+    for (const [v, label, tip] of [['normal', 'Normal', 'Standard rivals'], ['hard', 'Hard', 'Richer, warlike rivals who target you']]) {
+      const b = el('div', { class: 'seg-b' + ((v === 'hard') === this.hard ? ' on' : ''), onclick: () => { this.hard = v === 'hard'; diffSel.value = v; [...seg.children].forEach((c) => c.classList.toggle('on', c === b)); } }, label);
+      b._tip = () => tip;
+      seg.append(b);
+    }
+    foot.append(seg, diffSel);
     this.right.append(foot);
+    this.right.append(el('div', { class: 'btn primary big dz-go', onclick: () => { const t = tut.checked; this.close(); this.onStart(n.tag, t, this.hard ? 'hard' : 'normal'); } }, `⚔  Rule the ${n.adj}`));
   }
   close() {
     if (!this.root) return;

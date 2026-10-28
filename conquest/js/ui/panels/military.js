@@ -6,6 +6,7 @@ import { INNOV } from '../../data/innovations.js';
 import { UNITS, UNIT_ORDER, unitAvailable, unitReqText, TERRAIN_COMBAT } from '../../data/units.js';
 import { DOCTRINES } from '../../data/tactics.js';
 import { unitTip } from '../tips.js';
+import { icon, unitIcon } from '../icons.js';
 import { registerPanel } from './registry.js';
 import { H, subtabs, barHTML } from './common.js';
 
@@ -16,17 +17,26 @@ registerPanel({ id: 'military', icon: '⚔', name: 'Military', key: 'm', order: 
   if (cur === 'armies') {
     const as = g.armiesOf(n.id);
     const tot = as.reduce((t, a) => t + g.armyMen(a), 0);
-    pb.append(H(`<div class="small">${as.length} armies · ${fmt(tot)} men · manpower ${fmt(n.manpower)}/${fmt(n.maxManpower)}</div>`));
-    const tb = el('table', { class: 'tbl' });
-    tb.innerHTML = '<tr><th>Army</th><th>Men</th><th>Morale</th><th>Location</th><th>General</th></tr>';
+    pb.append(H(`<div class="stat-grid"><div class="stat"><b>${as.length}</b>Armies</div><div class="stat"><b>${fmt(tot)}</b>Men under arms</div><div class="stat"><b>${fmt(n.manpower)}</b>Manpower of ${fmt(n.maxManpower)}</div></div>`));
+    if (!as.length) pb.append(H('<div class="card" style="margin-top:10px">You have no armies. Open <b>Mustering</b> or the <b>Army Templates</b> to raise one.</div>'));
+    const list = el('div', { class: 'col', style: { marginTop: '12px', gap: '8px' } });
     for (const a of as) {
-      const tr = el('tr', { class: 'click', onclick: () => ui.selectArmies([a.id], true) });
-      const gen = g.generalOf(a);
-      tr.innerHTML = `<td>${a.battle ? '⚔ ' : a.path.length ? '➜ ' : ''}${a.name}</td><td>${fmt(g.armyMen(a))}</td><td>${barHTML(g.armyMorale(a), 'green', '50px')}</td><td class="small">${ui.v.map.provinces[a.loc].name}</td><td class="small ${gen ? '' : 'neg'}">${gen ? g.charName(gen) : 'none'}</td>`;
-      tb.append(tr);
+      const gen = g.generalOf(a), men = g.armyMen(a), max = g.armyMax(a), morale = g.armyMorale(a);
+      const tally = new Map();
+      for (const r of a.regs) tally.set(r.type, (tally.get(r.type) || 0) + 1);
+      const status = a.battle ? ['In battle', 'bad', 'swords'] : s.prov[a.loc]?.siege?.by === n.id && !a.path.length ? ['Besieging', 'warn', 'castle'] : a.path.length ? ['Marching', 'info', 'arrow'] : a.retreating ? ['Retreating', 'warn', 'arrow'] : ['Idle', '', 'hourglass'];
+      const c = el('div', { class: 'card army-card click' + (ui.selArmies.includes(a.id) ? ' sel' : ''), onclick: () => ui.selectArmies([a.id], true) });
+      c.innerHTML = `<div class="ac-top"><div class="ac-flag" style="background:${n.color}"></div>
+        <div class="grow"><div class="ac-name">${a.name}</div><div class="small muted">${icon('pin')} ${ui.v.map.provinces[a.loc].name}${a.path.length ? ' → ' + ui.v.map.provinces[a.path[a.path.length - 1]].name : ''}</div></div>
+        <div style="text-align:right"><span class="chip ${status[1]}">${icon(status[2])} ${status[0]}</span></div></div>
+        <div class="row" style="gap:14px"><div class="grow"><div class="row between tiny muted"><span>Strength</span><span><b class="gold">${fmt(men)}</b> / ${fmt(max)}</span></div>${barHTML(men / Math.max(1, max), men / Math.max(1, max) < 0.5 ? 'red' : '')}</div>
+        <div style="width:110px"><div class="row between tiny muted"><span>Morale</span><span>${Math.round(morale * 100)}%</span></div>${barHTML(morale, morale < 0.4 ? 'red' : 'green')}</div></div>
+        <div class="unit-pips">${[...tally].map(([t, k]) => `<span class="unit-pip" data-tip="${UNITS[t].name}">${unitIcon(t)}<b>${k}</b></span>`).join('')}</div>
+        <div class="row between tiny"><span class="${gen ? 'muted' : 'neg'}">${icon(gen ? 'crown' : 'warn')} ${gen ? g.charName(gen) : 'No general'}</span><span class="muted">${a.regs.length} regiments</span></div>`;
+      list.append(c);
     }
-    pb.append(tb);
-    pb.append(el('div', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Click an army to select it, then right-click a province to march. Armies reinforce from manpower when in friendly land.'));
+    pb.append(list);
+    pb.append(el('div', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Click an army to select it, then right-click a province to march. Armies reinforce from manpower when in friendly land.'));
     pb.append(el('div', { class: 'section' }, 'Military Record'));
     pb.append(H(`<div class="small">Battles won ${n.stats.won}, lost ${n.stats.lost} · enemies slain ${fmt(n.stats.killed)} · our dead ${fmt(n.stats.lostMen)}</div>`));
   } else if (cur === 'fronts') frontsPanel(ui, pb);

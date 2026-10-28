@@ -1,8 +1,9 @@
 // Game menu: save, load, settings, controls.
 // Mixed into UI.prototype (this = the UI).
 import { el, store } from '../util.js';
+import { sfx } from './sfx.js';
 
-export const SETTING_DEFAULTS = { pauseOnWar: true, autoBattle: false, tutorial: true, pauseOnEvents: true, uiScale: 1, toasts: 'all', quality: 'high', autosave: true };
+export const SETTING_DEFAULTS = { pauseOnWar: true, autoBattle: false, tutorial: true, pauseOnEvents: true, uiScale: 1, toasts: 'all', quality: 'high', autosave: true, sound: true, volume: 0.5 };
 
 export const MenuMixin = {
   // settings persist in the browser; `over` overrides (e.g. the tutorial choice at the start screen)
@@ -18,6 +19,7 @@ export const MenuMixin = {
     const set = this.settings || SETTING_DEFAULTS;
     if (this.root) this.root.style.zoom = set.uiScale === 1 ? '' : String(set.uiScale);
     if (this.v?.setQuality) this.v.setQuality(set.quality);
+    sfx.configure({ sound: set.sound, volume: set.volume });
   },
   exportSave() {
     const g = this.g, n = g.player;
@@ -44,6 +46,8 @@ export const MenuMixin = {
         sel('toasts', 'Notifications', [['all', 'All'], ['important', 'Important only'], ['critical', 'Critical only (war, peace, revolt)']]),
         chk('pauseOnEvents', 'Pause the game while an event is open'), chk('pauseOnWar', 'Pause when war is declared on us or peace is offered'),
         chk('autoBattle', 'Open the battle viewer automatically when our battles begin'), chk('tutorial', 'Show tutorial hints'));
+      mb.append(el('div', { class: 'section' }, 'Sound'), chk('sound', 'Sound effects'),
+        el('label', { class: 'row small', style: { gap: '8px' } }, 'Volume', el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: set.volume ?? 0.5, style: { flex: 1, accentColor: '#d9a93f' }, oninput: (e) => { set.volume = +e.target.value; change(); }, onchange: () => sfx.play('coin') })));
       mb.append(el('div', { class: 'section' }, 'Graphics'),
         sel('quality', 'Quality', [['low', 'Low: no trees or mountains, fast'], ['med', 'Medium'], ['high', 'High']]));
       mb.append(el('div', { class: 'section' }, 'Saves'), chk('autosave', 'Autosave every January'),

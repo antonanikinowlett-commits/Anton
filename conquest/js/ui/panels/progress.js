@@ -36,37 +36,83 @@ function innovTip(g, nid, i, state) {
   return h;
 }
 
+// ── technology graph: one branch at a time, eras as columns, prerequisite links drawn as curves
+const NODE_W = 196, NODE_H = 76, GAP_X = 120, GAP_Y = 12, TOP = 66, LEFT = 20;
+const BRANCH_ICON = { military: 'swords', civic: 'scroll', agri: 'wheat', sea: 'anchor' };
+const ERA_ICON = ['hourglass', 'castle', 'cap'];
+const shortMods = (mods) => {
+  const first = Object.entries(mods || {})[0];
+  if (!first) return '';
+  const [k, v] = first, [name, pct] = MOD_LABELS[k] || [k, 0];
+  const val = pct === 1 ? `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` : pct === 100 ? `${v > 0 ? '+' : ''}${(v * 100).toFixed(1)}` : `${v > 0 ? '+' : ''}${+v.toFixed(2)}`;
+  const more = Object.keys(mods).length - 1;
+  return `${val} ${name}${more > 0 ? ` +${more}` : ''}`;
+};
+
 function renderInnovations(ui, pb, g, n) {
   const p = n.prog, cur = p.cur ? INNOV[p.cur] : null;
-  const top = el('div', { class: 'card hl', style: { marginBottom: '8px' } });
+  const branch = ui.subtab.techBranch && BRANCHES[ui.subtab.techBranch] ? ui.subtab.techBranch : (cur ? cur.branch : 'military');
+  // header: current research and rate
+  const top = el('div', { class: 'row', style: { gap: '12px', marginBottom: '12px', alignItems: 'stretch' } });
+  const now = el('div', { class: 'card hl grow' });
   if (cur) {
-    const c = g.innovCost(n.id, cur.id);
-    top.innerHTML = ico(`<b>Researching: ${sic(cur.icon, FALLBACK[cur.branch])} ${cur.name}</b> <span class="muted small">${Math.floor(p.pts)} / ${c} points · +${p.rp.toFixed(1)} per month</span>`) + barHTML(p.pts / c, 'blue');
-  } else top.innerHTML = ico(`<b class="neg">Nothing is being researched.</b> <span class="muted small">+${g.researchRate(n.id).toFixed(1)} points per month${p.pts > 0 ? ` (${Math.floor(p.pts)} banked)` : ''}. Choose an innovation below.</span>`);
+    const c = g.innovCost(n.id, cur.id), left = Math.max(0, c - p.pts), months = p.rp > 0 ? Math.ceil(left / p.rp) : '∞';
+    now.innerHTML = ico(`<div class="row"><span class="tn-ic ic-gold" style="display:inline-flex">${sic(cur.icon, FALLBACK[cur.branch], 26)}</span><div class="grow"><div class="tag">Researching</div><div style="font-family:var(--display);font-size:24px;font-weight:700;line-height:1.1">${cur.name}</div><div class="small muted">${shortMods(cur.mods)}</div></div>
+      <div style="text-align:right"><div class="stat" style="background:none;border:0;padding:0"><b>${months}</b>months left</div></div></div>`) + `<div style="margin-top:8px">${barHTML(p.pts / c, 'blue')}</div><div class="tiny muted" style="margin-top:3px">${Math.floor(p.pts)} / ${c} points · +${p.rp.toFixed(1)} per month</div>`;
+  } else now.innerHTML = ico(`<div class="row"><span class="ic-red" style="display:inline-flex">${icon('flask', { size: 30 })}</span><div class="grow"><div style="font-family:var(--display);font-size:22px;font-weight:700">Nothing is being researched</div><div class="small muted">+${g.researchRate(n.id).toFixed(1)} points per month${p.pts > 0 ? ` (${Math.floor(p.pts)} banked)` : ''}. Pick a glowing innovation below.</div></div></div>`);
+  top.append(now);
   pb.append(top);
-  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))', gap: '8px' } });
+  // branch selector
+  const sel = el('div', { class: 'grid2', style: { gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '12px' } });
   for (const b of Object.keys(BRANCHES)) {
-    const col = el('div');
-    col.append(H(ico(`<div class="frame-title" style="font-size:13px;margin-bottom:4px">${sic(BRANCHES[b].icon)} ${BRANCHES[b].name}</div>`)));
-    for (let e = 0; e < ERAS.length; e++) {
-      col.append(H(`<div class="muted small" style="margin:6px 0 2px">${ERAS[e].name}</div>`));
-      for (const i of INNOVATIONS.filter((x) => x.branch === b && x.era === e)) {
-        const done = p.known.includes(i.id), now = p.cur === i.id, avail = g.innovAvailable(n.id, i.id);
-        const state = done ? 'done' : now ? 'now' : avail ? 'avail' : 'locked';
-        const style = { display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 6px', marginBottom: '3px', borderRadius: '3px', border: '1px solid var(--line)', fontSize: '13px', cursor: state === 'avail' ? 'pointer' : 'default' };
-        if (state === 'done') { style.borderColor = '#4a7a3a'; style.background = 'rgba(100,160,70,.12)'; }
-        else if (state === 'now') { style.borderColor = 'var(--gold)'; style.background = 'rgba(212,175,95,.15)'; }
-        else if (state === 'avail') style.borderColor = 'var(--gold-d)';
-        else style.opacity = '.45';
-        const card = el('div', { style, onclick: state === 'avail' ? () => { g.startResearch(n.id, i.id); ui.renderPanel(true); } : null });
-        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
-        card._tip = () => innovTip(g, n.id, i, state);
-        col.append(card);
-      }
-    }
-    grid.append(col);
+    const all = INNOVATIONS.filter((x) => x.branch === b), done = all.filter((x) => p.known.includes(x.id)).length;
+    const avail = all.some((x) => g.innovAvailable(n.id, x.id));
+    const c = el('div', { class: 'card click' + (b === branch ? ' hl' : '') , onclick: () => { ui.subtab.techBranch = b; ui.renderPanel(true); } });
+    c.innerHTML = ico(`<div class="row"><span class="${b === branch ? 'ic-gold' : 'muted'}">${icon(BRANCH_ICON[b], { size: 22 })}</span><div class="grow"><b>${BRANCHES[b].name}</b><div class="tiny muted">${done} of ${all.length} known</div></div>${avail && !cur ? '<span class="chip warn">ready</span>' : ''}</div>`) + `<div style="margin-top:6px">${barHTML(done / all.length, 'green')}</div>`;
+    sel.append(c);
   }
-  pb.append(grid);
+  pb.append(sel);
+  // layout
+  const nodes = INNOVATIONS.filter((x) => x.branch === branch);
+  const rowOf = {};
+  for (let e = 0; e < ERAS.length; e++) {
+    const list = nodes.filter((x) => x.era === e);
+    const key = (x) => (x.pre.length ? x.pre.reduce((t, q) => t + (rowOf[q] ?? 0), 0) / x.pre.length : nodes.indexOf(x) % 5);
+    list.sort((a, b2) => key(a) - key(b2) || nodes.indexOf(a) - nodes.indexOf(b2));
+    list.forEach((x, i) => { rowOf[x.id] = i; });
+  }
+  const W = LEFT * 2 + ERAS.length * NODE_W + (ERAS.length - 1) * GAP_X, Hh = TOP + 5 * (NODE_H + GAP_Y) + 10;
+  const wrap = el('div', { class: 'tech-wrap', style: { height: Hh + 'px', minWidth: W + 'px' } });
+  const pos = (x) => ({ x: LEFT + x.era * (NODE_W + GAP_X), y: TOP + rowOf[x.id] * (NODE_H + GAP_Y) });
+  for (let e = 0; e < ERAS.length; e++) {
+    const x0 = LEFT + e * (NODE_W + GAP_X) - GAP_X / 2 + (e ? 0 : -LEFT / 2);
+    wrap.append(el('div', { class: 'tech-era', style: { left: (LEFT + e * (NODE_W + GAP_X) - 8) + 'px', width: (NODE_W + 16) + 'px', borderRight: '0' } },
+      el('span', {}, ERAS[e].name), el('small', {}, `from ${ERAS[e].from}`)));
+    void x0;
+  }
+  // links
+  let svg = `<svg class="tech-svg" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}">`;
+  for (const x of nodes) for (const q of x.pre) {
+    const a = pos(INNOV[q]), b2 = pos(x);
+    const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2, x2 = b2.x, y2 = b2.y + NODE_H / 2, mx = (x1 + x2) / 2;
+    const ok = p.known.includes(q), tdone = p.known.includes(x.id);
+    const col = tdone ? '#5cc08c' : ok ? '#e8c56d' : '#3a4a66';
+    svg += `<path d="M${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="${ok ? 2.4 : 1.6}" ${ok ? '' : 'stroke-dasharray="4 5"'} opacity="${ok ? 0.95 : 0.7}"/><circle cx="${x2}" cy="${y2}" r="3.5" fill="${col}"/>`;
+  }
+  wrap.insertAdjacentHTML('beforeend', svg + '</svg>');
+  for (const i of nodes) {
+    const { x, y } = pos(i);
+    const done = p.known.includes(i.id), isCur = p.cur === i.id, avail = g.innovAvailable(n.id, i.id);
+    const state = done ? 'done' : isCur ? 'cur' : avail ? 'avail' : 'locked';
+    const node = el('div', { class: 'tech-node ' + state, style: { left: x + 'px', top: y + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }, onclick: avail && !isCur ? () => { g.startResearch(n.id, i.id); ui.sfx?.('click'); ui.renderPanel(true); } : null });
+    const cost = done ? '' : `<span class="ic-gold">${icon('flask', { size: 11 })}</span> ${g.innovCost(n.id, i.id)}`;
+    node.innerHTML = ico(`<div class="tn-ic">${done ? icon('check') : state === 'locked' ? icon('lock') : sic(i.icon, FALLBACK[i.branch], 18)}</div>
+      <div style="min-width:0;flex:1"><div class="tn-t">${i.name}</div><div class="tiny ${done ? 'pos' : 'muted'}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortMods(i.mods)}</div><div class="tn-c">${done ? 'Known' : isCur ? 'Researching…' : cost}${i.unlock ? ` <span class="chip info" style="padding:0 6px;font-size:10px">unlock</span>` : ''}</div></div>`)
+      + (isCur ? `<div class="tn-p"><i style="width:${Math.round(100 * p.pts / g.innovCost(n.id, i.id))}%"></i></div>` : '');
+    node._tip = () => innovTip(g, n.id, i, state);
+    wrap.append(node);
+  }
+  pb.append(wrap);
 }
 
 function renderRank(ui, pb, g, n) {

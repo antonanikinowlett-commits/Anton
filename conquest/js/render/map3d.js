@@ -840,6 +840,17 @@ export class MapView {
     }
   }
 
+  // expanding ring where a battle has just begun
+  flashProvince(p) {
+    const sp = this.map.provinces[p]; if (!sp) return;
+    this.V3 ||= new THREE.Vector3();
+    this.V3.set(sp.x, this.groundY(sp.x, sp.y) + 1, sp.y).project(this.camera);
+    const rect = this.rect || (this.rect = this.canvas.getBoundingClientRect());
+    const e = document.createElement('div'); e.className = 'flash-ring';
+    e.style.left = ((this.V3.x + 1) / 2 * rect.width) + 'px'; e.style.top = ((1 - this.V3.y) / 2 * rect.height) + 'px';
+    this.overlay.appendChild(e); setTimeout(() => e.remove(), 1000);
+  }
+
   // ── movement paths
   refreshPaths() {
     this.dirty = true;
