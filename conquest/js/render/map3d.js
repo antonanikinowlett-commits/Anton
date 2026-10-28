@@ -62,7 +62,7 @@ void main(){
   // seasonal snow in the north and on heights
   float north = smoothstep(0.40, 0.16, vUv.y);
   float alt = smoothstep(4.5, 7.5, vW.y);
-  float snow = clamp(uSnow * (north * smoothstep(0.42, 0.55, dn*0.5 + dn2*0.5 + north*0.3) + alt * 0.8), 0.0, 0.8);
+  float snow = clamp(uSnow * (north * smoothstep(0.42, 0.55, dn*0.5 + dn2*0.5 + north*0.3) + alt * 0.8), 0.0, 0.8) * smoothstep(0.08, 0.55, vW.y);   // none on the very shore
   lit = mix(lit, vec3(0.93,0.95,0.98)*(0.78+0.3*lam), snow);
   if (id < 0.5 || id > uL) {
     // the sea bed only matters in the shallows; open water is a flat deep tone (no stray bake artefacts)

@@ -47,6 +47,7 @@ export class UI {
     this.state = {};
     this.listeners = {};
     this.battleViewer = new BattleViewer(this);
+    installEmojiPatch();
   }
   on(ev, fn) { (this.listeners[ev] ||= []).push(fn); }
   sfx(name) { sfx.play(name); }

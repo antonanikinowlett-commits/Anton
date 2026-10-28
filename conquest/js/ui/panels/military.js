@@ -51,13 +51,22 @@ registerPanel({ id: 'military', icon: '⚔', name: 'Military', key: 'm', order: 
       pb.append(d);
     }
   } else {
-    pb.append(el('div', { class: 'small muted' }, 'Every unit type, its strengths, and how terrain and tactics affect it.'));
+    pb.append(el('div', { class: 'small muted', style: { marginBottom: '10px' } }, 'Every regiment type: its strengths at a glance. Hover a card for the full rules.'));
+    const MAX = { atk: 3.2, def: 2.6, ranged: 2.7, charge: 3.6, anti: 2.6 };
+    const STATS = [['atk', 'Attack', 'swords'], ['def', 'Defence', 'shield'], ['ranged', 'Missile', 'bow'], ['charge', 'Charge', 'horse'], ['anti', 'Anti-cav', 'spear']];
+    const costIcon = { gold: 'coin', iron: 'hammer', timber: 'log', horses: 'horse', food: 'wheat' };
+    const grid = el('div', { class: 'col', style: { gap: '8px' } });
     for (const k of UNIT_ORDER) {
-      const ok = unitAvailable(k, n, g);
-      const d = el('div', { class: 'card', style: { marginTop: '4px', opacity: ok ? 1 : 0.55 } });
-      d.innerHTML = unitTip(k) + (ok ? '' : `<div class="small neg">${unitReqText(k)}</div>`);
-      pb.append(d);
+      const u = UNITS[k], ok = unitAvailable(k, n, g);
+      const bars = STATS.map(([f, nm]) => `<div class="ustat" title="${nm} ${u[f] || 0}"><span>${nm}</span><div class="bar ${f === 'ranged' ? 'green' : f === 'def' ? 'blue' : ''}"><i style="width:${Math.min(100, 100 * (u[f] || 0) / MAX[f])}%"></i></div></div>`).join('');
+      const cost = Object.entries(u.cost || {}).map(([c, v]) => `<span class="chip">${icon(costIcon[c] || 'coin')}${v}</span>`).join('');
+      const d = el('div', { class: 'card ucard', style: { opacity: ok ? 1 : 0.6 } });
+      d.innerHTML = `<div class="row" style="gap:12px"><div class="uc-ic">${unitIcon(k, { size: 26 })}</div><div class="grow"><div class="uc-name">${u.name}</div><div class="tiny muted">${u.ship ? 'Ship' : { inf: 'Infantry', rng: 'Missile troops', cav: 'Cavalry', siege: 'Siege engine' }[u.cls]} · ${u.men} men · speed ${u.speed}</div></div><div class="row" style="gap:4px;flex-wrap:wrap;justify-content:flex-end">${cost}</div></div>
+        <div class="ustats">${bars}</div>${ok ? '' : `<div class="tiny neg" style="margin-top:6px">${icon('lock')} ${unitReqText(k)}</div>`}`;
+      d._tip = () => unitTip(k);
+      grid.append(d);
     }
+    pb.append(grid);
   }
 } });
 

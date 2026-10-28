@@ -32,7 +32,7 @@ const server = http.createServer((req, res) => {
     const [x, z, d, mode] = sp.split(',');
     await u.evaluate(([x, z, d, mode]) => { const v = window.__view; v.cam.x = v.cam.tx = +x; v.cam.z = v.cam.tz = +z; v.cam.d = v.cam.td = +d; if (mode) v.setMode(mode); v.dirty = true; }, [x, z, d, mode]);
     await u.waitForTimeout(1500);
-    await u.screenshot({ path: `${out}/m${String(i++).padStart(2, '0')}_${x}_${z}_${d}${mode ? '_' + mode : ''}.png` });
+    await u.screenshot({ timeout: 180000, path: `${out}/m${String(i++).padStart(2, '0')}_${x}_${z}_${d}${mode ? '_' + mode : ''}.png` });
   }
   await browser.close(); server.close();
 })();
