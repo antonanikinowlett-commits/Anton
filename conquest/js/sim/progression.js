@@ -164,11 +164,11 @@ export const ProgressionMixin = {
         else if (['researchSpeed', 'devGrowth'].includes(k)) w = 55;
         else w = 20;
         const kind = MOD_INFO[k]?.[1];
-        v += x * (kind === 'flat' ? 0.04 : kind === 'month' ? 3 : 1) * dir * w;
+        v += x * (kind === 'flat' ? 0.025 : kind === 'month' ? 2.5 : 1) * dir * (k === 'papalOpinion' ? 0 : w);
       }
       const lean = (0.7 + h(n.id, i.branch.length * 7 + i.branch.charCodeAt(0)) * 0.8) * (gl[i.branch] || 1) * (i.branch === 'sea' ? 0.5 + coastal : 1);
       const kb = INNOVATIONS.reduce((t, x) => t + (x.branch === i.branch && n.prog.known.includes(x.id) ? 1 : 0), 0);
-      const sc = v * lean * 5 / (1 + 0.25 * kb) - this.innovCost(n.id, i.id) * 0.03 + (h(n.id, i.id.length * 131 + i.id.charCodeAt(2)) - 0.5) * 12;
+      const sc = v * lean * 5 / (1 + 0.25 * kb) - this.innovCost(n.id, i.id) * 0.03 + (h(n.id, i.id.length * 131 + i.id.charCodeAt(2)) - 0.5) * 24;
       if (sc > bs) { bs = sc; best = i.id; }
     }
     if (best) n.prog.cur = best;
@@ -303,8 +303,6 @@ export const ProgressionMixin = {
       // bankruptcy: debt cannot spiral forever (interest compounds); creditors seize what they can and the realm suffers
       if (n.gold < -400) { n.gold = -400; n.stability = Math.max(-3, n.stability - 0.3); n.legitimacy = Math.max(0, n.legitimacy - 3); if (n.id === s.player) this.notify({ nation: n.id, title: 'Bankruptcy', icon: '🪙', text: 'The crown’s creditors have seized the revenues. Stability and legitimacy suffer.' }); }
       // without prestige actions a ruler's standing fades: a perfectly content realm is not a stable state
-      if (n.legitimacy > 80) n.legitimacy -= s.difficulty === 'hard' ? 0.4 : 0.25;
-      if (n.stability > 2) n.stability -= 0.05;
       this._monthlyAmbition(n);
       if (n.id !== s.player && this.rng() < 0.05) for (const f of this.availableFormables(n.id)) if (this.formableStatus(n.id, f, true).ok) { this.formNation(n.id, f.id, true); break; }
       if (n.id === s.player) this._checkAchievements(n);

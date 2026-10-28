@@ -28,6 +28,7 @@ export const AlertsMixin = {
     if (Object.values(n.council).some((c) => !c)) A.push(['council', '🏛', 'Empty seat on the royal council', () => this.openTab('court'), false]);
     const noGen = g.armiesOf(n.id).filter((a) => !a.general);
     if (noGen.length && g.charsOf(n.id, 'general').some((c) => !c.army)) A.push(['general', '🎖', 'An army has no general (−10% attack, worse morale). Generals are idle.', () => this.selectArmies([noGen[0].id], true), false]);
+    { const oe = g.overextension(n.id); if (oe.load > oe.cap * 0.95) A.push(['admin', '🗂', oe.over > 0 ? `Overextended: ${oe.load} provinces, capacity ${oe.cap} (tax, order and legitimacy suffer)` : `Near the administrative limit (${oe.load}/${oe.cap} provinces)`, () => this.openTab('realm'), oe.over > 0.15]); }
     if (n.gold < 0) A.push(['gold', '🪙', 'The treasury is in debt!', () => this.openTab('economy'), true]);
     if (n.food < 0) A.push(['food', '🌾', 'The realm is starving!', () => this.openTab('economy'), true]);
     const sieged = g.ownedProvinces(n.id).filter((p) => s.prov[p].siege);

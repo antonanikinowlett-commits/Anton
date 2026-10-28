@@ -65,7 +65,8 @@ export const PeaceMixin = {
       <div class="tt-line"><span>Cost of demands</span><b>${acc.cost}</b></div>
       <div class="tt-line"><span>Their willingness</span><b class="${acc.will >= 0 ? 'pos' : 'neg'}">${signed(acc.will)}</b></div>
       <div class="bar ${acc.will >= 0 ? 'green' : 'red'}" style="margin-top:4px"><i style="width:${clamp(50 + acc.will, 0, 100)}%"></i></div>
-      <div class="small ${acc.will >= 0 ? 'pos' : 'neg'}" style="margin-top:3px">${acc.will >= 0 ? 'They will accept these terms.' : 'They will refuse. Ask for less, or occupy more and win battles first.'}</div>`;
+      <div class="small ${acc.will >= 0 ? 'pos' : 'neg'}" style="margin-top:3px">${acc.will >= 0 ? 'They will accept these terms.' : 'They will refuse. Ask for less, or occupy more and win battles first.'}</div>
+      <div class="tiny muted">${acc.parts.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(' · ')}</div>${acc.will < 0 && demands.length ? (() => { const c = g.peaceCounter(w, pm.side, demands); return c.drop.length ? `<div class="small">They would accept if we dropped: ${c.drop.map((x) => describeDemand(g, x)).join(', ')}</div>` : ''; })() : ''}`;
     pb.append(sum);
     const ours = pm.side === 'att' ? w.att : w.def;
     const quick = el('div', { class: 'row wrap', style: { marginTop: '6px' } },
@@ -81,6 +82,7 @@ export const PeaceMixin = {
       const r = el('div', { class: 'row small', style: { padding: '2px 0' } },
         el('span', { class: 'grow', style: { cursor: 'pointer' }, onclick: () => this.v.flyToProvince(p, 160) }, `${this.v.map.provinces[p].name} (dev ${s.prov[p].dev})`),
         occ ? el('span', { class: 'chip good' }, 'occupied') : null,
+        g.isWarGoal(w, pm.side, p) ? el('span', { class: 'chip good', 'data-tip': 'A declared war goal: 30% cheaper, less aggressive-expansion anger' }, 'war goal') : null,
         el('span', { style: { width: '34px', textAlign: 'right' } }, cost),
         el('span', { class: 'x', onclick: () => this.togglePeaceProv(p) }, '✕'));
       pb.append(r);

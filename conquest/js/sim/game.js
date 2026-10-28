@@ -101,6 +101,7 @@ export class Game {
       if (!owned.length) { n.alive = false; continue; }
       const dev = owned.reduce((a, p) => a + s.prov[p].dev, 0);
       n.gold = Math.round(30 + dev * 0.5);
+      n.startProv = owned.length;
       n.maxManpower = this.calcMaxManpower(n.id);
       n.manpower = Math.round(n.maxManpower * 0.7);
       n.prestige = Math.round(Math.sqrt(dev) * 3);
@@ -225,6 +226,7 @@ export class Game {
     if (n.gov === 'tribal') add({ taxMult: -0.3, manpowerMult: 0.3, buildSpeed: -0.2 }, 1, 'Tribal chiefdom');
     if (n.gov === 'imperial') add({ taxMult: 0.1 }, 1, 'Imperial autocracy');
     if (n.gov === 'theocracy') add({ legitimacyMonthly: 0.05 }, 1, 'Theocracy');
+    { const oe = this.overextension(nid, M.adminCap || 0); if (oe.over > 0) add({ taxMult: -oe.over * 0.25, unrest: oe.over * 2, legitimacyMonthly: -oe.over * 0.3, stabilityMonthly: -oe.over * 0.01 }, 1, `Overextension (${oe.load} provinces, capacity ${oe.cap})`); }
     if (n.legitimacy >= 80) add({ taxMult: 0.04, armyMorale: 0.03 }, 1, 'Legitimacy above 80');
     else if (n.legitimacy < 20) add({ unrest: 3, nobleLoyalty: -12, taxMult: -0.05 }, 1, 'Illegitimate rule (below 20)');
     else if (n.legitimacy < 40) add({ unrest: 1.5, nobleLoyalty: -5 }, 1, 'Weak legitimacy (below 40)');
@@ -270,11 +272,10 @@ export class Game {
       n.horses = Math.max(0, n.horses + B.horses);
       n.maxManpower = this.calcMaxManpower(n.id);
       n.manpower = Math.min(n.maxManpower, n.manpower + n.maxManpower / 60 * (n.food < 0 ? 0.3 : 1) * (1 + this.mod(n.id, 'manpowerRegen')));
-      if (n.food < 0) { n.stability = Math.max(-3, n.stability - 0.05); }
-      if (n.gold < -50) { n.stability = Math.max(-3, n.stability - 0.1); this.estateDelta(n, 'nobles', -1); }
+      if (n.gold < -50) this.estateDelta(n, 'nobles', -1);
       n.prestige = clamp(n.prestige * 0.995 + this.mod(n.id, 'prestigeMonthly') * 10, -100, 500);
-      n.legitimacy = clamp(n.legitimacy + 0.1 + this.mod(n.id, 'legitimacyMonthly') * 10 - (n.gold < 0 ? 0.5 : 0), 0, 100);
-      n.stability = clamp(n.stability + this.mod(n.id, 'stabilityMonthly') * 3 + (n.legitimacy > 60 ? 0.02 : n.legitimacy < 30 ? -0.04 : 0), -3, 3);
+      n.legitimacy = clamp(n.legitimacy + this.legitimacyParts(n.id).reduce((t, x) => t + x.value, 0), 0, 100);
+      n.stability = clamp(n.stability + this.stabilityParts(n.id).reduce((t, x) => t + x.value, 0), -3, 3);
       n.warExhaustion = Math.max(0, n.warExhaustion - (this.atWar(n.id) ? 0.05 : 0.4));
       if (n.legitimacy < 25 && this.rng() < 0.03 && this.ownedProvinces(n.id).length > 1) { this.spawnRebels(this.ownedProvinces(n.id).filter((p) => p !== n.capital)[0], true); this.log(`A pretender raises the banners against the ${n.name}!`, { nation: n.id, type: 'war', important: n.id === s.player }); }
       this.monthlyEstates(n);

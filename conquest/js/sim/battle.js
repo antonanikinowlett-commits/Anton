@@ -280,11 +280,14 @@ export const BattleMixin = {
         now.set(e.id, a.nation);
       }
     }
-    for (const p of prev) if (!now.has(p)) { delete s.prov[p].blockadedBy; if (s.prov[p].owner === s.player) this.log(`The blockade of ${P[p].name} is lifted.`, { nation: s.player, type: 'mil', prov: p }); }
+    for (const p of prev) if (!now.has(p)) { const pr = s.prov[p]; delete pr.blockadedBy; if (pr.owner === s.player && pr.blockLogged === pr.blockSince && s.day - (pr.blockSince ?? s.day) > 20) this.log(`The blockade of ${P[p].name} is lifted.`, { nation: s.player, type: 'mil', prov: p }); }
     for (const [p, nid] of now) {
       if (s.prov[p].blockadedBy === nid) continue;
-      s.prov[p].blockadedBy = nid;
-      if (s.prov[p].owner === s.player || nid === s.player) this.log(`${s.nations[nid].name} blockades ${P[p].name}: trade is choked and no troops can be raised there.`, { nation: s.player, type: 'mil', prov: p, important: true });
+      s.prov[p].blockadedBy = nid; s.prov[p].blockSince = s.day;
+      const quiet = s.day - (s.prov[p].blockLogDay ?? -9999) < 180;
+      if (!quiet) s.prov[p].blockLogged = s.prov[p].blockSince; // only blockades that were announced get a 'lifted' line
+      if (!quiet && (s.prov[p].owner === s.player || nid === s.player)) this.log(`${s.nations[nid].name} blockades ${P[p].name}: trade is choked and no troops can be raised there.`, { nation: s.player, type: 'mil', prov: p, important: true });
+      if (!quiet) s.prov[p].blockLogDay = s.day;
     }
   },
   // Two generals sharing one battle line may quarrel: jealous or ambitious men form rivalries, rivals

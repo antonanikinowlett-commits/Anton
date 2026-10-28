@@ -26,6 +26,15 @@ export const ObjectivesMixin = {
     const s = this.s, n = s.nations[s.player];
     if (!n || !n.alive) return;
     if (!n.obj) this.initObjectives();
+    if (!n.obj.briefed && s.day >= 20) {
+      // the opening briefing: the one threat and the best openings, once
+      n.obj.briefed = s.day;
+      const thr = this.threats(n.id).find((t) => t.level >= 0.8), opp = this.opportunities(n.id).filter((o) => o.kind === 'war' || o.kind === 'alliance').slice(0, 2);
+      const bits = [];
+      if (thr) bits.push(`Danger: ${s.nations[thr.nation].name} (${thr.why.join(', ') || 'hostile'}).`);
+      for (const o of opp) bits.push(`Opening: ${o.text}.`);
+      if (bits.length) this.notify({ nation: n.id, title: 'Counsel from the court', icon: '🧭', text: bits.join(' ') + ' See Progress → Objectives.' });
+    }
     for (const o of this.objectives(n.id)) {
       if (!o.active || o.value < o.goal) continue;
       n.obj.done.push(o.id); n.obj.day[o.id] = s.day;

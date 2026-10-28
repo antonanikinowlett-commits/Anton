@@ -467,7 +467,9 @@ export const DiplomacyMixin = {
   demandCost(w, side, d) {
     const s = this.s;
     const losers = side === 'att' ? w.def : w.att;
-    let tot = 0; for (const n of losers) for (const p of this.ownedProvinces(n)) tot += s.prov[p].dev;
+    // the leader's land counts in full, allies' land at 40%: an alliance bloc does not make the leader's provinces cheap
+    const lead = side === 'att' ? w.defLeader : w.attLeader;
+    let tot = 0; for (const n of losers) for (const p of this.ownedProvinces(n)) tot += s.prov[p].dev * (n === lead ? 1 : 0.4);
     tot = Math.max(1, tot);
     if (d.type === 'province') {
       const pr = s.prov[d.p];
@@ -482,22 +484,33 @@ export const DiplomacyMixin = {
     return 0;
   },
   peaceAcceptance(w, side, demands) {
-    // the other side's willingness to accept
+    // the other side's willingness to accept; `parts` explains every term so the peace table can show it
     const cost = demands.reduce((t, d) => t + this.demandCost(w, side, d), 0);
     const score = side === 'att' ? w.score : -w.score;
     const losers = side === 'att' ? w.def : w.att;
     const leader = this.s.nations[side === 'att' ? w.defLeader : w.attLeader];
-    let will = score - cost;
-    will += (leader?.warExhaustion || 0) * 1.5;
+    const parts = [['Our war score', score], ['Cost of the demands', -cost]];
+    const exh = Math.round((leader?.warExhaustion || 0) * 1.5);
+    if (exh) parts.push([`${leader.name} is war-weary`, exh]);
     const months = (this.s.day - w.start) / 30;
-    if (months > 18) will += (months - 18) * 0.5;
+    if (months > 18) parts.push(['The war has dragged on', Math.round((months - 18) * 0.5)]);
     // armies left?
     const ratio = losers.reduce((t, n) => t + this.armyStrength(n), 0) / Math.max(1, (side === 'att' ? w.att : w.def).reduce((t, n) => t + this.armyStrength(n), 0));
-    if (ratio < 0.3) will += 15;
-    if (ratio > 1.5) will -= 15;
-    if (!demands.length) will += 10;
-    if (leader?.ai.horde && months < 120) will -= 1000; // the horde does not sue for peace
-    return { cost, will: Math.round(will) };
+    if (ratio < 0.3) parts.push(['Their armies are broken', 15]);
+    if (ratio > 1.5) parts.push(['Their armies are still strong', -15]);
+    if (!demands.length) parts.push(['White peace', 10]);
+    let will = parts.reduce((t, [, v]) => t + v, 0);
+    if (leader?.ai.horde && months < 120) { will -= 1000; parts.push(['The horde does not sue for peace', -1000]); }
+    return { cost, will: Math.round(will), parts };
+  },
+  // If the demands are too heavy: which of them to drop (dearest first) so the enemy would accept.
+  peaceCounter(w, side, demands) {
+    const acc = this.peaceAcceptance(w, side, demands);
+    if (acc.will >= 0) return { drop: [], will: acc.will };
+    const ranked = demands.map((d) => ({ d, c: this.demandCost(w, side, d) })).sort((x, y) => y.c - x.c);
+    const drop = []; let will = acc.will;
+    for (const r of ranked) { if (will >= 0) break; drop.push(r.d); will += r.c; }
+    return { drop, will };
   },
   makePeace(w, side, demands) {
     const s = this.s;
