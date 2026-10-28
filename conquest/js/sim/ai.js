@@ -277,6 +277,15 @@ export const AIMixin = {
     this.recruit(n.id, n.capital, t);
   },
 
+  // On going to war an AI realm musters at once: up to four regiments' worth of templates, as gold and manpower allow.
+  aiMobilize(n) {
+    if (n.ai.horde || n.capital < 0 || n.id === this.s.player) return;
+    for (let i = 0; i < 4; i++) {
+      const t = n.templates.find((tt) => !this.canRecruit(n.id, n.capital, tt) && Object.keys(tt.regs).every((k) => unitAvailable(k, n, this)));
+      if (!t || n.gold - this.templateCost(n.id, t).gold < 10) return;
+      this.recruit(n.id, n.capital, t);
+    }
+  },
   aiDiplomacy(n) {
     const s = this.s;
     if (n.ai.horde) return;
@@ -330,7 +339,7 @@ export const AIMixin = {
         (this.opinion(n.id, o) < 0 ? 1.3 : 1) * revenge * (persona === 'schemer' ? busy : 1) * (on.religion !== n.religion && persona === 'zealot' ? 1.5 : 1);
       if (sc > bs) { bs = sc; best = [o, cbs.includes('holy_war') && persona === 'zealot' ? 'holy_war' : cbs[0]]; }
     }
-    if (best && this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq * (best[0] === s.player ? (hard ? 1.6 : 1.2) : 1)) this.declareWar(n.id, best[0], { kind: best[1] });
+    if (best && this.rng() < 0.12 * n.ai.aggro * 2 * PERS.freq * (best[0] === s.player ? (hard ? 1.6 : 1.2) : 1)) { const why = this.declareWar(n.id, best[0], { kind: best[1] }); if (!why) this.aiMobilize(n); }
   },
 
   aiPeace() {

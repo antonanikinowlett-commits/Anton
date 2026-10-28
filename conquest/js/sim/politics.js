@@ -277,7 +277,7 @@ export const PoliticsMixin = {
         if (e.holy.donate) this.donateHolyWar(nid, e.holy.donate.gold, e.holy.donate.kind);
         if (e.holy.ignore) this.papalFavorChange(nid, -e.holy.ignore);
       }
-      if (e.war) this.declareWar(e.war.by, nid, { kind: e.war.cb || 'conquest' }, true);
+      if (e.war && !this.declareWar(e.war.by, nid, { kind: e.war.cb || 'conquest' }, true)) this.aiMobilize(s.nations[e.war.by]);
       if (e.transfer) { const to = s.nations[e.transfer.to]; if (to) to.gold += e.transfer.gold; }
       if (e.truce) { const o = s.nations[e.truce.with]; if (o) { n.truces[o.id] = s.day + e.truce.days; o.truces[nid] = s.day + e.truce.days; } }
       if (e.oppOf) for (const x of e.oppOf.withAll || [e.oppOf.with]) { const o = s.nations[x]; if (o) o.opinion[nid] = (o.opinion[nid] ?? 0) + e.oppOf.v; }
@@ -287,6 +287,7 @@ export const PoliticsMixin = {
       if (e.breakAlliance && n.allies.includes(e.breakAlliance.with)) this.breakAlliance(nid, e.breakAlliance.with);
       if (e.custom) {
         if (e.custom === 'paid') { n.world ||= {}; n.world.paid = (n.world.paid || 0) + 1; }
+        else if (e.custom.startsWith('tutor:')) { const h = s.chars[n.heir]; if (h) { const k = e.custom.slice(6); h.skills[k] = Math.min(20, (h.skills[k] || 0) + 3 + Math.floor(this.rng() * 3)); h.traits.length < 4 && k === 'martial' && !h.traits.includes('brave') && this.rng() < 0.3 && h.traits.push('brave'); } }
         else if (e.custom.startsWith('dissolve:')) s.coalitions = (s.coalitions || []).filter((c) => c.id !== +e.custom.slice(9));
       }
       if (e.followup) (s.eventLater ||= []).push({ id: e.followup.id, nid, day: s.day + e.followup.months * 30 });

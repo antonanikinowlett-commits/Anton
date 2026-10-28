@@ -214,6 +214,7 @@ export const WorldMixin = {
     if (why) return;
     const w = this.warBetween(lead.id, T.id);
     for (const o of members.slice(1)) if (w) this.joinWar(w, o.id, 'att');
+    for (const o of members) this.aiMobilize(o);
     this.pushNews(`The coalition strikes: ${members.map((o) => o.name).join(', ')} march against ${T.name}.`, { type: 'war', nation: T.id, important: T.id === this.s.player }, 'war');
   },
 };

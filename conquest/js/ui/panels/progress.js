@@ -47,6 +47,7 @@ function renderInnovations(ui, pb, g, n) {
     top.innerHTML = ico(`<b>Researching: ${sic(cur.icon, FALLBACK[cur.branch])} ${cur.name}</b> <span class="muted small">${Math.floor(p.pts)} / ${c} points · +${p.rp.toFixed(1)} per month</span>`) + barHTML(p.pts / c, 'blue');
   } else top.innerHTML = ico(`<b class="neg">Nothing is being researched.</b> <span class="muted small">+${g.researchRate(n.id).toFixed(1)} points per month${p.pts > 0 ? ` (${Math.floor(p.pts)} banked)` : ''}. Choose an innovation below.</span>`);
   pb.append(top);
+  pb.append(H('<div class="muted small" style="margin-bottom:4px">⇄ marks a choice: learning it closes off its rival. Hover a card for every effect, upside and downside.</div>'));
   const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))', gap: '8px' } });
   for (const b of Object.keys(BRANCHES)) {
     const col = el('div');
@@ -62,7 +63,7 @@ function renderInnovations(ui, pb, g, n) {
         else if (state === 'closed') { style.opacity = '.3'; style.textDecoration = 'line-through'; }
         else style.opacity = '.45';
         const card = el('div', { style, onclick: state === 'avail' ? () => { g.startResearch(n.id, i.id); ui.renderPanel(true); } : null });
-        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'closed' ? ico('<span>✖</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
+        card.innerHTML = `${sic(i.icon, FALLBACK[i.branch], 14)}<span style="flex:1">${i.name}${i.excl.length ? ' <span class="muted small" data-tip="Choosing this closes: ' + i.excl.map((x) => INNOV[x].name).join(', ') + '">⇄</span>' : ''}</span>` + (done ? ico('<span class="pos">✔</span>') : state === 'closed' ? ico('<span>✖</span>') : state === 'locked' ? ico('<span>🔒</span>') : `<span class="muted small">${g.innovCost(n.id, i.id)}</span>`);
         card._tip = () => innovTip(g, n.id, i, state);
         col.append(card);
       }
