@@ -225,12 +225,18 @@ export function buildEdgeField(map) {
 }
 
 export function depthTexture(map) {
-  const { W, H, height, land } = map;
-  const out = new Uint8Array(W * H * 4);
-  for (let i = 0; i < W * H; i++) {
-    const v = land[i] === 1 ? 0 : land[i] === 2 ? 0.15 : clamp(-smoothSea(map)[i] / 1800, 0.02, 1);
-    out[i * 4] = v * 255; out[i * 4 + 3] = 255;
+  const { W, H, land } = map;
+  let v = new Float32Array(W * H);
+  const sea = smoothSea(map);
+  for (let i = 0; i < W * H; i++) v[i] = land[i] === 1 ? 0 : land[i] === 2 ? 0.15 : clamp(-sea[i] / 1800, 0.02, 1);
+  // two light blur passes round the 1-px staircase of the coast so the shallows and foam follow a smooth shoreline
+  for (let pass = 0; pass < 2; pass++) {
+    const t = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; t[i] = (v[i] * 2 + v[Math.max(0, i - 1)] + v[Math.min(W * H - 1, i + 1)]) / 4; }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; v[i] = (t[i] * 2 + t[Math.max(0, i - W)] + t[Math.min(W * H - 1, i + W)]) / 4; }
   }
+  const out = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) { out[i * 4] = v[i] * 255; out[i * 4 + 3] = 255; }
   return out;
 }
 

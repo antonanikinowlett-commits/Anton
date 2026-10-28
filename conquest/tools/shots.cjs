@@ -38,6 +38,25 @@ const server = http.createServer((req, res) => {
     await shot('sel-army');
     await u.evaluate(() => { const ui = window.__ui; ui.selectArmies([]); ui.selectProvince(-1); });
   }
+  if (process.env.UIX) {
+    await u.evaluate(() => { const ui = window.__ui; ui._outCollapsed = false; ui._outKey = null; ui.updateOutliner(); ui.toggleMoreRes(); });
+    await shot('outliner-more');
+    await u.evaluate(() => { const ui = window.__ui; ui.toggleMoreRes(); ui.toggleModeMenu(true); });
+    await shot('modes');
+    await u.evaluate(() => { const ui = window.__ui; ui.toggleModeMenu(false); ui.banner('War declared', 'France · England', 'Reconquest of Claims', 'war'); ui.toast('Battle!', 'Battle of Rouen', 'swords', null, 'critical'); ui.toast('Army mustered', 'First Host is ready at Paris', 'swords'); });
+    await shot('banner');
+    await u.waitForTimeout(4500);
+    await u.evaluate(() => { window.__ui.gameMenu(); });
+    await shot('menu');
+    await u.evaluate(() => { document.querySelector('.modal-back')?.remove(); window.__ui.settingsModal(); });
+    await shot('settings');
+    await u.evaluate(() => { document.querySelector('.modal-back')?.remove(); });
+  }
+  if (process.env.EVENT) {
+    await u.evaluate(() => { const g = window.__game; g.s.eventQueue.push({ id: 'plague' }); window.__ui.showEvent(); });
+    await shot('event');
+    await u.evaluate(() => document.querySelector('.modal .opt')?.click());
+  }
   const keys = process.argv[4] !== undefined ? process.argv[4].split(',').filter(Boolean) : ['c', 'b', 'm', 'l', 'f', 'g', 'i', 'k', 'd', 'e', 't', 'r', 'w'];
   for (const k of keys) { await u.keyboard.press('Escape'); await u.keyboard.press(k); await shot('panel-' + k); }
   await browser.close(); server.close();

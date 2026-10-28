@@ -2,7 +2,7 @@
 // selection and event wiring. The other parts are mixins in sibling modules (topbar, alerts,
 // province, army, peace, menu); panel contents live in ./panels/*.js.
 import { el } from '../util.js';
-import { icon, iconize } from './icons.js';
+import { icon, iconize, ICONS, icon as svgIcon } from './icons.js';
 import { installEmojiPatch } from './emoji_patch.js';
 import { sfx } from './sfx.js';
 import { coaSVG } from './heraldry.js';
@@ -290,7 +290,7 @@ export class UI {
     // Settings: 'important' hides routine feedback, 'critical' shows only war, peace, revolt and ruin (errors always show)
     const v = this.settings?.toasts || 'all';
     if (v !== 'all' && icon !== '🚫' && level !== 'critical' && !(v === 'important' && level === 'important')) return;
-    const t = el('div', { class: 'toast frame lv-' + level, onclick: () => { onclick && onclick(); t.remove(); } }, el('div', { class: 'ti' }, icon), el('div', {}, el('div', { class: 'tt' }, title), el('div', { class: 'small muted' }, text)));
+    const t = el('div', { class: 'toast frame lv-' + level, onclick: () => { onclick && onclick(); t.remove(); } }, el('div', { class: 'ti', html: ICONS[icon] ? svgIcon(icon) : null }, ICONS[icon] ? null : icon), el('div', {}, el('div', { class: 'tt' }, title), el('div', { class: 'small muted' }, text)));
     this.toasts.prepend(t);
     while (this.toasts.children.length > 4) this.toasts.lastChild.remove();
     this.sfx?.(level === 'critical' ? 'alert' : 'toast');
