@@ -87,25 +87,41 @@ export const ExplainMixin = {
     parts.push({ label: 'Army rations', value: -r1(B.armyFood) });
     return { key: 'food', title: 'Food', value: Math.round(n.food), change: r1(B.foodNet), unit: 'food/month', parts, recent: this.recentChanges(nid, 'food'), note: n.food < 0 ? 'Famine: -0.05 stability a month, weaker armies, slow manpower.' : '' };
   },
-  explain_stability(nid) {
-    const n = this.s.nations[nid];
-    const parts = [];
+  // Monthly stability change, term by term. The sim applies the sum; explain_stability shows the list.
+  stabilityParts(nid) {
+    const n = this.s.nations[nid], parts = [];
     for (const x of this.modSources(nid, 'stabilityMonthly')) parts.push({ label: x.label, value: r1(x.value * 3) });
     if (n.legitimacy > 60) parts.push({ label: 'Legitimate rule (above 60)', value: 0.02 });
     else if (n.legitimacy < 30) parts.push({ label: 'Illegitimate rule (below 30)', value: -0.04 });
     if (n.food < 0) parts.push({ label: 'Famine', value: -0.05 });
     if (n.gold < -50) parts.push({ label: 'Debt', value: -0.1 });
-    if (n.stability > 2) parts.push({ label: 'Content realms do not stay perfect', value: -0.05 });
+    let sad = 0;
+    for (const e of Object.values(n.estates)) if (e.loyalty < 42) sad += (42 - e.loyalty) / 350 * (0.5 + e.influence / 60);
+    if (sad > 0.005) parts.push({ label: 'Discontented estates (loyalty below 42)', value: -r1(Math.min(0.25, sad)) });
+    if (n.warExhaustion > 3) parts.push({ label: 'War weariness', value: -r1((n.warExhaustion - 3) * 0.02) });
+    const owned = this.ownedProvinces(nid);
+    if (owned.length) { let u = 0; for (const p of owned) u += this.s.prov[p].unrest; u /= owned.length; if (u > 15) parts.push({ label: `Unrest across the realm (average ${Math.round(u)})`, value: -r1((u - 15) * 0.006) }); }
+    { let lost = 0; for (const p of owned) if (this.s.prov[p].controller !== nid) lost++; if (lost) parts.push({ label: `${lost} province${lost > 1 ? 's' : ''} under enemy occupation`, value: -r1(Math.min(0.3, lost * 0.015)) }); }
+    if (n.stability > 1) parts.push({ label: 'Contentment fades without achievements', value: -r1((n.stability - 1) * 0.03) });
+    return parts;
+  },
+  legitimacyParts(nid) {
+    const n = this.s.nations[nid], parts = [{ label: 'The crown endures', value: 0.1 }];
+    for (const x of this.modSources(nid, 'legitimacyMonthly')) parts.push({ label: x.label, value: r1(x.value * 10) });
+    if (n.gold < 0) parts.push({ label: 'The treasury is empty', value: -0.5 });
+    if (n.legitimacy > 70) parts.push({ label: 'Standing fades without deeds (above 70)', value: -r1((n.legitimacy - 70) * (this.s.difficulty === 'hard' ? 0.12 : 0.1)) });
+    return parts;
+  },
+  explain_stability(nid) {
+    const n = this.s.nations[nid];
+    const parts = this.stabilityParts(nid);
     const ch = parts.reduce((t, x) => t + x.value, 0);
     return { key: 'stability', title: 'Stability', value: r1(n.stability), min: -3, max: 3, change: r1(ch), unit: 'per month', parts, recent: this.recentChanges(nid, 'stability'),
       effects: [`Tax ${n.stability >= 0 ? '+' : ''}${Math.round(n.stability * 4)}%`, `Unrest ${n.stability >= 0 ? '-' : '+'}${Math.abs(n.stability * 1.5).toFixed(1)}`, `Estate loyalty target ${n.stability >= 0 ? '+' : ''}${Math.round(n.stability * 3)}`, n.stability < 0 ? `Army morale −${Math.round(-n.stability * 3)}%` : ''].filter(Boolean) };
   },
   explain_legitimacy(nid) {
     const n = this.s.nations[nid];
-    const parts = [{ label: 'The crown endures', value: 0.1 }];
-    for (const x of this.modSources(nid, 'legitimacyMonthly')) parts.push({ label: x.label, value: r1(x.value * 10) });
-    if (n.gold < 0) parts.push({ label: 'The treasury is empty', value: -0.5 });
-    if (n.legitimacy > 80) parts.push({ label: 'Standing fades without deeds', value: this.s.difficulty === 'hard' ? -0.4 : -0.25 });
+    const parts = this.legitimacyParts(nid);
     const ch = parts.reduce((t, x) => t + x.value, 0);
     return { key: 'legitimacy', title: 'Legitimacy', value: Math.round(n.legitimacy), min: 0, max: 100, change: r1(ch), unit: 'per month', parts, recent: this.recentChanges(nid, 'legitimacy'),
       effects: ['80+: +4% tax, +3% army morale', 'Above 60: +0.02 stability a month', 'Below 40: +1.5 unrest, −5 noble loyalty', 'Below 30: −0.04 stability a month', 'Below 25: pretenders may raise rebels', 'Below 20: +3 unrest, −12 noble loyalty, −5% tax'] };

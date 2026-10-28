@@ -272,11 +272,10 @@ export class Game {
       n.horses = Math.max(0, n.horses + B.horses);
       n.maxManpower = this.calcMaxManpower(n.id);
       n.manpower = Math.min(n.maxManpower, n.manpower + n.maxManpower / 60 * (n.food < 0 ? 0.3 : 1) * (1 + this.mod(n.id, 'manpowerRegen')));
-      if (n.food < 0) { n.stability = Math.max(-3, n.stability - 0.05); }
-      if (n.gold < -50) { n.stability = Math.max(-3, n.stability - 0.1); this.estateDelta(n, 'nobles', -1); }
+      if (n.gold < -50) this.estateDelta(n, 'nobles', -1);
       n.prestige = clamp(n.prestige * 0.995 + this.mod(n.id, 'prestigeMonthly') * 10, -100, 500);
-      n.legitimacy = clamp(n.legitimacy + 0.1 + this.mod(n.id, 'legitimacyMonthly') * 10 - (n.gold < 0 ? 0.5 : 0), 0, 100);
-      n.stability = clamp(n.stability + this.mod(n.id, 'stabilityMonthly') * 3 + (n.legitimacy > 60 ? 0.02 : n.legitimacy < 30 ? -0.04 : 0), -3, 3);
+      n.legitimacy = clamp(n.legitimacy + this.legitimacyParts(n.id).reduce((t, x) => t + x.value, 0), 0, 100);
+      n.stability = clamp(n.stability + this.stabilityParts(n.id).reduce((t, x) => t + x.value, 0), -3, 3);
       n.warExhaustion = Math.max(0, n.warExhaustion - (this.atWar(n.id) ? 0.05 : 0.4));
       if (n.legitimacy < 25 && this.rng() < 0.03 && this.ownedProvinces(n.id).length > 1) { this.spawnRebels(this.ownedProvinces(n.id).filter((p) => p !== n.capital)[0], true); this.log(`A pretender raises the banners against the ${n.name}!`, { nation: n.id, type: 'war', important: n.id === s.player }); }
       this.monthlyEstates(n);
