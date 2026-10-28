@@ -32,8 +32,10 @@ Method: headless playtests of the sim (`tools/qa/play.cjs`, `tools/qa/eval.cjs`:
 ### War
 - `js/sim/warplan.js`: **war goals** (picked from CB: claims, border ring, other-faith provinces; cheaper at the peace table ×0.7, non-goals ×1.3 and 1.4× AE), **score with parts** (60% occupation of the *enemy leader*, 15% allies' land, goals, capital, battles, exhaustion), **milestone reports** (25/50/75, goal taken, capital falls) as war notes + notifications, `warStatus(wid,nid)` dashboard data + `warAdvice`, wars-panel dashboard (`.war-dashboard`).
 - **Orders**: `setArmyOrders/setFrontOrders({retreat, engage})` — retreat line (army leaves a battle in good order when its morale falls below it), engage policy (cautious falls back from a stack ≥25% stronger, aggressive hits adjacent weaker stacks); default retreat 30% for everyone. **Pincer** when armies arrive from different roads. **Veterancy** (`armyVeterancy`, xp bonus up to +35%, diluted by reinforcements).
-- AI mobilises (up to 4 template musters) the moment it declares war.
-- Blockade log spam is *not yet fixed* (see weak spots).
+- **AI musters before it marches**: it declares only when its field army (plus a third of its allies') is ≥0.9× the target's; otherwise it builds up (news: "X musters its host on the border of Y", notification when the player is the target). Measured over 25 AI years: attackers with ≥2× army ratio now win 38 / lose 5 (before: coin flip at any ratio, because the old gate used a "power" number with dev and gold in it).
+- Peace table: `peaceAcceptance(...).parts` explains every term; `peaceCounter()` says which demands to drop. Leader's land counts in full for demand costs, allies' at 40%.
+- Four unlockable late units tied to innovations: Halberdiers, Plate Knights, Pavise Crossbowmen, Bombards (render falls back to existing models).
+- Blockade spam fixed (announce once per 180 days per province).
 
 ### Living world (`js/sim/world.js`)
 - **News feed** `newsFeed({limit,kinds,nation})` fed from `log()`; Chronicle panel (key `h`).
@@ -52,7 +54,7 @@ Method: headless playtests of the sim (`tools/qa/play.cjs`, `tools/qa/eval.cjs`:
 2. **Stability still pegs at ~3 for a competent player**; war exhaustion barely bites at low intensity.
 3. **Peace table**: AI acceptance is a single number (`will`); there is no counter-offer or "wants X more" dialogue. Demand cost is relative to the *whole* losing bloc, so cheap when allies are in the war.
 4. **Focus trees** have costs/lengths now, but ~370 entries are still upside-only effects.
-5. **Blockade logs** still spam the player's log (`dailyBlockades`).
+5. **Stability** is still high in peaceful realms (that is arguably right); shocks come from wars, estates, debt and occupation — but a well-run realm rarely drops below +1.
 6. **Innovation panel** shows forks only via a ⇄ marker and tooltip; no side-by-side comparison. Unit unlocks are limited to existing units (no new unit types).
 7. **Dynastic drama** is the old regency/claimant events plus heir schooling; no marriage politics for the player beyond the diplomacy panel.
 8. Mongol-type horde mechanics, naval war, espionage, trade UI: untouched.

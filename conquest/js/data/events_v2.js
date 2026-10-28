@@ -66,12 +66,36 @@ export const EVENTS_V2 = [
       { text: 'Send him away', effects: [{ legitimacy: 1 }] },
     ] },
   // ── The heir's schooling
-  { id: 'heir_schooling', title: 'The Heir\'s Schooling', icon: '📚', chance: 0.01, cond: (n, g) => !!n.heir && !!g.s.chars[n.heir] && g.age(g.s.chars[n.heir]) >= 6 && g.age(g.s.chars[n.heir]) <= 14 && !['merchant_republic', 'theocracy'].includes(n.gov),
+  { id: 'heir_schooling', title: 'The Heir\'s Schooling', icon: '📚', chance: 0.01, cond: (n, g) => !!n.heir && !!g.s.chars?.[n.heir] && g.age(g.s.chars?.[n.heir]) >= 6 && g.age(g.s.chars?.[n.heir]) <= 14 && !['merchant_republic', 'theocracy'].includes(n.gov),
     desc: 'The heir is old enough for a tutor. The court argues about what a king must learn first.',
     options: [
       { text: 'A knight to teach arms and command', effects: [{ custom: 'tutor:martial' }, { loyalty: { nobles: 4 } }] },
       { text: 'A reeve to teach the ledger and law', effects: [{ custom: 'tutor:stewardship' }, { loyalty: { burghers: 4 } }] },
       { text: 'A bishop to teach letters and virtue', effects: [{ custom: 'tutor:learning' }, { loyalty: { clergy: 6 } }] },
       { text: 'A diplomat to teach the courts of Europe', effects: [{ custom: 'tutor:diplomacy' }] },
+    ] },
+  // ── The restless heir
+  { id: 'restless_heir', title: 'A Restless Heir', icon: '👑', chance: 0.008,
+    cond: (n, g) => { const h = g.s.chars?.[n.heir], r = g.s.chars?.[n.ruler]; return !!h && !!r && !!g.age && g.age(h) >= 16 && g.age(h) <= 32 && g.age(r) >= 42 && n.legitimacy < 95 && !['merchant_republic', 'theocracy', 'elective_monarchy'].includes(n.gov); },
+    desc: 'The heir chafes at waiting. He has gathered a circle of young lords who call the old guard timid, and he has begun to sign letters as though the crown were already his.',
+    options: [
+      { text: 'Give him a command and a household of his own', effects: [{ gold: -40 }, { loyalty: { nobles: 6 } }, { mods_t: { mods: { armyMorale: 0.03, generalTactics: 1 }, months: 36 } }] },
+      { text: 'Keep him close at court, under watch', effects: [{ legitimacy: 2 }, { loyalty: { nobles: -4 } }, { followup: { id: 'heir_plots', months: 8 } }] },
+      { text: 'Rein him in publicly', effects: [{ prestige: 5 }, { loyalty: { nobles: -8 } }, { followup: { id: 'heir_plots', months: 5 } }] },
+    ] },
+  { id: 'heir_plots', title: 'The Heir Plots', icon: '🗡', chance: 0,
+    desc: 'Letters in the heir\'s hand have been found: promises to the barons, and an offer to a neighbouring court. The council wants to know what the crown will do.',
+    options: [
+      { text: 'Confine him in a distant castle', effects: [{ legitimacy: -5 }, { loyalty: { nobles: -6 } }, { stability: -0.3 }] },
+      { text: 'Forgive him and name him co-ruler', effects: [{ legitimacy: 4 }, { stability: 0.3 }, { loyalty: { nobles: -3 } }, { mods_t: { mods: { taxMult: -0.03 }, months: 24 } }] },
+      { text: 'Let him rise: and crush the rising', effects: [{ revolt: { n: 2, nobles: true } }, { prestige: 12 }, { legitimacy: -3 }] },
+    ] },
+  // ── A merchant prince's offer
+  { id: 'merchant_prince', title: 'A Merchant Prince Offers a Bargain', icon: '⚓', chance: 0.008, cond: (n, g) => n.estates.burghers && n.estates.burghers.influence > 14 && g.countBuildings(n.id, 'market') > 2,
+    desc: 'The richest merchant of the realm offers to pay for a new harbour and road system out of his own purse, if he is granted the customs of the port for twenty years.',
+    options: [
+      { text: 'Accept: gold now, customs forfeited', effects: [{ gold: 120 }, { build: { type: 'port', where: 'coastal', n: 1 } }, { build: { type: 'road', where: 'random', n: 2 } }, { mods_t: { mods: { tradeMult: -0.06 }, months: 240 } }, { loyalty: { burghers: 8 } }] },
+      { text: 'Refuse: the crown keeps its customs', effects: [{ legitimacy: 2 }, { loyalty: { burghers: -6 } }] },
+      { text: 'Haggle: half the customs for half the gold', effects: [{ gold: 60 }, { build: { type: 'road', where: 'random', n: 1 } }, { mods_t: { mods: { tradeMult: -0.03 }, months: 120 } }] },
     ] },
 ];
