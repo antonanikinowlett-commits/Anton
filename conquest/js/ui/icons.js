@@ -63,6 +63,42 @@ export const ICONS = {
   lock: '<path fill-rule="evenodd" d="M12 2a5 5 0 0 0-5 5v3H5v12h14V10h-2V7a5 5 0 0 0-5-5z M12 4.5A2.5 2.5 0 0 1 14.5 7v3h-5V7A2.5 2.5 0 0 1 12 4.5z"/>',
   city: '<path d="M2 22V10h5V4h6v8h4v-2h5v12z"/>',
   menu: '<path d="M3 5h18v2.500H3z M3 10.8h18v2.500H3z M3 16.5h18V19H3z"/>',
+
+  play: '<path d="M7 4.5l13 7.5-13 7.5z"/>',
+  pause: '<path d="M6 4h4v16H6z M14 4h4v16h-4z"/>',
+  chevd: '<path d="M6.4 8.6L12 14.2l5.6-5.6L19 10l-7 7-7-7z"/>',
+  chevr: '<path d="M8.6 6.4L14.2 12l-5.6 5.6L10 19l7-7-7-7z"/>',
+  chevl: '<path d="M15.4 6.4L9.8 12l5.6 5.6L14 19l-7-7 7-7z"/>',
+  chevu: '<path d="M6.4 15.4L12 9.8l5.6 5.6L19 14l-7-7-7 7z"/>',
+  volume: '<path d="M3 9v6h4l5 4V5L7 9z M14.5 8.7l1.4-1.4a6 6 0 0 1 0 9.4l-1.4-1.4a4 4 0 0 0 0-6.6z M17.3 5.9l1.4-1.4a10 10 0 0 1 0 15l-1.4-1.4a8 8 0 0 0 0-12.2z"/>',
+  mute: '<path d="M3 9v6h4l5 4V5L7 9z M15 9.4l1.4-1.4 2.6 2.6 2.6-2.6L23 9.4 20.4 12 23 14.6 21.6 16 19 13.4 16.4 16 15 14.6 17.6 12z"/>',
+  info: '<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M11 7h2v2h-2z M11 11h2v6h-2z"/>',
+  chart: '<path d="M4 20V10h4v10z M10 20V4h4v16z M16 20v-7h4v7z"/>',
+  bank: '<path d="M12 2l10 5v2H2V7z M4 10h3v8H4z M10.5 10h3v8h-3z M17 10h3v8h-3z M2 19h20v3H2z"/>',
+  trophy: '<path d="M7 3h10v5a5 5 0 0 1-4 4.9V16h3v2H8v-2h3v-3.1A5 5 0 0 1 7 8z M3 4h3v2.5c0 .8.4 1.5 1 2V11a4 4 0 0 1-4-5z M21 4h-3v2.5c0 .8-.4 1.5-1 2V11a4 4 0 0 0 4-5z M8 19h8v3H8z"/>',
+  spear: '<path d="M12 1l2.8 6H9.2z M11 7h2v15h-2z"/>',
+  helmet: '<path fill-rule="evenodd" d="M12 2.5a8 8 0 0 0-8 8V21h5v-4h6v4h5V10.5a8 8 0 0 0-8-8z M7.5 9.5h9v2.2h-9z"/>',
+  crossbow: '<path d="M2 9c4-4.5 16-4.5 20 0l-1.5 1.4C17 7.6 7 7.6 3.5 10.4z M11 6h2v14h-2z M8 19h8v2.5H8z"/>',
+  trebuchet: '<path d="M2 21h20v-2h-9L19 5l-2-1-7 15H2z M18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>',
+  compass: '<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16z M16 8l-2.2 5.8L8 16l2.2-5.8z"/>',
+  quill: '<path d="M21 2C12 3 6 8 5 16l-3 6 2.2.5L7 19.5C15 18.5 21 13 21 2z"/>',
+  flask: '<path d="M9 2h6v2h-1v5l5.5 9.5A2 2 0 0 1 17.7 21H6.3a2 2 0 0 1-1.8-2.5L10 9V4H9z"/>',
+  cap: '<path d="M12 3L1 9l11 6 9-4.9V17h2V9z M5 13.5V17c0 1.5 3 3 7 3s7-1.5 7-3v-3.5L12 17.3z"/>',
+  goblet: '<path d="M6 2h12v6a6 6 0 0 1-5 5.9V19h4v3H7v-3h4v-5.1A6 6 0 0 1 6 8z"/>',
+  brick: '<path d="M2 5h20v4H2z M2 10h9v4H2z M12 10h10v4H12z M2 15h20v4H2z"/>',
+  rock: '<path d="M2 19l5-10 4-3 5 1 6 12z"/>',
+  paw: '<path d="M12 12c-3 0-6 3-6 6 0 2 2 3 6 3s6-1 6-3c0-3-3-6-6-6z M5 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M9 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M15 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M19 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>',
+  bell: '<path d="M12 2a1.5 1.5 0 0 1 1.5 1.5v.7C16.4 4.9 18 7.2 18 10v5l2 3H4l2-3v-5c0-2.8 1.6-5.1 4.5-5.8v-.7A1.5 1.5 0 0 1 12 2z M10 19.5h4a2 2 0 0 1-4 0z"/>',
+  sparkle: '<path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/>',
+  snow: '<path d="M11 2h2v20h-2z M2 11h20v2H2z M4.9 6.3l1.4-1.4 12.8 12.8-1.4 1.4z M17.7 4.9l1.4 1.4L6.3 19.1l-1.4-1.4z"/>',
+  plus: '<path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z"/>',
+  trident: '<path d="M11 8h2v14h-2z M4 3h2v5a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V3h2v5a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z M11 1h2v8h-2z"/>',
+  filter: '<path d="M3 4h18l-7 8.5V20l-4-2v-5.500z"/>',
+  eye: '<path fill-rule="evenodd" d="M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7z M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>',
+  gem: '<path d="M6 3h12l4 6-10 13L2 9z"/>',
+  hourglass: '<path d="M6 2h12v2l-5 7 5 7v4H6v-4l5-7-5-7z"/>',
+  drop: '<path d="M12 2s7 7.5 7 13a7 7 0 0 1-14 0c0-5.5 7-13 7-13z"/>',
+  grid: '<path d="M3 3h8v8H3z M13 3h8v8h-8z M3 13h8v8H3z M13 13h8v8h-8z"/>',
 };
 
 // Emoji used in the UI/data tables -> icon name. Unmapped emoji are left untouched.
@@ -76,10 +112,20 @@ export const EMOJI = {
   '📚': 'book', '📖': 'book', '📕': 'book', '⚙': 'gear', '🗺': 'map', '⛰': 'mountain', '🏔': 'mountain', '⛵': 'ship', '🚢': 'ship',
   '⚠': 'warn', '✔': 'check', '✕': 'x', '✖': 'x', '✘': 'x', '⛺': 'tent', '🏕': 'tent', '♟': 'pawn', '♞': 'pawn', '⚡': 'bolt',
   '☀': 'sun', '🔒': 'lock', '🏙': 'city', '🏯': 'castle', '☰': 'menu',
+  '💪': 'bolt', '🥾': 'arrow', '📦': 'brick', '✂': 'axe', '➕': 'plus', '👁': 'eye', '🌧': 'drop', '🌫': 'snow', '💾': 'scroll', '📂': 'book', '⬇': 'chevd', '⬆': 'chevu',
+  '⏳': 'hourglass', '🎁': 'gem', '💔': 'skull', '🔓': 'lock', '😤': 'flame', '🦺': 'shield', '📋': 'scroll', '🧭': 'compass', '🌿': 'tree', '🪷': 'sparkle', '🏜': 'sun', '🗣': 'people',
+  '💡': 'sparkle', '🌉': 'city', '☄': 'flame', '🌊': 'ship', '🎶': 'bell', '🎪': 'tent', '📯': 'bell', '🕸': 'key', '📿': 'ring', '🖼': 'scroll', '🌀': 'sparkle', '☘': 'tree', '🍊': 'wheat',
+  '➶': 'arrow', '🪺': 'houses', '🏺': 'goblet', '🐟': 'anchor', '🖋': 'quill', '👪': 'people', '🧮': 'chart', '🎨': 'sparkle', '💧': 'drop', '🌱': 'tree', '🌬': 'snow', '🥕': 'wheat',
+  '🍇': 'wheat', '🏚': 'house', '🛳': 'ship', '📑': 'scroll', '🏭': 'hammer', '🌍': 'map', '☺': 'people', '⧉': 'grid', '↩': 'arrow', '↔': 'arrow', '⟷': 'arrow', '→': 'arrow',
+  '🎓': 'cap', '🍷': 'goblet', '🧱': 'brick', '🪨': 'rock', '🏦': 'bank', '📊': 'chart', '🏆': 'trophy', '🗼': 'castle', '🔔': 'bell', '🕯': 'flame',
+  '✨': 'sparkle', '💥': 'bolt', '❄': 'snow', '🛶': 'ship', '🚣': 'ship', '🛤': 'arrow', '🛒': 'bag', '🪚': 'axe', '🪓': 'axe', '🩹': 'plus', '⚕': 'plus', '🧵': 'scroll',
+  '🗿': 'pillars', '🕶': 'key', '🔱': 'trident', '🙏': 'dove', '😠': 'flame', '👦': 'people', '🏃': 'arrow', '🏗': 'hammer', '🐑': 'paw', '🐏': 'paw', '🐄': 'paw', '🐇': 'paw',
+  '🦌': 'paw', '🦊': 'paw', '🐫': 'paw', '🐚': 'gem', '🎖': 'star', '💤': 'hourglass', '⏸': 'pause', '▶': 'play', '🔊': 'volume', '🔇': 'mute', '💎': 'gem',
 };
 
 const BARE = (e) => e.replace(/️/g, '');
 const EMOJI_RE = new RegExp(`(${Object.keys(EMOJI).sort((a, b) => b.length - a.length).join('|')})\\uFE0F?`, 'g');
+const TAG_RE = /<\/?[a-zA-Z][^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>/g;
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 /** Inline <svg> for a named icon ('' if unknown). opts: { size (px), title, gilt, cls } */
@@ -99,7 +145,18 @@ export function iconFor(emoji, opts) {
   return n ? icon(n, opts) : emoji;
 }
 
+/** True if the string contains an emoji we can swap for an icon. */
+export function hasEmoji(str) { EMOJI_RE.lastIndex = 0; return EMOJI_RE.test(str); }
+
 /** Swap every mapped emoji inside an HTML string for its icon. */
 export function iconize(html) {
-  return String(html).replace(EMOJI_RE, (m, e) => icon(EMOJI[e]));
+  // only text between tags is converted; attribute values (data-tip="<b>⚔</b>") are left alone
+  const str = String(html);
+  let out = '', last = 0, m;
+  TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(str))) {
+    out += str.slice(last, m.index).replace(EMOJI_RE, (x, e) => icon(EMOJI[e])) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + str.slice(last).replace(EMOJI_RE, (x, e) => icon(EMOJI[e]));
 }
