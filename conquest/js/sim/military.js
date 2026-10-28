@@ -484,10 +484,11 @@ export const MilitaryMixin = {
     const own = !sp.sea && (s.prov[a.loc].controller === a.nation || !!(n && n.ai.horde));
     for (const r of a.regs) {
       if (attr) r.men = Math.max(0, r.men - r.men * attr);
-      r.morale = Math.min(1, r.morale + (own ? 0.05 : 0.025) * (n && n.food < 0 ? 0.3 : 1));
+      r.morale = Math.min(1, r.morale + (own ? 0.05 : 0.025) * (n && n.food < 0 ? 0.3 : 1) * (1 + (n ? this.mod(n.id, 'moraleRecovery') : 0)));
       // reinforcement from manpower in friendly territory
       if (own && n && r.men < r.max && n.manpower > 0) {
         const add = Math.min(r.max - r.men, r.max * 0.03, n.manpower);
+        if (add > 0 && r.xp) r.xp *= r.men / (r.men + add * 0.6); // fresh recruits dilute a veteran regiment
         r.men += add; n.manpower -= add;
       }
     }

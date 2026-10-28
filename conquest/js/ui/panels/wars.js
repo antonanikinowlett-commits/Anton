@@ -46,6 +46,25 @@ function warCard(ui, w, mine) {
     if (leader === n.id) row.append(el('div', { class: 'btn primary small', onclick: () => ui.startPeace(w, side) }, '🕊 Negotiate peace on the map'));
     else row.append(el('div', { class: 'btn small', onclick: () => { g.leaveWar(w, n.id); ui.renderPanel(true); }, 'data-tip': 'Make a separate peace and leave the war (−prestige)' }, 'Leave war'));
     d.append(row);
+    d.append(warDashboard(ui, w));
   }
   return d;
+}
+
+// Progress dashboard: goals, score breakdown, milestones, forces, the war log and advice.
+function warDashboard(ui, w) {
+  const g = ui.g, n = ui.P, st = g.warStatus(w.id, n.id);
+  const box = el('div', { class: 'war-dashboard', style: { marginTop: '6px' } });
+  if (!st) return box;
+  const lines = [];
+  lines.push(`<div class="small"><b>Milestones</b> ${st.milestones.map((m) => `<span class="chip ${m.reached ? 'good' : ''}" data-tip="War score ${m.at}">${m.reached ? '✔' : '○'} ${m.name} ${m.at}</span>`).join(' ')}</div>`);
+  if (st.goals.length) lines.push(`<div class="small"><b>War goals</b> ${st.goalsTaken}/${st.goals.length}: ${st.goals.map((x) => `<span class="chip ${x.state === 'enemy' ? '' : 'good'}" data-tip="${x.state}">${x.state === 'taken' ? '✔' : x.state === 'occupied' ? '⚑' : x.state === 'besieged' ? '⚔' : '○'} ${x.name}</span>`).join(' ')}</div>`);
+  const f = (l) => l.filter((x) => Math.abs(x.value) >= 0.5).map((x) => `${x.label} ${x.value > 0 ? '+' : ''}${x.value}`).join(' · ');
+  lines.push(`<div class="tiny muted">Score from: ${f(st.scoreParts.mine) || 'nothing yet'}${f(st.scoreParts.theirs) ? ` — against us: ${f(st.scoreParts.theirs)}` : ''}${st.exhaustionEffect ? ` · war weariness ${st.exhaustionEffect > 0 ? '+' : ''}${st.exhaustionEffect}` : ''}</div>`);
+  lines.push(`<div class="small">Forces: ${st.strength.usMen.toLocaleString()} men vs ${st.strength.themMen.toLocaleString()} (power ${Math.round(st.strength.ratio * 100)}%) · losses ${st.casualties.ours.toLocaleString()} / ${st.casualties.theirs.toLocaleString()} · we hold ${st.occupied.byUs.length}, they hold ${st.occupied.byThem.length} provinces</div>`);
+  if (st.peace) lines.push(`<div class="small ${st.peace.willing ? 'pos' : 'neg'}">🕊 ${st.peace.label}</div>`);
+  for (const a of st.advice) lines.push(`<div class="small ${a.tone === 'bad' ? 'neg' : a.tone === 'good' ? 'pos' : ''}">▸ ${a.text}</div>`);
+  if (st.notes.length) lines.push(`<div class="tiny muted">${st.notes.slice(0, 5).map((x) => `${dateStr(x.day)}: ${x.text}`).join('<br>')}</div>`);
+  box.innerHTML = lines.join('');
+  return box;
 }

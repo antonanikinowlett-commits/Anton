@@ -16,3 +16,4 @@ import './panels/military.js';
 import './panels/economy.js';
 import './panels/wars.js';
 import './panels/ledger.js';
+import './panels/news.js';

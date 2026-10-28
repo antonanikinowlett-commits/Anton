@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><pre id="o">loading</pre>
+<script type="module">
+import { generateMap } from '../../js/world/mapgen.js';
+import { Game } from '../../js/sim/game.js';
+import { mulberry32, dateOf } from '../../js/util.js';
+window.map = await generateMap(() => {});
+window.mkGame = (tag, seed = 1, difficulty = 'normal') => { const g = new Game(window.map); g.rng = mulberry32(seed); g.newGame(tag); g.s.difficulty = difficulty; window.G = g; return g; };
+window.dateOf = dateOf;
+window.ready = true;
+</script>

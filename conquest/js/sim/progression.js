@@ -1,5 +1,5 @@
 // Progression: innovations (research), realm rank, ambitions, achievements and score.
-import { INNOVATIONS, INNOV } from '../data/innovations.js';
+import { INNOVATIONS, INNOV, ERAS, BRANCHES, MOD_INFO, innovEffects } from '../data/innovations.js';
 import { dateOf } from '../util.js';
 import { FORMABLES } from '../data/formables.js';
 
@@ -69,31 +69,63 @@ export const ProgressionMixin = {
 
   // ── innovations
   hasInnov(nid, id) { return this.s.nations[nid].prog?.known.includes(id) || false; },
-  innovAvailable(nid, id) {
+  // why an innovation cannot be researched now: null when it can; { kind: 'known'|'excluded'|'pre'|'era', text }
+  innovBlock(nid, id) {
     const n = this.s.nations[nid], i = INNOV[id];
-    if (!i || !n.prog || n.prog.known.includes(id)) return false;
-    return i.pre.every((p) => n.prog.known.includes(p));
+    if (!i || !n.prog) return { kind: 'none', text: 'Unknown' };
+    const k = n.prog.known;
+    if (k.includes(id)) return { kind: 'known', text: 'Already learned' };
+    const ex = i.excl.find((x) => k.includes(x));
+    if (ex) return { kind: 'excluded', text: `Closed off: we chose ${INNOV[ex].name}` };
+    const miss = i.pre.find((p) => !k.includes(p));
+    if (miss) return { kind: 'pre', text: `Requires ${INNOV[miss].name}` };
+    const gate = ERAS[i.era].gate;
+    if (gate) {
+      const have = INNOVATIONS.filter((x) => x.branch === i.branch && x.era === i.era - 1 && k.includes(x.id)).length;
+      if (have < gate) return { kind: 'era', text: `Needs ${gate} ${ERAS[i.era - 1].name} ${BRANCHES[i.branch].name} innovations (have ${have})` };
+    }
+    return null;
   },
+  innovAvailable(nid, id) { return !this.innovBlock(nid, id); },
   hasResearchOptions(nid) { return INNOVATIONS.some((i) => this.innovAvailable(nid, i.id)); },
-  innovCost(nid, id) {
+  // The innovations that a choice of `id` would permanently close off (names), for "are you sure" UI.
+  innovForfeits(nid, id) { return INNOV[id].excl.filter((x) => !this.hasInnov(nid, x)).map((x) => INNOV[x].name); },
+  innovCostBreakdown(nid, id) {
     const i = INNOV[id], n = this.s.nations[nid];
-    let c = 260 * (1 + i.era * 0.7);
+    const parts = [['Base cost', i.cost]];
+    let c = i.cost;
     const yr = dateOf(this.s.day).y;
-    if (i.year > yr) c *= 1 + Math.min(1.5, (i.year - yr) / 50);
+    if (i.year > yr) { const f = 1 + Math.min(1.5, (i.year - yr) / 50); parts.push([`Ahead of its time (c. ${i.year})`, Math.round(c * (f - 1))]); c *= f; }
     const nb = this._neighbours ? this._neighbours[nid] : null;
     let known = 0;
     if (nb) for (const o of nb) if (this.s.nations[o].prog?.known.includes(id)) known++;
-    c *= 1 - Math.min(0.4, known * 0.1);
-    c *= 0.55 + 0.45 * Math.min(1, n.prog.known.length / 6);
-    return Math.round(c);
+    if (known) { const d = Math.min(0.4, known * 0.1); parts.push([`Known by ${known} neighbour${known > 1 ? 's' : ''}`, -Math.round(c * d)]); c *= 1 - d; }
+    const ramp = 0.7 + 0.3 * Math.min(1, n.prog.known.length / 5);
+    if (ramp < 1) { parts.push(['Early discoveries are easy', -Math.round(c * (1 - ramp))]); c *= ramp; }
+    return { total: Math.round(c), parts };
   },
-  researchRate(nid) {
+  innovCost(nid, id) { return this.innovCostBreakdown(nid, id).total; },
+  // everything the UI needs for one card: state, cost, months to learn at the current rate, effect lines, block reason
+  innovInfo(nid, id) {
+    const n = this.s.nations[nid], i = INNOV[id], blk = this.innovBlock(nid, id);
+    const state = n.prog.known.includes(id) ? 'done' : n.prog.cur === id ? 'now' : !blk ? 'avail' : blk.kind === 'excluded' ? 'closed' : 'locked';
+    const cost = this.innovCost(nid, id), rate = Math.max(0.1, this.researchRate(nid));
+    return { id, state, cost, months: Math.ceil(Math.max(0, cost - (n.prog.cur === id ? n.prog.pts : 0)) / rate), block: blk, effects: innovEffects(i), forfeits: this.innovForfeits(nid, id), breakdown: this.innovCostBreakdown(nid, id).parts };
+  },
+  researchBreakdown(nid) {
     const n = this.s.nations[nid];
     const ch = this.s.chars[n.council.chaplain], ru = this.s.chars[n.ruler];
-    let r = 3 + (ch ? ch.skills.learning * 0.25 : 0) + (ru ? ru.skills.learning * 0.12 : 0) + Math.sqrt(totalDev(this, nid)) * 0.3 + totalLevels(this, nid, 'church') * 0.04;
-    if (n.focus.done.includes('university')) r += 2;
-    return Math.max(0.5, r * (1 + this.mod(nid, 'researchSpeed')));
+    const parts = [['Base', 3]];
+    if (ch) parts.push([`Chaplain learning ${ch.skills.learning}`, ch.skills.learning * 0.25]);
+    if (ru) parts.push([`Ruler learning ${ru.skills.learning}`, ru.skills.learning * 0.12]);
+    parts.push(['Development of the realm', Math.sqrt(totalDev(this, nid)) * 0.3]);
+    parts.push(['Churches', totalLevels(this, nid, 'church') * 0.04]);
+    if (n.focus.done.includes('university')) parts.push(['University focus', 2]);
+    const sub = parts.reduce((t, x) => t + x[1], 0), m = this.mod(nid, 'researchSpeed');
+    if (m) parts.push([`Research speed ${m > 0 ? '+' : ''}${Math.round(m * 100)}%`, sub * m]);
+    return { parts, total: Math.max(0.5, sub * (1 + m)) };
   },
+  researchRate(nid) { return this.researchBreakdown(nid).total; },
   startResearch(nid, id) {
     const n = this.s.nations[nid];
     if (!this.innovAvailable(nid, id)) return false;
@@ -103,22 +135,41 @@ export const ProgressionMixin = {
   _learn(n, id) {
     const i = INNOV[id];
     n.prog.known.push(id);
-    // income bonuses are halved: dozens of innovations stack additively and would otherwise run the economy away
-    const mods = {};
-    for (const [k, v] of Object.entries(i.mods)) mods[k] = ['taxMult', 'tradeMult', 'foodMult', 'devGrowth'].includes(k) ? v * 0.5 : v;
-    n.mods.push({ src: 'innov:' + id, mods });
+    n.mods.push({ src: 'innov:' + id, mods: { ...i.mods } });
     if (i.unlock && !n.unlocks.includes(i.unlock) && (i.unlock !== 'longbowmen' || ['english', 'welsh'].includes(n.culture))) n.unlocks.push(i.unlock);
+    if (i.bld && !n.unlocks.includes('bld:' + i.bld)) n.unlocks.push('bld:' + i.bld);
     this.recalcMods(n.id);
     this.log(`${n.name} masters ${i.name}.`, { nation: n.id });
     if (n.id === this.s.player) this.notify({ nation: n.id, text: `Innovation: ${i.icon} ${i.name}` });
   },
+  // The AI weighs what it is short of: soldiers at war, money when poor, food when hungry, order when restless.
   aiResearch(n) {
     const war = this.atWar(n.id);
+    const poor = n.gold < 40, hungry = n.food < 20, restless = n.stability < 0.5 || this.maxUnrest(n.id) > 20;
+    // each realm has its own tastes: a stable per-branch lean from its character, plus a stable per-idea whim
+    const h = (a, b) => { let x = (a * 374761393 + b * 668265263) | 0; x = (x ^ (x >>> 13)) * 1274126177; return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
+    const gl = { merchant_republic: { sea: 1.5, civic: 1.3, military: 0.8 }, tribal: { military: 1.4, civic: 0.7 }, theocracy: { civic: 1.3 }, sultanate: { military: 1.2 }, imperial: { civic: 1.2 } }[n.gov] || {};
+    const coastal = this.ownedProvinces(n.id).filter((p) => this.map.provinces[p].coastal).length / Math.max(1, this.ownedProvinces(n.id).length);
     let best = null, bs = -1e9;
     for (const i of INNOVATIONS) {
       if (!this.innovAvailable(n.id, i.id)) continue;
-      const s = -this.innovCost(n.id, i.id) + (i.branch === 'military' && war ? 40 : 0) + (i.branch === 'civic' || i.branch === 'agri' ? 15 : 0) + this.rng() * 30;
-      if (s > bs) { bs = s; best = i.id; }
+      let v = 0;
+      for (const [k, x] of Object.entries(i.mods)) {
+        const dir = (MOD_INFO[k]?.[2]) || 1;
+        let w;
+        if (['taxMult', 'tradeMult'].includes(k)) w = poor ? 120 : 70;
+        else if (k === 'foodMult') w = hungry ? 100 : 30;
+        else if (['unrest', 'stabilityMonthly', 'legitimacyMonthly'].includes(k)) w = restless ? 90 : 30;
+        else if (['cavAtk', 'infAtk', 'infDef', 'rangedAtk', 'discipline', 'armyMorale', 'siege', 'fortDefense', 'manpowerMult'].includes(k)) w = war ? 80 : 35;
+        else if (['researchSpeed', 'devGrowth'].includes(k)) w = 55;
+        else w = 20;
+        const kind = MOD_INFO[k]?.[1];
+        v += x * (kind === 'flat' ? 0.04 : kind === 'month' ? 3 : 1) * dir * w;
+      }
+      const lean = (0.7 + h(n.id, i.branch.length * 7 + i.branch.charCodeAt(0)) * 0.8) * (gl[i.branch] || 1) * (i.branch === 'sea' ? 0.5 + coastal : 1);
+      const kb = INNOVATIONS.reduce((t, x) => t + (x.branch === i.branch && n.prog.known.includes(x.id) ? 1 : 0), 0);
+      const sc = v * lean * 5 / (1 + 0.25 * kb) - this.innovCost(n.id, i.id) * 0.03 + (h(n.id, i.id.length * 131 + i.id.charCodeAt(2)) - 0.5) * 12;
+      if (sc > bs) { bs = sc; best = i.id; }
     }
     if (best) n.prog.cur = best;
   },
@@ -152,7 +203,7 @@ export const ProgressionMixin = {
     n.prestige += 15; n.legitimacy = Math.min(100, n.legitimacy + 5);
     this._applyRankMods(n);
     this.recalcMods(nid);
-    this.log(`${n.name} is raised to a ${RANKS[n.prog.rank]}.`, { nation: nid });
+    this.log(`${n.name} is raised to a ${RANKS[n.prog.rank]}.`, { nation: nid, type: 'court' });
     this.emit('coronation', nid, n.prog.rank);
     return true;
   },
@@ -178,7 +229,7 @@ export const ProgressionMixin = {
     if (f.rename) { n.name = f.rename.name; n.adj = f.rename.adj; }
     this.applyEffects(nid, f.effects, 'form:' + id);
     if (n.prog.rank < 2) { n.prog.rank = 2; this._applyRankMods(n); this.recalcMods(nid); }
-    this.log(`${n.name} is proclaimed.`, { nation: nid, important: nid === this.s.player });
+    this.log(`${n.name} is proclaimed.`, { nation: nid, type: 'court', important: nid === this.s.player });
     if (nid === this.s.player) this.notify({ nation: nid, text: `${f.name} proclaimed!` });
     return true;
   },

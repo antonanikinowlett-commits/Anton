@@ -10,6 +10,7 @@ export const CB_TYPES = {
   subjugation: { name: 'Subjugation of Heathens', desc: 'Bring the pagans to heel.', ae: 0.5, stab: 0 },
   reconquista: { name: 'Reconquista', desc: 'Retake Iberia for Christendom.', ae: 0.5, stab: 0 },
   insult: { name: 'Avenge Insult', desc: 'They insulted our honour.', ae: 1.2, stab: 0 },
+  coalition: { name: 'Coalition War', desc: 'Neighbours united against an aggressor.', ae: 0.3, stab: 0 },
   conquest: { name: 'War of Conquest', desc: 'No justification. -1 stability, -15 legitimacy, double aggressive expansion.', ae: 2, stab: -1 },
 };
 
@@ -287,6 +288,7 @@ export const DiplomacyMixin = {
     if (!side) return 'We are not part of that war';
     if (!s.nations[aid].allies.includes(allyId)) return 'Not our ally';
     if (w.att.includes(allyId) || w.def.includes(allyId)) return 'Already in the war';
+    if (allyId === this.s.player) { this.queueAllyCall(w, allyId, side, aid); return null; }
     const [sc, R] = this.acceptance(aid, allyId, 'arms');
     if (sc < 0) { b.opinion[aid] = (b.opinion[aid] ?? 0) - 5; return this.refusal(R, `${b.name} declines`); }
     this.joinWar(w, allyId, side);
@@ -375,7 +377,7 @@ export const DiplomacyMixin = {
     if (why) return why;
     const s = this.s, a = s.nations[aid], b = s.nations[bid];
     const t = CB_TYPES[cb.kind] || CB_TYPES.conquest;
-    if (t.stab) { a.stability = Math.max(-3, a.stability + t.stab); a.legitimacy = Math.max(0, a.legitimacy - 15); }
+    if (t.stab) { a.stability = Math.max(-3, a.stability + t.stab); a.legitimacy = Math.max(0, a.legitimacy - 15); this.bump(aid, 'stability', t.stab, `Declared ${t.name}`); this.bump(aid, 'legitimacy', -15, `Declared ${t.name}`); }
     if (a.truces[bid] > s.day) { a.stability = Math.max(-3, a.stability - 2); a.prestige -= 20; }
     if (a.naps.includes(bid)) { a.stability = Math.max(-3, a.stability - 1); a.naps = a.naps.filter((x) => x !== bid); b.naps = b.naps.filter((x) => x !== aid); }
     const name = `${a.adj}-${b.adj} War`;
@@ -383,6 +385,7 @@ export const DiplomacyMixin = {
       cb: cb.kind, start: s.day, battleScore: 0, score: 0 };
     s.wars[w.id] = w;
     this._wp = null;
+    this.pickWarGoals(w);
     // the defender calls allies, vassals and overlord
     const defCall = new Set([...b.allies, ...s.nations.filter((x) => x.alive && x.overlord === bid).map((x) => x.id)]);
     if (b.overlord >= 0) defCall.add(b.overlord);
@@ -393,7 +396,7 @@ export const DiplomacyMixin = {
       if (x === aid || this.isAlly(x, aid) || w.att.includes(x) || w.def.includes(x)) continue;
       const ally = s.nations[x];
       if (!ally.alive || ally.overlord >= 0 && ally.overlord !== bid) continue;
-      if (x === s.player && !silent) { this.joinWar(w, x, 'def'); continue; }
+      if (x === s.player && !silent) { if (b.allies.includes(x)) this.queueAllyCall(w, x, 'def', bid, true); else this.joinWar(w, x, 'def'); continue; }
       if (this.opinion(x, bid) > -10 || ally.overlord === bid || ally.id === b.overlord) this.joinWar(w, x, 'def');
     }
     // the attacker calls allies (they may decline)
@@ -402,6 +405,7 @@ export const DiplomacyMixin = {
       if (w.def.includes(x) || w.att.includes(x)) continue;
       if (this.isAlly(x, bid)) continue;
       const ally = s.nations[x];
+      if (x === s.player && !silent && ally.overlord < 0) { this.queueAllyCall(w, x, 'att', aid, true); continue; }
       if (ally.overlord === aid || (x !== s.player && this.opinion(x, aid) > 30 && this.opinion(x, bid) < 20)) this.joinWar(w, x, 'att');
     }
     // aggressive expansion & reputation
@@ -459,24 +463,6 @@ export const DiplomacyMixin = {
     }
   },
 
-  updateWarScore(w) {
-    const s = this.s;
-    const devOf = (nids) => { let t = 0; for (const n of nids) for (const p of this.ownedProvinces(n)) t += s.prov[p].dev; return t || 1; };
-    const occ = (attackers, defenders) => {
-      let t = 0;
-      for (const d of defenders) for (const p of this.ownedProvinces(d)) {
-        const c = s.prov[p].controller;
-        if (attackers.includes(c)) t += s.prov[p].dev * (s.nations[d].capital === p ? 2 : 1);
-      }
-      return t;
-    };
-    const attOcc = occ(w.att, w.def) / devOf(w.def) * 100;
-    const defOcc = occ(w.def, w.att) / devOf(w.att) * 100;
-    const months = (s.day - w.start) / 30;
-    w.score = clamp(Math.round(attOcc * 0.9 - defOcc * 0.9 + (w.battleScore || 0) + (w.cb === 'conquest' ? 0 : 0) - (months > 24 ? (months - 24) * 0.2 * Math.sign(attOcc - defOcc - 0.0001) * 0 : 0)), -100, 100);
-    w.attOcc = attOcc; w.defOcc = defOcc;
-  },
-
   // Peace: demands made by `side` ('att' or 'def') of the other side.
   demandCost(w, side, d) {
     const s = this.s;
@@ -487,7 +473,8 @@ export const DiplomacyMixin = {
       const pr = s.prov[d.p];
       const capital = s.nations[pr.owner].capital === d.p;
       const claimed = pr.claims.includes(d.to);
-      return Math.round((pr.dev / tot * 90 + 3 + (capital ? 10 : 0)) * (claimed ? 0.7 : 1) * (w.cb === 'conquest' ? 1.2 : 1));
+      const goal = this.isWarGoal(w, side, d.p);
+      return Math.round((pr.dev / tot * 90 + 3 + (capital ? 10 : 0)) * (claimed ? 0.7 : 1) * (w.cb === 'conquest' ? 1.2 : 1) * (w.goals ? (goal ? 0.7 : 1.3) : 1));
     }
     if (d.type === 'gold') return Math.round(d.v / 8);
     if (d.type === 'vassal') return Math.round(55 + this.ownedProvinces(d.target).length * 1.2);
@@ -523,7 +510,7 @@ export const DiplomacyMixin = {
         this.setOwner(d.p, d.to ?? wl);
         for (const o of s.nations) if (o.alive && o.id !== (d.to ?? wl)) {
           const near = this.map.provinces[d.p].adj.some((e) => e.id < this.L && s.prov[e.id].owner === o.id);
-          if (near) o.ae[d.to ?? wl] = (o.ae[d.to ?? wl] || 0) + s.prov[d.p].dev * 1.5 * (CB_TYPES[w.cb]?.ae || 1);
+          if (near) o.ae[d.to ?? wl] = (o.ae[d.to ?? wl] || 0) + s.prov[d.p].dev * 1.5 * (CB_TYPES[w.cb]?.ae || 1) * (this.isWarGoal(w, side, d.p) ? 0.6 : 1.4);
         }
       } else if (d.type === 'gold') {
         const ln = s.nations[side === 'att' ? w.defLeader : w.attLeader];
@@ -540,6 +527,7 @@ export const DiplomacyMixin = {
     }
     for (const x of [...winners, ...losers]) { const n = s.nations[x]; if (n) n.warExhaustion = Math.max(0, n.warExhaustion - 3); }
     s.nations[wl].prestige += 10;
+    { const ws = s.nations[wl].stats; ws.warsWon = (ws.warsWon || 0) + (demands.length || w.score * (side === 'att' ? 1 : -1) >= 10 ? 1 : 0); }
     const txt = demands.length ? demands.map((d) => (d.type === 'province' ? this.provName(d.p) : d.type === 'gold' ? `${d.v} gold` : d.type === 'vassal' ? 'vassalage' : 'humiliation')).join(', ') : 'white peace';
     this.log(`Peace: the ${w.name} ends. Terms: ${txt}.`, { nation: wl, type: 'diplo', important: [...winners, ...losers].includes(s.player) });
     this.endWar(w);

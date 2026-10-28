@@ -34,15 +34,15 @@ export const BUILDINGS = {
 Object.assign(BUILDINGS, {
   guildhall: { name: 'Guild Hall', icon: '🏛', max: 2, cost: { gold: 45, timber: 4 }, days: 180, upkeep: 0.15, req: { market: 2 },
     desc: 'Chartered guilds of merchants and craftsmen. +burghers, +tax, +trade power, +burgher loyalty.', allowed: (p) => true,
-    mods: { burgherLoyalty: 0.3 }, ai: (g, n, p, pr) => pr.dev / 5 },
+    mods: { burgherLoyalty: 0.3, taxMult: 0.02, tradeMult: 0.03 }, cap: { burgherLoyalty: 3, taxMult: 0.1, tradeMult: 0.15 }, ai: (g, n, p, pr) => pr.dev / 5 },
   university: { name: 'University', icon: '🎓', max: 1, cost: { gold: 90, timber: 4 }, days: 365, upkeep: 0.5, req: { church: 2, market: 1 }, minDev: 10,
     desc: 'A studium generale of masters and scholars. +development growth here, faster national focus, +prestige.', allowed: (p) => true,
-    mods: { focusSpeed: 0.04, prestigeMonthly: 0.01 }, cap: { focusSpeed: 0.2, prestigeMonthly: 0.04 }, ai: (g, n, p, pr) => pr.dev / 6 + (n.gold > 300 ? 1 : 0) },
+    mods: { focusSpeed: 0.04, prestigeMonthly: 0.01, researchSpeed: 0.03 }, cap: { focusSpeed: 0.2, prestigeMonthly: 0.04, researchSpeed: 0.12 }, ai: (g, n, p, pr) => pr.dev / 6 + (n.gold > 300 ? 1 : 0) },
   cathedral: { name: 'Great Cathedral', icon: '✝', max: 1, cost: { gold: 120, timber: 10, iron: 2 }, days: 720, upkeep: 0.4, req: { church: 3 }, minDev: 12,
     desc: 'A generation of masons raise a house of God to the sky. -unrest, faster conversion, +legitimacy, +clergy loyalty.', allowed: (p) => true,
     mods: { legitimacyMonthly: 0.006, clergyLoyalty: 1, prestigeMonthly: 0.005 }, cap: { legitimacyMonthly: 0.02, clergyLoyalty: 4 }, ai: (g, n, p, pr) => (p === n.capital ? 2 : 0.6) + pr.unrest / 20 },
   tollbridge: { name: 'Toll Bridge', icon: '🌉', max: 1, cost: { gold: 30, timber: 4, iron: 1 }, days: 120, upkeep: 0.05,
-    desc: 'A fortified bridge and toll house on the river. +gold from tolls, +trade power.', allowed: (p) => p.river > 0.03,
+    tollGold: 0.45, desc: 'A fortified bridge and toll house on the river. +0.45 gold a month per level from tolls.', allowed: (p) => p.river > 0.03,
     ai: (g, n, p, pr) => 1 + pr.dev / 10 },
   townwalls: { name: 'Town Walls', icon: '🧱', max: 1, cost: { gold: 50, timber: 4, iron: 2 }, days: 240, upkeep: 0.12, req: { market: 1 },
     desc: 'Stone curtain walls around the town. +1 fort level, burghers shelter from looting (devastation heals faster).', allowed: (p) => true,
@@ -62,6 +62,8 @@ Object.assign(BUILDINGS, {
 });
 // upkeep of the original buildings (gold per level per month)
 for (const [k, v] of Object.entries({ walls: 0.08, barracks: 0.1, port: 0.04, workshop: 0.05, church: 0.03 })) BUILDINGS[k].upkeep = v;
+// Buildings that must first be unlocked by an innovation (progression.js adds 'bld:<key>' to nation.unlocks).
+for (const [k, v] of Object.entries({ guildhall: 'Craft Guilds', university: 'Universities', townwalls: 'Concentric Castles', siegeworks: 'Sapper Corps', shipyard: 'Harbour Works' })) BUILDINGS[k].innov = v;
 BUILDINGS.road.slot = false;
 BUILDINGS.walls.slot = false;
 

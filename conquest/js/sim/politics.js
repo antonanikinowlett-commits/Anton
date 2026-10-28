@@ -112,7 +112,7 @@ export const PoliticsMixin = {
         const v = this.lawVote(n.id, cat, opt);
         if (v.yes >= 0.5 && !this.lawReqs(n.id, cat, opt).some(([, ok]) => !ok)) this.enactLaw(n.id, cat, opt);
         else {
-          n.legitimacy = Math.max(0, n.legitimacy - 5);
+          n.legitimacy = Math.max(0, n.legitimacy - 5); this.bump(n.id, 'legitimacy', -5, `Estates rejected ${LAWS[cat].options[opt].name}`);
           if (n.id === s.player) { this.log(`The estates reject ${LAWS[cat].options[opt].name} (${Math.round(v.yes * 100)}% in favour).`, { nation: n.id, type: 'law', important: true }); this.emit('law'); }
         }
       }
@@ -217,11 +217,18 @@ export const PoliticsMixin = {
     const st = this.focusStatus(nid, f);
     if (st !== 'available') return st === 'locked' ? 'Prerequisites not met' : st === 'excluded' ? 'Mutually exclusive with a chosen focus' : 'Not available';
     if (n.focus.cur) return 'Already pursuing a focus';
+    if ((f.cost || 0) > n.gold) return `Need ${f.cost} gold`;
+    n.gold -= f.cost || 0; this.bump(nid, 'gold', -(f.cost || 0), `Focus: ${f.name}`);
     n.focus.cur = fid; n.focus.prog = 0;
     this.emit('focus');
     return null;
   },
-  cancelFocus(nid) { const n = this.s.nations[nid]; n.focus.cur = null; n.focus.prog = 0; this.emit('focus'); },
+  cancelFocus(nid) {
+    const n = this.s.nations[nid];
+    const f = n.focus.cur && this.focusTree(nid).find((x) => x.id === n.focus.cur);
+    if (f && n.focus.prog < f.days * 0.25) n.gold += Math.round((f.cost || 0) / 2); // an early change of mind recovers half
+    n.focus.cur = null; n.focus.prog = 0; this.emit('focus');
+  },
   completeFocus(nid, f) {
     const n = this.s.nations[nid];
     n.focus.done.push(f.id); n.focus.cur = null; n.focus.prog = 0;
@@ -240,9 +247,10 @@ export const PoliticsMixin = {
     for (const e of effects) {
       if (e.mods) n.mods.push({ src, mods: e.mods });
       if (e.mods_t) n.mods.push({ src, mods: e.mods_t.mods, until: s.day + e.mods_t.months * 30 });
-      for (const k of ['gold', 'prestige', 'iron', 'timber', 'horses', 'food']) if (e[k] !== undefined) n[k] += e[k];
-      if (e.legitimacy) n.legitimacy = clamp(n.legitimacy + e.legitimacy, 0, 100);
-      if (e.stability) n.stability = clamp(n.stability + e.stability, -3, 3);
+      const why = this.modSrcLabel(src);
+      for (const k of ['gold', 'prestige', 'iron', 'timber', 'horses', 'food']) if (e[k] !== undefined) { n[k] += e[k]; if (nid === s.player && (k === 'gold' || k === 'prestige')) this.bump(nid, k, e[k], why); }
+      if (e.legitimacy) { n.legitimacy = clamp(n.legitimacy + e.legitimacy, 0, 100); this.bump(nid, 'legitimacy', e.legitimacy, why); }
+      if (e.stability) { n.stability = clamp(n.stability + e.stability, -3, 3); this.bump(nid, 'stability', e.stability, why); }
       if (e.manpower) n.manpower = Math.max(0, n.manpower + e.manpower);
       if (e.claims) this.effectClaims(nid, e.claims);
       if (e.cb) n.cbs.push({ kind: e.cb.kind, tag: e.cb.tag });
@@ -268,6 +276,19 @@ export const PoliticsMixin = {
         if (e.holy.join) this.joinHolyWar(nid, e.holy.join);
         if (e.holy.donate) this.donateHolyWar(nid, e.holy.donate.gold, e.holy.donate.kind);
         if (e.holy.ignore) this.papalFavorChange(nid, -e.holy.ignore);
+      }
+      if (e.war && !this.declareWar(e.war.by, nid, { kind: e.war.cb || 'conquest' }, true)) this.aiMobilize(s.nations[e.war.by]);
+      if (e.transfer) { const to = s.nations[e.transfer.to]; if (to) to.gold += e.transfer.gold; }
+      if (e.truce) { const o = s.nations[e.truce.with]; if (o) { n.truces[o.id] = s.day + e.truce.days; o.truces[nid] = s.day + e.truce.days; } }
+      if (e.oppOf) for (const x of e.oppOf.withAll || [e.oppOf.with]) { const o = s.nations[x]; if (o) o.opinion[nid] = (o.opinion[nid] ?? 0) + e.oppOf.v; }
+      if (e.ally) { const o = s.nations[e.ally.with]; if (o?.alive && !n.allies.includes(o.id)) { n.allies.push(o.id); o.allies.push(nid); this.log(`The ${n.adj} and the ${o.adj} have formed an alliance.`, { nation: nid, type: 'diplo' }); this.emit('diplo'); } }
+      if (e.marry) { const o = s.nations[e.marry.with]; if (o?.alive && !n.marriages.includes(o.id)) { n.marriages.push(o.id); o.marriages.push(nid); this.log(`A royal marriage joins the ${n.adj} and ${o.adj} houses.`, { nation: nid, type: 'diplo' }); this.emit('diplo'); } }
+      if (e.joinWar) { const w = s.wars[e.joinWar.war]; if (w && !w.att.includes(nid) && !w.def.includes(nid)) this.joinWar(w, nid, e.joinWar.side); }
+      if (e.breakAlliance && n.allies.includes(e.breakAlliance.with)) this.breakAlliance(nid, e.breakAlliance.with);
+      if (e.custom) {
+        if (e.custom === 'paid') { n.world ||= {}; n.world.paid = (n.world.paid || 0) + 1; }
+        else if (e.custom.startsWith('tutor:')) { const h = s.chars[n.heir]; if (h) { const k = e.custom.slice(6); h.skills[k] = Math.min(20, (h.skills[k] || 0) + 3 + Math.floor(this.rng() * 3)); h.traits.length < 4 && k === 'martial' && !h.traits.includes('brave') && this.rng() < 0.3 && h.traits.push('brave'); } }
+        else if (e.custom.startsWith('dissolve:')) s.coalitions = (s.coalitions || []).filter((c) => c.id !== +e.custom.slice(9));
       }
       if (e.followup) (s.eventLater ||= []).push({ id: e.followup.id, nid, day: s.day + e.followup.months * 30 });
       if (e.mercs && n.capital >= 0) {
@@ -395,6 +416,15 @@ export const PoliticsMixin = {
       if (e.holy?.join) out.push('Take the cross: join the holy war');
       if (e.holy?.donate) out.push(`Donate ${e.holy.donate.gold} gold to the holy war`);
       if (e.holy?.ignore) out.push(`Papal favour −${e.holy.ignore}`);
+      if (e.war) out.push(`War with ${this.s.nations[e.war.by]?.name}`);
+      if (e.transfer) out.push(`${this.s.nations[e.transfer.to]?.name} receives ${e.transfer.gold} gold`);
+      if (e.truce) out.push(`Truce with ${this.s.nations[e.truce.with]?.name} for ${Math.round(e.truce.days / 365 * 10) / 10} years`);
+      if (e.oppOf) out.push(`Opinion of us ${e.oppOf.v > 0 ? '+' : ''}${e.oppOf.v} (${e.oppOf.withAll ? e.oppOf.withAll.length + ' realms' : this.s.nations[e.oppOf.with]?.name})`);
+      if (e.ally) out.push(`Alliance with ${this.s.nations[e.ally.with]?.name}`);
+      if (e.marry) out.push(`Marriage with ${this.s.nations[e.marry.with]?.name}`);
+      if (e.joinWar) out.push('Join the war');
+      if (e.breakAlliance) out.push(`Break the alliance with ${this.s.nations[e.breakAlliance.with]?.name} (honour lost)`);
+      if (e.custom && e.custom.startsWith('dissolve:')) out.push('The coalition dissolves');
     }
     return out;
   },
@@ -441,13 +471,14 @@ export const PoliticsMixin = {
     }
     if (s.eventQueue.length) this.emit('event');
   },
-  eventDef(id) { return EVENTS.find((e) => e.id === id) || HISTORY.find((e) => e.id === id); },
+  eventDef(id) { return this.s.dynEvents?.[id] || EVENTS.find((e) => e.id === id) || HISTORY.find((e) => e.id === id); },
   chooseEvent(idx) {
     const s = this.s;
     const q = s.eventQueue.shift();
     if (!q) return;
     const ev = this.eventDef(q.id);
-    if (ev && ev.options && ev.options[idx]) this.applyEffects(s.player, ev.options[idx].effects, 'event:' + ev.id);
+    if (ev && ev.options && ev.options[idx]) this.applyEffects(s.player, ev.options[idx].effects, 'event:' + (ev.id || q.id));
+    if (s.dynEvents?.[q.id]) { delete s.dynEvents[q.id]; const w = (s.nations[s.player].world ||= {}); w.answered = (w.answered || 0) + 1; }
     this.emit('event');
   },
 };
