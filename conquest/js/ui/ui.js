@@ -181,7 +181,7 @@ export class UI {
     paint();
     this.v.on('mode', () => { paint(); if (this.modeMenu) this.toggleModeMenu(false); });
     this.modeBtn._tip = () => 'Change what the map shows';
-    this.mm = el('canvas', { id: 'minimap', width: 204, height: 150 });
+    this.mm = el('canvas', { id: 'minimap', width: 408, height: 300 });
     const wrap = el('div', { class: 'frame mm-wrap' }, this.mm);
     this.modesEl.append(this.modeBtn, wrap);
     this._modesDoc = () => this.toggleModeMenu(false);
@@ -237,13 +237,15 @@ export class UI {
     ctx.putImageData(this.mmImg, 0, 0);
     const c = this.v.cam;
     const vw = c.d * 1.35, vh = c.d * 0.8;
-    ctx.strokeStyle = '#f3dc9c'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 3;
-    ctx.strokeRect((c.x - vw / 2) / W * cv.width, (c.z - vh / 2) / H * cv.height, vw / W * cv.width, vh / H * cv.height);
+    const rx = (c.x - vw / 2) / W * cv.width, ry = (c.z - vh / 2) / H * cv.height, rw = vw / W * cv.width, rh = vh / H * cv.height;
+    ctx.fillStyle = 'rgba(243,220,156,.12)'; ctx.fillRect(rx, ry, rw, rh);
+    ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.lineWidth = 5; ctx.strokeRect(rx, ry, rw, rh);
+    ctx.strokeStyle = '#f8e8b8'; ctx.lineWidth = 2.5; ctx.strokeRect(rx, ry, rw, rh);
     // player's armies
     ctx.fillStyle = '#fff';
-    for (const a of Object.values(this.s.armies)) if (a.nation === this.s.player) { const p = this.v.map.provinces[a.loc]; ctx.fillRect(p.x / W * cv.width - 1.5, p.y / H * cv.height - 1.5, 3, 3); }
+    for (const a of Object.values(this.s.armies)) if (a.nation === this.s.player) { const p = this.v.map.provinces[a.loc]; ctx.fillRect(p.x / W * cv.width - 2.5, p.y / H * cv.height - 2.5, 5, 5); }
     ctx.fillStyle = '#ff5030';
-    for (const b of Object.values(this.s.battles)) if (!b.over) { const p = this.v.map.provinces[b.prov]; ctx.beginPath(); ctx.arc(p.x / W * cv.width, p.y / H * cv.height, 3, 0, 7); ctx.fill(); }
+    for (const b of Object.values(this.s.battles)) if (!b.over) { const p = this.v.map.provinces[b.prov]; ctx.beginPath(); ctx.arc(p.x / W * cv.width, p.y / H * cv.height, 5, 0, 7); ctx.fill(); }
   }
 
   // ── tooltips

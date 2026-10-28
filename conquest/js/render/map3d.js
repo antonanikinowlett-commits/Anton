@@ -86,7 +86,7 @@ void main(){
     pol = mix(polO, pol, smoothstep(-aa, aa, f));       // anti-aliased colour edge
   }
   // political wash keeps the baked relief, texture and hill-shading
-  float tl = luma(base);
+  float tl = mix(luma(base), luma(texture2D(tTerrain, vUv, 2.5).rgb), uFar*0.7);   // far away the relief is smoothed: no glitter on mountain ranges
   float detail = tl - luma(texture2D(tTerrain, vUv, 3.0).rgb);   // local relief and symbols, stripped of the base tone
   vec3 polS = pol * (0.60 + 0.95*tl) * (0.80 + 0.30*lam) * (1.0 + detail*mix(1.5, 0.45, uFar));
   float pap = texture2D(tNoise, vW.xz*0.8).r*0.5 + texture2D(tNoise, vW.xz*0.11).r*0.5;
@@ -843,6 +843,31 @@ export class MapView {
       m.userData = { size: hFont };
       this.labelGroup.add(m);
     }
+    this.avoidLabelOverlap();
+  }
+  // larger realms keep their name; a smaller label that would overlap is shrunk, and hidden if it still does not fit
+  avoidLabelOverlap() {
+    const L = [...this.labelGroup.children].sort((a, b) => b.userData.size - a.userData.size);
+    const box = (m, k) => {
+      const w = m.geometry.parameters.width * k * 0.92, h = m.geometry.parameters.height * k * 0.7, a = -m.rotation.z;
+      return { x: m.position.x, z: m.position.z, w: w / 2, h: h / 2, c: Math.cos(a), s: Math.sin(a) };
+    };
+    const hit = (A, B) => {
+      for (const R of [A, B]) for (const [ux, uz] of [[R.c, R.s], [-R.s, R.c]]) {
+        const proj = (Q) => Q.w * Math.abs(ux * Q.c + uz * Q.s) + Q.h * Math.abs(-ux * Q.s + uz * Q.c);
+        if (Math.abs((B.x - A.x) * ux + (B.z - A.z) * uz) > proj(A) + proj(B)) return false;
+      }
+      return true;
+    };
+    const placed = [];
+    for (const m of L) {
+      let ok = false;
+      for (const k of [1, 0.8, 0.64, 0.5]) {
+        const b = box(m, k);
+        if (!placed.some((p) => hit(b, p))) { m.scale.set(k, k, 1); m.userData.size *= k; placed.push(b); ok = true; break; }
+      }
+      m.userData.hidden = !ok;
+    }
   }
 
   // expanding ring where a battle has just begun
@@ -1139,7 +1164,7 @@ export class MapView {
       const px = l.userData.size * pxPerUnit;                       // on-screen height of one letter
       const op = clamp((px - 7) / 6, 0, 1) * clamp((90 - px) / 40, 0, 1) * (0.72 + 0.2 * far);
       l.material.opacity = op;
-      l.visible = op > 0.02;
+      l.visible = op > 0.02 && !l.userData.hidden;
     }
     const rect = this.rect || (this.rect = this.canvas.getBoundingClientRect());
     this.updateArmies(t);

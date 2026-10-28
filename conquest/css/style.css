@@ -222,7 +222,7 @@ select option { background: var(--ink-850); }
 
 /* ── minimap & map modes */
 #modes { position: absolute; right: 12px; bottom: 14px; z-index: 16; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-#minimap { width: 204px; height: 150px; display: block; cursor: pointer; border-radius: 10px; }
+#minimap { width: 204px; height: 150px; image-rendering: auto; display: block; cursor: pointer; border-radius: 10px; }
 .mm-wrap { padding: 4px; border-radius: 14px; }
 .modebtn { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 99px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--tx-1); position: relative; }
 .modebtn .ic { width: 15px; height: 15px; color: var(--gold-400); } .modebtn:hover { border-color: var(--line-3); }
@@ -246,7 +246,8 @@ select option { background: var(--ink-850); }
 .army-counter .ac-pips i.siege { background: #b8a07a; border-radius: 1px; } .army-counter .ac-pips i.ship { background: #8fc4e8; border-radius: 0 0 6px 6px; }
 .army-counter .ac-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0, 0, 0, .6); }
 .army-counter .ac-bar i { display: block; height: 100%; background: #6fd08a; }
-.army-counter.mine .ac-body { border-color: #9fd88a; }
+.army-counter.mine .ac-body { border-color: #f3dc9c; box-shadow: 0 0 0 1.5px #d9a93f, 0 0 10px rgba(232,197,109,.55); background: rgba(24,18,6,.95); }
+.army-counter.mine .ac-flag { width: 13px; }
 .army-counter.hostile .ac-body { border-color: #e8644a; background: rgba(40, 14, 10, .95); }
 .army-counter.selected { z-index: 3; } .army-counter.selected .ac-body { border-color: #fff2b0; box-shadow: 0 0 0 2px #e8c860, 0 0 16px rgba(232, 200, 96, .85); animation: selpulse 1.4s ease-in-out infinite; }
 .army-counter.fighting .ac-body { animation: fightpulse .5s infinite alternate; }
@@ -515,3 +516,8 @@ select option { background: var(--ink-850); }
 .ustats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; } .ustat span { display: block; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 3px; font-weight: 600; } .ustat .bar { height: 6px; }
 
 #army .subtab, #prov .subtab { flex: 0 0 auto; padding: 5px 10px; }
+
+.war-dashboard { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 12px; border-radius: var(--r2); background: rgba(0,0,0,.22); border: 1px solid var(--line); }
+.war-dashboard > div { line-height: 1.5; } .war-dashboard b { color: var(--tx-1); font-family: var(--display); font-size: 16px; margin-right: 6px; }
+.war-dashboard .chip { margin: 1px 2px 1px 0; }
+.army-orders .subtab { flex: 0 0 auto; }

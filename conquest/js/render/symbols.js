@@ -26,12 +26,12 @@ export function paintSymbols(ctx, map, S) {
     const snow = e > 2300 - Math.max(0, la - 45) * 35;
     const apx = cx + (rng() - 0.5) * w * 0.15, apy = by - h;
     ctx.beginPath(); ctx.moveTo(cx - w / 2, by); ctx.lineTo(apx, apy); ctx.lineTo(apx + w * 0.12, by - h * 0.15); ctx.lineTo(cx, by); ctx.closePath();
-    ctx.fillStyle = snow ? '#cfd3d6' : '#b2a48c'; ctx.fill();
+    ctx.fillStyle = snow ? '#c3c8cd' : '#b2a48c'; ctx.fill();
     ctx.beginPath(); ctx.moveTo(cx, by); ctx.lineTo(apx, apy); ctx.lineTo(cx + w / 2, by); ctx.closePath();
-    ctx.fillStyle = snow ? '#8f97a3' : '#6f6352'; ctx.fill();
+    ctx.fillStyle = snow ? '#8d95a2' : '#6f6352'; ctx.fill();
     if (snow) {
       ctx.beginPath(); ctx.moveTo(apx, apy); ctx.lineTo(cx - w * 0.22, apy + h * 0.34); ctx.lineTo(cx - w * 0.06, apy + h * 0.27); ctx.lineTo(cx + w * 0.08, apy + h * 0.38); ctx.lineTo(cx + w * 0.24, apy + h * 0.3); ctx.closePath();
-      ctx.fillStyle = '#f6f7f8'; ctx.fill();
+      ctx.fillStyle = '#dfe3e8'; ctx.fill();
     }
     ctx.beginPath(); ctx.moveTo(cx - w / 2, by); ctx.lineTo(apx, apy); ctx.lineTo(cx + w / 2, by);
     ctx.strokeStyle = 'rgba(38,28,18,.55)'; ctx.lineWidth = 0.55 * S; ctx.stroke();
