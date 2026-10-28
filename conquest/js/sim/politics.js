@@ -112,7 +112,7 @@ export const PoliticsMixin = {
         const v = this.lawVote(n.id, cat, opt);
         if (v.yes >= 0.5 && !this.lawReqs(n.id, cat, opt).some(([, ok]) => !ok)) this.enactLaw(n.id, cat, opt);
         else {
-          n.legitimacy = Math.max(0, n.legitimacy - 5);
+          n.legitimacy = Math.max(0, n.legitimacy - 5); this.bump(n.id, 'legitimacy', -5, `Estates rejected ${LAWS[cat].options[opt].name}`);
           if (n.id === s.player) { this.log(`The estates reject ${LAWS[cat].options[opt].name} (${Math.round(v.yes * 100)}% in favour).`, { nation: n.id, type: 'law', important: true }); this.emit('law'); }
         }
       }
@@ -240,9 +240,10 @@ export const PoliticsMixin = {
     for (const e of effects) {
       if (e.mods) n.mods.push({ src, mods: e.mods });
       if (e.mods_t) n.mods.push({ src, mods: e.mods_t.mods, until: s.day + e.mods_t.months * 30 });
-      for (const k of ['gold', 'prestige', 'iron', 'timber', 'horses', 'food']) if (e[k] !== undefined) n[k] += e[k];
-      if (e.legitimacy) n.legitimacy = clamp(n.legitimacy + e.legitimacy, 0, 100);
-      if (e.stability) n.stability = clamp(n.stability + e.stability, -3, 3);
+      const why = this.modSrcLabel(src);
+      for (const k of ['gold', 'prestige', 'iron', 'timber', 'horses', 'food']) if (e[k] !== undefined) { n[k] += e[k]; if (nid === s.player && (k === 'gold' || k === 'prestige')) this.bump(nid, k, e[k], why); }
+      if (e.legitimacy) { n.legitimacy = clamp(n.legitimacy + e.legitimacy, 0, 100); this.bump(nid, 'legitimacy', e.legitimacy, why); }
+      if (e.stability) { n.stability = clamp(n.stability + e.stability, -3, 3); this.bump(nid, 'stability', e.stability, why); }
       if (e.manpower) n.manpower = Math.max(0, n.manpower + e.manpower);
       if (e.claims) this.effectClaims(nid, e.claims);
       if (e.cb) n.cbs.push({ kind: e.cb.kind, tag: e.cb.tag });

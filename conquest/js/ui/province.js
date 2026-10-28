@@ -4,7 +4,8 @@ import { el, fmt } from '../util.js';
 import { coaSVG, rebelCoa } from './heraldry.js';
 import { BUILDINGS, BUILDING_ORDER, CHURCH_NAMES, CASTLE_NAMES } from '../data/buildings.js';
 import { PANELS } from './panels.js';
-import { terrainTip } from './tips.js';
+import { terrainTip, explainTip } from './tips.js';
+import { STANCES } from '../data/stances.js';
 import { UNITS } from '../data/units.js';
 
 export const ProvinceMixin = {
@@ -40,13 +41,25 @@ export const ProvinceMixin = {
       chip(`🏘 Dev ${pr.dev}`, '<b>Development</b>: population, wealth and administration. Drives taxes, manpower and supply. Grows slowly with farms and markets.'),
       chip(`🗣 ${pr.culture}`, own && pr.culture !== own.culture ? `<b>Foreign culture</b>: +unrest under the ${own.adj}.` : '<b>Culture</b>', own && pr.culture !== own.culture ? 'bad' : ''),
       chip(`✝ ${pr.religion}`, own && pr.religion !== own.religion ? '<b>Different faith</b>: +10 unrest and -15% taxes. Churches slowly convert.' : '<b>Religion</b>', own && pr.religion !== own.religion ? 'bad' : ''),
-      chip(`🔥 ${Math.round(pr.unrest)}`, '<b>Unrest</b>: above 60 revolts become likely. Lowered by churches, stability, garrisons and good laws.', pr.unrest > 45 ? 'bad' : ''),
+      chip(`🔥 ${Math.round(pr.unrest)}`, own ? explainTip(g.explain(pr.owner, 'unrest', p)) : '<b>Unrest</b>', pr.unrest > 45 ? 'bad' : ''),
       chip(`🏰 Fort ${fort}`, `<b>Fort level ${fort}</b>${pr.buildings.walls ? ' (' + CASTLE_NAMES[Math.min(2, pr.buildings.walls - 1)] + ')' : ''}${own && own.capital === p ? ' +1 capital' : ''}. Enemy armies must besiege it to take the province, and cannot march past it.`),
       chip(`🌾 Supply ${g.supplyLimit(p, pl).toFixed(0)}`, '<b>Supply limit</b> (regiments) for your armies here this season. Exceeding it causes attrition.'),
       sp.coastal ? chip('⚓ Coastal', 'Armies can embark here.') : null,
       sp.river > 0.03 ? chip('〰 River', 'Rivers: attackers crossing suffer −25% attack and charge.') : null,
     ].filter(Boolean));
     pb.append(stats);
+    const idl = g.provinceIdentity(p);
+    if (idl.length) pb.append(el('div', { class: 'small muted province-identity', style: { marginTop: '4px' } }, idl.map((x) => x.text).join(' · ')));
+    if (isMine) {
+      const stRow = el('div', { class: 'row wrap province-stance', style: { marginTop: '6px' } }, el('span', { class: 'small muted' }, 'Policy: '));
+      for (const o of g.stanceOptions(pl, p)) {
+        const b = el('div', { class: 'btn small' + (o.current ? ' primary' : ''), onclick: () => { if (o.current) return; const r = g.setStance(pl, p, o.id); if (r) this.toast('Province policy', r, '🚫'); this.renderProvince(); this.updateTopbar(); } }, `${o.icon} ${o.name}`);
+        const fx = (k, lbl) => (o[k] !== 1 ? `${lbl} ${o[k] > 1 ? '+' : ''}${Math.round((o[k] - 1) * 100)}%` : '');
+        b._tip = () => `<div class="tt-title">${o.icon} ${o.name}</div>${o.desc}<hr>${[fx('tax', 'Tax'), fx('mp', 'Manpower'), o.res !== 1 ? fx('res', 'Food/iron/timber/horses') : '', o.grow !== 1 ? `Development growth ×${o.grow}` : '', o.unrest ? `Unrest ${o.unrest > 0 ? '+' : ''}${o.unrest}` : '', o.fort ? `Fort level +${o.fort}` : ''].filter(Boolean).join('<br>')}${o.current ? '' : `<hr>Change costs ${o.cost} gold${o.wait ? `; possible in ${Math.ceil(o.wait / 30)} month(s)` : ''}`}`;
+        stRow.append(b);
+      }
+      pb.append(stRow);
+    }
     if (own && own.id === s.player && (pr.religion !== own.religion || pr.heresy || pr.conv)) {
       const rb = el('div', { class: 'row wrap', style: { marginTop: '6px' } });
       const rbtn = (label, tip, fn, cls = '') => { const b = el('div', { class: 'btn small ' + cls, onclick: () => { const r = fn(); if (r) this.toast('Religion', r, '🚫'); this.renderProvince(); } }, label); b._tip = () => tip; rb.append(b); };
@@ -73,7 +86,8 @@ export const ProvinceMixin = {
       pb.append(box);
     }
     // buildings
-    pb.append(el('div', { class: 'section' }, 'Buildings', el('span', { class: 'tiny muted' }, isMine ? 'click to build' : '')));
+    const sl = g.provinceSlots(p);
+    pb.append(el('div', { class: 'section' }, `Buildings ${sl.used + sl.queued}/${sl.total} slots`, el('span', { class: 'tiny muted' }, isMine ? (sl.free ? 'click to build' : `full: +1 slot at development ${sl.nextAt}`) : '')));
     const grid = el('div', { class: 'bgrid' });
     for (const type of BUILDING_ORDER) {
       const B = BUILDINGS[type];
