@@ -40,7 +40,7 @@ function innovTip(g, nid, i, state) {
 }
 
 // ── technology graph: one branch at a time, eras as columns, prerequisite links drawn as curves
-const NODE_W = 196, NODE_H = 76, GAP_X = 120, GAP_Y = 12, TOP = 66, LEFT = 20;
+const NODE_W = 196, NODE_H = 76, GAP_Y = 12, TOP = 66, LEFT = 20;
 const BRANCH_ICON = { military: 'swords', civic: 'scroll', agri: 'wheat', sea: 'anchor' };
 const ERA_ICON = ['hourglass', 'castle', 'cap'];
 const shortMods = (mods) => {
@@ -82,9 +82,18 @@ function renderInnovations(ui, pb, g, n) {
     const list = nodes.filter((x) => x.era === e);
     const key = (x) => (x.pre.length ? x.pre.reduce((t, q) => t + (rowOf[q] ?? 0), 0) / x.pre.length : nodes.indexOf(x) % 5);
     list.sort((a, b2) => key(a) - key(b2) || nodes.indexOf(a) - nodes.indexOf(b2));
-    list.forEach((x, i) => { rowOf[x.id] = i; });
+    // choices that exclude each other sit next to one another, joined by an "or"
+    const seq = [], put = new Set();
+    for (const x of list) {
+      if (put.has(x.id)) continue;
+      seq.push(x); put.add(x.id);
+      for (const q of x.excl || []) { const y = INNOV[q]; if (y && y.branch === x.branch && y.era === x.era && !put.has(y.id)) { seq.push(y); put.add(y.id); } }
+    }
+    seq.forEach((x, i) => { rowOf[x.id] = i; });
   }
-  const W = LEFT * 2 + ERAS.length * NODE_W + (ERAS.length - 1) * GAP_X, Hh = TOP + 5 * (NODE_H + GAP_Y) + 10;
+  const avail = Math.max(760, (ui.panel.clientWidth || 1000) - 48);
+  const GAP_X = Math.max(100, Math.min(260, (avail - LEFT * 2 - ERAS.length * NODE_W) / (ERAS.length - 1)));
+  const W = LEFT * 2 + ERAS.length * NODE_W + (ERAS.length - 1) * GAP_X, Hh = TOP + Math.max(5, ...ERAS.map((e, k) => nodes.filter((x) => x.era === k).length)) * (NODE_H + GAP_Y) + 10;
   const wrap = el('div', { class: 'tech-wrap', style: { height: Hh + 'px', minWidth: W + 'px' } });
   const pos = (x) => ({ x: LEFT + x.era * (NODE_W + GAP_X), y: TOP + rowOf[x.id] * (NODE_H + GAP_Y) });
   for (let e = 0; e < ERAS.length; e++) {
@@ -99,19 +108,34 @@ function renderInnovations(ui, pb, g, n) {
     const a = pos(INNOV[q]), b2 = pos(x);
     const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2, x2 = b2.x, y2 = b2.y + NODE_H / 2, mx = (x1 + x2) / 2;
     const ok = p.known.includes(q), tdone = p.known.includes(x.id);
-    const col = tdone ? '#5cc08c' : ok ? '#e8c56d' : '#3a4a66';
+    const col = tdone ? '#5cc08c' : ok && !p.known.some((k) => (x.excl || []).includes(k)) ? '#e8c56d' : '#3a4a66';
     svg += `<path d="M${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="${ok ? 2.4 : 1.6}" ${ok ? '' : 'stroke-dasharray="4 5"'} opacity="${ok ? 0.95 : 0.7}"/><circle cx="${x2}" cy="${y2}" r="3.5" fill="${col}"/>`;
   }
   wrap.insertAdjacentHTML('beforeend', svg + '</svg>');
+  // "or" badges between mutually exclusive neighbours
+  const orDone = new Set();
+  for (const i of nodes) for (const q of i.excl || []) {
+    const key2 = [i.id, q].sort().join('|');
+    if (orDone.has(key2) || !(q in rowOf) || INNOV[q].branch !== branch) continue;
+    orDone.add(key2);
+    const a2 = pos(i), b3 = pos(INNOV[q]);
+    if (a2.x !== b3.x) continue;
+    const top2 = Math.min(a2.y, b3.y), bot = Math.max(a2.y, b3.y);
+    const pair = Math.abs(a2.y - b3.y) <= NODE_H + GAP_Y + 1;
+    wrap.append(el('div', { class: 'tech-or' + (pair ? '' : ' far'), style: { left: (a2.x + NODE_W / 2 - 17) + 'px', top: (pair ? top2 + NODE_H + GAP_Y / 2 - 9 : top2 + NODE_H - 9) + 'px' }, 'data-tip': 'Mutually exclusive: choosing one permanently closes the other' }, 'or'));
+    void bot;
+  }
   for (const i of nodes) {
     const { x, y } = pos(i);
-    const done = p.known.includes(i.id), isCur = p.cur === i.id, avail = g.innovAvailable(n.id, i.id);
-    const state = done ? 'done' : isCur ? 'cur' : avail ? 'avail' : 'locked';
-    const node = el('div', { class: 'tech-node ' + state, style: { left: x + 'px', top: y + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }, onclick: avail && !isCur ? () => { g.startResearch(n.id, i.id); ui.sfx?.('click'); ui.renderPanel(true); } : null });
-    const cost = done ? '' : `<span class="ic-gold">${icon('flask', { size: 11 })}</span> ${g.innovCost(n.id, i.id)}`;
-    node.innerHTML = ico(`<div class="tn-ic">${done ? icon('check') : state === 'locked' ? icon('lock') : sic(i.icon, FALLBACK[i.branch], 18)}</div>
-      <div style="min-width:0;flex:1"><div class="tn-t">${i.name}</div><div class="tiny ${done ? 'pos' : 'muted'}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortMods(i.mods)}</div><div class="tn-c">${done ? 'Known' : isCur ? 'Researching…' : cost}${i.unlock ? ` <span class="chip info" style="padding:0 6px;font-size:10px">unlock</span>` : ''}</div></div>`)
-      + (isCur ? `<div class="tn-p"><i style="width:${Math.round(100 * p.pts / g.innovCost(n.id, i.id))}%"></i></div>` : '');
+    const inf = g.innovInfo(n.id, i.id);
+    const state = inf.state;                                  // done | now | avail | closed | locked
+    const done = state === 'done', isCur = state === 'now', avail = state === 'avail';
+    const node = el('div', { class: 'tech-node ' + (isCur ? 'cur' : state), style: { left: x + 'px', top: y + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }, onclick: avail ? () => { g.startResearch(n.id, i.id); ui.sfx?.('click'); ui.renderPanel(true); } : null });
+    const cost = done ? '' : `<span class="ic-gold">${icon('flask', { size: 11 })}</span> ${inf.cost}`;
+    const eff = inf.effects.length ? `<span class="${inf.effects[0].good ? '' : 'neg'}">${inf.effects[0].text}</span>${inf.effects.length > 1 ? ` <span class="muted">+${inf.effects.length - 1}</span>` : ''}` : '';
+    node.innerHTML = ico(`<div class="tn-ic">${done ? icon('check') : state === 'closed' ? icon('ban') : state === 'locked' ? icon('lock') : sic(i.icon, FALLBACK[i.branch], 18)}</div>
+      <div style="min-width:0;flex:1"><div class="tn-t">${i.name}</div><div class="tiny ${done ? 'pos' : ''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${eff}</div><div class="tn-c">${done ? 'Known' : isCur ? 'Researching…' : state === 'closed' ? 'Closed off' : cost}${i.unlock ? ` <span class="chip info" style="padding:0 6px;font-size:10px">unlock</span>` : ''}</div></div>`)
+      + (isCur ? `<div class="tn-p"><i style="width:${Math.round(100 * p.pts / inf.cost)}%"></i></div>` : '');
     node._tip = () => innovTip(g, n.id, i, state);
     wrap.append(node);
   }

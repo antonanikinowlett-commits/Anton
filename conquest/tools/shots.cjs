@@ -57,6 +57,7 @@ const server = http.createServer((req, res) => {
     await shot('event');
     await u.evaluate(() => document.querySelector('.modal .opt')?.click());
   }
+  if (process.env.INNOV) await u.evaluate(() => { window.__ui.subtab.progress = 'innov'; window.__ui.subtab.techBranch = 'military'; });
   const keys = process.argv[4] !== undefined ? process.argv[4].split(',').filter(Boolean) : ['c', 'b', 'm', 'l', 'f', 'g', 'i', 'k', 'd', 'e', 't', 'r', 'w'];
   for (const k of keys) { await u.keyboard.press('Escape'); await u.keyboard.press(k); await shot('panel-' + k); }
   await browser.close(); server.close();

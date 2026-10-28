@@ -27,13 +27,13 @@ const MODES = [
 ];
 // Dock: panels are grouped; the rail shows one button per group and the panel header shows the group's tabs.
 const GROUPS = [
-  { id: 'gov', name: 'Realm', icon: 'crown', panels: ['realm', 'court', 'laws', 'focus'] },
+  { id: 'gov', name: 'Realm', icon: 'crown', panels: ['realm', 'court', 'laws', 'focus', 'news'] },
   { id: 'mil', name: 'Military', icon: 'swords', panels: ['military'] },
   { id: 'eco', name: 'Economy', icon: 'coin', panels: ['economy', 'trade', 'treasury', 'ledger'] },
   { id: 'dip', name: 'Diplomacy', icon: 'handshake', panels: ['diplomacy', 'wars'] },
   { id: 'prog', name: 'Progress', icon: 'book', panels: ['progress'] },
 ];
-const PANEL_ICON = { realm: 'crown', court: 'pillars', laws: 'scroll', focus: 'target', diplomacy: 'handshake', wars: 'flame', progress: 'book', military: 'swords', economy: 'bag', trade: 'anchor', treasury: 'bank', ledger: 'chart' };
+const PANEL_ICON = { realm: 'crown', court: 'pillars', laws: 'scroll', focus: 'target', diplomacy: 'handshake', wars: 'flame', progress: 'book', military: 'swords', economy: 'bag', trade: 'anchor', treasury: 'bank', ledger: 'chart', news: 'bell' };
 const groupOf = (id) => GROUPS.find((g) => g.panels.includes(id)) || { id: 'x', name: 'Other', icon: 'grid', panels: [id] };
 export const SPEEDS = [0, 0.7, 1.5, 3, 6, 14]; // days per second
 
@@ -143,7 +143,7 @@ export class UI {
       const gt = el('div', { class: 'grouptabs' });
       for (const id of grp.panels) {
         const d = PANELS[id];
-        gt.append(el('div', { class: 'gtab' + (id === this.tab ? ' on' : ''), id: 'tab-' + id, onclick: () => this.openTab(id) }, el('span', { html: icon(PANEL_ICON[id] || 'grid') }), d.name.replace(/ & .*/, '')));
+        gt.append(el('div', { class: 'gtab' + (id === this.tab ? ' on' : ''), id: 'tab-' + id, onclick: () => this.openTab(id) }, el('span', { html: icon(PANEL_ICON[id] || 'grid') }), d.name.replace(/^National /, '').replace(/ & .*/, '')));
       }
       ph.append(gt);
     } else ph.append(el('div', { style: { height: '12px' } }));
