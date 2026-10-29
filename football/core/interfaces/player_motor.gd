@@ -31,7 +31,7 @@ func step(delta: float) -> void:
 	# STUB ball pickup.
 	if ball.is_loose() and p.touch_cooldown <= 0.0 and ball.height < 0.5 \
 			and p.pos.distance_squared_to(ball.pos) < 0.8 * 0.8:
-		ball.set_owner(p)
+		ball.set_carrier(p)
 	# STUB kicks: any kick action fires the ball at target_point.
 	if it.action != FB.IntentAction.NONE and p.has_ball() and is_kick_action(it.action):
 		var dir := (it.target_point - p.pos).normalized()

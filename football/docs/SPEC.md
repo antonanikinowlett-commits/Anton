@@ -158,8 +158,8 @@ Base classes contain **working stubs**. Module implementations `extends` them, o
 ### 7.1 `Ball` (extends Node2D) — impl `physics/ball_physics.gd`
 Properties: `pos: Vector2`, `vel: Vector2`, `height: float`, `vz: float`, `spin: float`, `owner_player: Player`, `last_touch_player: Player`, `last_touch_team: int`, `frozen: bool`, `football_match: FootballMatch`.
 Signals: `touched(player)`, `owner_changed(old, new)`, `kicked(by)`.
-Methods: `setup(m)`, `physics_step(delta)`, `kick(velocity: Vector2, up_velocity: float, spin_rate: float, by: Player)`, `set_owner(p: Player)` (null releases), `place(at: Vector2)` (dead ball, frozen), `register_touch(p)`, `is_loose() -> bool`, `is_airborne() -> bool`, `predict_position(t: float) -> Vector2`, `predict_stop_position() -> Vector2`, `sync_view()`, `_draw()`.
-Rules: while `owner_player != null` the ball is dribbled (motor/ball keep it at the feet); every touch must go through `register_touch`/`set_owner`/`kick` so the referee sees it. Goal frame/net collision is the ball's job.
+Methods: `setup(m)`, `physics_step(delta)`, `kick(velocity: Vector2, up_velocity: float, spin_rate: float, by: Player)`, `set_carrier(p: Player)` (null releases), `place(at: Vector2)` (dead ball, frozen), `register_touch(p)`, `is_loose() -> bool`, `is_airborne() -> bool`, `predict_position(t: float) -> Vector2`, `predict_stop_position() -> Vector2`, `sync_view()`, `_draw()`.
+Rules: while `owner_player != null` the ball is dribbled (motor/ball keep it at the feet); every touch must go through `register_touch`/`set_carrier`/`kick` so the referee sees it. Goal frame/net collision is the ball's job.
 
 ### 7.2 `Player` (extends Node2D, **not subclassed**)
 Properties: `data: PlayerData`, `team: Team`, `football_match`, `slot_index: int`, `role: int (FB.Role)`, `pos`, `vel`, `facing: Vector2 (unit)`, `stamina: float 0..1`, `state: int (FB.PlayerState)`, `state_timer: float`, `touch_cooldown: float`, `yellow_cards: int`, `sent_off: bool`, `home_position: Vector2`, `is_human: bool`, `intent: PlayerIntent`, `motor: PlayerMotor`, `ai_brain`, `human_brain`, `brain: PlayerBrain`, `stagger_group: int`, `color_body`, `color_trim`.
@@ -279,7 +279,7 @@ Roles: `GK CB LB RB LWB RWB CDM CM CAM LM RM LW RW CF ST`. Missing stats default
 
 ## 13. Conventions
 - GDScript style guide: tabs, `snake_case` funcs/vars, `PascalCase` classes, `CONSTANT_CASE`, private `_prefix`. Static typing everywhere (`var x: float`, `-> void`); explicit loop types over typed arrays (`for p: Player in players`).
-- Never use `match` as an identifier (keyword) → use `football_match`.
+- Never use `match` as an identifier (keyword) → use `football_match`. Never shadow built-in Node/Object methods (`set_owner`, `get_name`, `set_process`...) — warnings are errors for these (that is why the ball uses `set_carrier`).
 - Enums/constants only from `FB`; no magic numbers for pitch geometry.
 - Signals: past tense or noun (`goal_scored`). Do not connect to signals you could poll cheaply in hot paths.
 - Doc comment (`##`) on every public method of slot implementations.

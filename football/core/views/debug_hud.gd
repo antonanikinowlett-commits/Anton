@@ -10,7 +10,7 @@ func bind(m: FootballMatch) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label = Label.new()
 	_label.position = Vector2(24, 16)
@@ -21,9 +21,8 @@ func _ready() -> void:
 	var help := Label.new()
 	help.text = "WASD move | J pass/tackle | K through/slide | L shoot(hold)/switch | I skill/press | Shift sprint | Q switch | Esc pause"
 	help.add_theme_font_size_override("font_size", 16)
-	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	help.position = Vector2(24, -40)
 	add_child(help)
+	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
 
 
 func _process(_delta: float) -> void:

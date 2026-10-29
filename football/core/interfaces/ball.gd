@@ -68,7 +68,7 @@ func kick(velocity: Vector2, up_velocity: float, spin_rate: float, by: Player) -
 
 
 ## Give possession (dribble/hold) to a player, or null to release.
-func set_owner(p: Player) -> void:
+func set_carrier(p: Player) -> void:
 	if p == owner_player:
 		return
 	var old := owner_player
@@ -82,7 +82,7 @@ func set_owner(p: Player) -> void:
 ## Place a dead ball (set pieces). Clears velocity and owner.
 func place(at: Vector2) -> void:
 	if owner_player != null:
-		set_owner(null)
+		set_carrier(null)
 	pos = at
 	vel = Vector2.ZERO
 	height = 0.0
