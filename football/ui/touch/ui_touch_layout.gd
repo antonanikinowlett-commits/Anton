@@ -12,6 +12,9 @@ const BASE_BUTTON_SIZE := 100.0
 const EDGE_MARGIN := 22.0
 const JOY_RADIUS := 70.0
 const JOY_ZONE_FRACTION := 0.45
+const SLOT_COLORS: Array[Color] = [
+	Color("2ee06f"), Color("4aa8ff"), Color("ff6b5a"), Color("f5c542"), Color("b48cff"),
+]
 const PAUSE_RADIUS := 34.0
 ## Relative diameter per slot (primary is the biggest).
 const SIZE_MULT: Array[float] = [1.2, 1.0, 1.0, 1.0, 0.95]

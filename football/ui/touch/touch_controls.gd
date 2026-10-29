@@ -14,9 +14,7 @@ const TOUCH := InputController.Source.TOUCH
 const SLIDE_OFF_FACTOR := 1.25
 const HIT_FACTOR := 1.12
 const AIM_RADIUS := 150.0
-const SLOT_COLORS: Array[Color] = [
-	Color("2ee06f"), Color("4aa8ff"), Color("ff6b5a"), Color("f5c542"), Color("b48cff"),
-]
+const SLOT_COLORS: Array[Color] = UiTouchLayout.SLOT_COLORS
 const SHOOT_CHARGE_TIME := 1.0
 
 class TouchButton extends RefCounted:
@@ -416,7 +414,7 @@ func _draw() -> void:
 			var charge := human_input.get_charge(b.action, SHOOT_CHARGE_TIME)
 			if charge > 0.0:
 				draw_arc(b.center, r + 9.0, -PI * 0.5, -PI * 0.5 + TAU * charge, 40, Color.WHITE, 7.0, true)
-		var fs := int(clampf(b.radius * 0.40, 18.0, 34.0))
+		var fs := int(clampf(b.radius * 0.34, 16.0, 30.0))
 		var tw := font.get_string_size(b.label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
 		draw_string(font, b.center + Vector2(-tw * 0.5, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	# Pause button.
