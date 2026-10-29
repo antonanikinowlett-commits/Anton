@@ -320,16 +320,16 @@ func _think_press(m: FootballMatch, ball: Ball, carrier: Player, tai: Variant) -
 func _is_last_resort(carrier: Player) -> bool:
 	var p := player
 	var dir := float(p.team.attack_dir)
-	var depth := carrier.pos.x * -dir + FB.HALF_LENGTH
+	var depth := carrier.pos.x * dir + FB.HALF_LENGTH
 	if depth > 30.0:
 		return false
-	if carrier.vel.x * -dir < 2.0:
+	if carrier.vel.x * dir > -2.0:
 		return false
 	var cover := 0
 	for q: Player in p.team.players:
 		if q == p or q.sent_off or q.is_goalkeeper():
 			continue
-		if (q.pos.x - carrier.pos.x) * -dir < -1.0 and absf(q.pos.y - carrier.pos.y) < 9.0:
+		if (q.pos.x - carrier.pos.x) * dir < -1.0 and absf(q.pos.y - carrier.pos.y) < 9.0:
 			cover += 1
 	return cover <= 1
 
@@ -361,7 +361,7 @@ func _think_with_ball(m: FootballMatch, ball: Ball, dt: float) -> void:
 	var opps := team.opponent.players
 	var me := p.pos
 	var me_a := me.x * dir
-	var own_depth := me.x * -dir + FB.HALF_LENGTH
+	var own_depth := me.x * dir + FB.HALF_LENGTH
 	_line_a = AiMath.offside_line_a(team)
 	var tactics := team.tactics
 	# --- Pressure -------------------------------------------------------------
@@ -407,7 +407,7 @@ func _think_with_ball(m: FootballMatch, ball: Ball, dt: float) -> void:
 			best_space = space
 	_dribble_dir = best_dir
 	var dribble01 := p.data.stat01("dribbling")
-	var u_dribble := clampf(0.22 + 0.45 * best_space * (0.6 + 0.4 * maxf(best_dir.dot(h0), 0.0)) - 0.4 * pressure, 0.0, 0.75)
+	var u_dribble := clampf(0.15 + 0.4 * best_space * (0.6 + 0.4 * maxf(best_dir.dot(h0), 0.0)) - 0.4 * pressure, 0.0, 0.75)
 	u_dribble *= 0.75 + 0.5 * dribble01
 	if own_depth < 18.0 and pressure > 0.3:
 		u_dribble *= 0.5
@@ -459,7 +459,7 @@ func _think_with_ball(m: FootballMatch, ball: Ball, dt: float) -> void:
 		var space := clampf(AiMath.nearest_dist(tp, opps, null) / 6.0, 0.0, 1.0)
 		var prog := clampf((t_a - me_a) / 25.0, -0.6, 1.0)
 		var gprox := 1.0 - clampf(tp.distance_to(goal) / 70.0, 0.0, 1.0)
-		var open := clampf(mg / 0.7, 0.0, 1.0)
+		var open := clampf(mg / 0.55, 0.0, 1.0)
 		var u := 0.34 * open + 0.2 * space + w_prog * prog + 0.14 * gprox + 0.08 * (passing01 - 0.5)
 		if mg < 0.15:
 			u -= 0.35

@@ -3,8 +3,8 @@ extends RefCounted
 ## Allocation-free geometry / football helpers shared by the AI brains.
 ## "a" coordinates are attack-relative: a = x * attack_dir (own goal line = -52.5, opponent's = +52.5).
 
-const PASS_SPEED := 15.0
-const OPP_RUN_SPEED := 6.8
+const PASS_SPEED := 17.0
+const OPP_RUN_SPEED := 6.2
 
 
 static func seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
@@ -63,7 +63,7 @@ static func lane_margin(from: Vector2, to: Vector2, opponents: Array[Player], sk
 		var c := from + ab * t
 		var opp_t := maxf(0.0, o.pos.distance_to(c) - 0.8) / OPP_RUN_SPEED
 		var ball_t := t * l / PASS_SPEED
-		var mgn := opp_t - ball_t
+		var mgn := opp_t - ball_t + (0.4 if t > 0.97 else 0.0)
 		if mgn < best:
 			best = mgn
 	return maxf(best, -1.0)

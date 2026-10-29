@@ -162,7 +162,7 @@ func _assign_marking(ball: Ball) -> void:
 	for o: Player in team.opponent.players:
 		if o.sent_off or o.is_goalkeeper() or o == carrier:
 			continue
-		var depth_from_goal := o.pos.x * -dir + FB.HALF_LENGTH
+		var depth_from_goal := o.pos.x * dir + FB.HALF_LENGTH
 		if depth_from_goal > 70.0:
 			continue
 		var threat := 100.0 - o.pos.distance_to(own_goal) - 0.15 * o.pos.distance_to(ball.pos)
