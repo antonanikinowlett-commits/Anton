@@ -91,7 +91,7 @@ TEAMS = [
          mentality=0.35, corner="short", fk="direct"),
 ]
 
-BENCH_ROLES = ["GK", "CB", "LB", "RB", "CM", "CAM", "LW", "ST"]
+BENCH_ROLES = ["GK", "CB", "LB", "RB", "CM", "LW", "ST"]
 
 
 def clamp(v, lo, hi):
