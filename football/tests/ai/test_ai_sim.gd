@@ -90,3 +90,31 @@ func test_ai_timing_benchmark() -> void:
 	var avg_ms := float(Time.get_ticks_usec() - t0) / float(ticks) / 1000.0
 	print("    AI avg per tick: %.3f ms (budget 2 ms)" % avg_ms)
 	assert_true(avg_ms < 2.0, "AI average %.3f ms/tick exceeds 2 ms" % avg_ms)
+
+
+func test_ai_timing_benchmark_ball_in_flight() -> void:
+	var m := make_headless_match(4, -1, 4.0)
+	run_ticks(m, 600)  # warm-up into a realistic state
+	m.referee.set_phase(FB.MatchPhase.PLAYING)
+	m.ball.owner_player = null
+	m.ball.frozen = false
+	var ticks := 600
+	var t0 := Time.get_ticks_usec()
+	for n in ticks:
+		m.ball.owner_player = null
+		m.ball.pos = Vector2(-10.0 + float(n % 120) * 0.2, 5.0)
+		m.ball.vel = Vector2(22.0, 3.0)
+		m.ball.height = 0.5
+		var group := (m.tick + n) % FB.AI_STAGGER_GROUPS
+		if group == 0:
+			m.teams[0].team_brain.think(0.1)
+		elif group == FB.AI_STAGGER_GROUPS / 2:
+			m.teams[1].team_brain.think(0.1)
+		for p: Player in m.players:
+			if p.stagger_group == group:
+				p.ai_brain.think(0.1)
+		for p: Player in m.players:
+			p.ai_brain.act(FB.TICK_DT)
+	var avg_ms := float(Time.get_ticks_usec() - t0) / float(ticks) / 1000.0
+	print("    AI avg per tick (flying ball): %.3f ms (budget 2 ms)" % avg_ms)
+	assert_true(avg_ms < 2.0, "AI average %.3f ms/tick exceeds 2 ms" % avg_ms)

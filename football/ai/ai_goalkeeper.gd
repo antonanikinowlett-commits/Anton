@@ -49,16 +49,18 @@ func think(dt: float) -> void:
 	var sgn := signf(goal_c.x)
 	# 1. Shot / dangerous ball heading for goal.
 	if ball.owner_player == null and ball.vel.length_squared() > 25.0 and ball.vel.x * sgn > 2.0:
-		var t := 0.05
-		while t <= 2.0:
-			var pt := ball.predict_position(t)
+		AiMath.ensure_path(ball)
+		for i in AiMath.PATH_N:
+			var t := AiMath.PATH_T0 + AiMath.PATH_DT * float(i)
+			if t > 2.0:
+				break
+			var pt := AiMath.path_at(i)
 			if pt.x * sgn >= absf(goal_c.x) - 0.1:
 				var h := ball.height + ball.vz * t - 0.5 * FB.GRAVITY * t * t
 				if absf(pt.y) <= FB.GOAL_WIDTH * 0.5 + 1.6 and h < FB.GOAL_HEIGHT + 0.6:
 					_plan_save(t, ball, diff)
 					return
 				break
-			t += 0.08
 	_dive_pending = false
 	# 2. Sweep / claim loose or airborne balls inside our zone.
 	var depth_ball := absf(ball.pos.x - goal_c.x)
