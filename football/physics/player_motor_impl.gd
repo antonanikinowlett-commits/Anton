@@ -18,8 +18,8 @@ const REACH_SQ := REACH * REACH
 const KICK_REACH := 1.35
 const TACKLE_REACH := 1.55
 const SLIDE_REACH := 1.65
-const GK_REACH := 1.15
-const GK_DIVE_REACH := 1.65
+const GK_REACH := 1.05
+const GK_DIVE_REACH := 1.3
 const GK_HOLD_TIME := 5.0
 ## Balls faster than this (relative) cannot be cushioned by an outfield player (body block instead).
 const MAX_CONTROL_REL_SPEED := 15.0
@@ -49,6 +49,7 @@ var _skill_timer := 0.0
 var _slide_dir := Vector2.RIGHT
 var _slide_resolved := false
 var _slide_won := false
+var _gk_seen := 0.0
 
 
 func _refresh_stats() -> void:
@@ -140,7 +141,7 @@ func _step_free(delta: float, it: PlayerIntent, m: FootballMatch) -> void:
 			_start_skill(it)
 		it.clear_action()
 	if p.state == FB.PlayerState.NORMAL or p.state == FB.PlayerState.SET_PIECE:
-		_gk_reflex(m)
+		_gk_reflex(m, delta)
 		if p.state == FB.PlayerState.DIVING:
 			return
 		_locomote(delta, it, 99.0)
@@ -266,7 +267,7 @@ func _locomote(dt: float, it: PlayerIntent, speed_cap: float) -> void:
 			# Cutting costs speed.
 			s *= 1.0 - minf(absf(step_a) * 0.15, 0.3)
 			if s < sd:
-				var a := _accel * maxf(1.0 - s / (_sprint_top * 1.2), 0.25)
+				var a := _accel * maxf(1.0 - s / (_sprint_top * 1.1), 0.2)
 				s = minf(sd, s + a * dt)
 			else:
 				s = maxf(sd, s - _brake * 0.7 * dt)
@@ -485,7 +486,7 @@ func _do_kick(it: PlayerIntent) -> bool:
 	var spin := it.curve * PM.MAX_SPIN * (0.55 + 0.45 * skill)
 	var gv := dir * gspeed
 	if shot:
-		var on_target := _on_target(ball.pos, gv, vz, p.team.target_goal_center().x)
+		var on_target := _on_target(p.pos, gv, vz, p.team.target_goal_center().x)
 		ball.kick(gv, vz, spin, p)
 		EventBus.shot_taken.emit(p, on_target)
 	else:
@@ -505,8 +506,10 @@ func _on_target(from: Vector2, gv: Vector2, vz: float, goal_x: float) -> bool:
 		return false
 	var t := (goal_x - from.x) / gv.x
 	var y := from.y + gv.y * t
-	var z := vz * t - 0.5 * FB.GRAVITY * t * t
-	return absf(y) < FB.GOAL_WIDTH * 0.5 and z > -0.1 and z < FB.GOAL_HEIGHT
+	if vz > 2.0 and 2.0 * vz / FB.GRAVITY < t * 0.8:
+		return false  # lands well short
+	var z := maxf(vz * t - 0.5 * FB.GRAVITY * t * t, 0.0)
+	return absf(y) < FB.GOAL_WIDTH * 0.5 and z < FB.GOAL_HEIGHT
 
 
 func _start_skill(it: PlayerIntent) -> void:
@@ -636,43 +639,50 @@ func _start_dive(it: PlayerIntent) -> void:
 	dir = dir.normalized()
 	p.state = FB.PlayerState.DIVING
 	p.state_timer = 0.8
-	p.vel = dir * lerpf(5.0, 8.2, _refl)
+	p.vel = dir * lerpf(4.5, 7.5, _refl)
 	p.facing = dir
 
 
-## AI-controlled keepers react to shots even when the brain does not ask for a dive.
-func _gk_reflex(m: FootballMatch) -> void:
+## AI-controlled keepers react to shots even when the brain does not ask for a dive. The keeper
+## needs a reaction time after first seeing an on-target shot, then dives with limited speed.
+func _gk_reflex(m: FootballMatch, delta: float) -> void:
 	var p := player
 	if p.is_human or not p.is_goalkeeper() or p.state != FB.PlayerState.NORMAL:
 		return
 	var ball := m.ball
 	if ball.owner_player != null or ball.frozen or ball.last_touch_team == p.team.team_id:
+		_gk_seen = 0.0
 		return
 	var gx := p.team.own_goal_center().x
 	var dirx := signf(gx)
 	var vx := ball.vel.x
 	if vx * dirx < 6.0:
+		_gk_seen = 0.0
 		return
 	var t := (p.pos.x - ball.pos.x) / vx
-	if t < 0.03 or t > lerpf(0.32, 0.5, _refl):
-		return
 	var t_line := (gx - ball.pos.x) / vx
-	if t_line <= 0.0:
+	if t_line <= 0.0 or t <= 0.0:
 		return
 	var y_line := ball.pos.y + ball.vel.y * t_line
 	var z_line := ball.height + FB.BALL_RADIUS + ball.vz * t_line - 0.5 * FB.GRAVITY * t_line * t_line
 	if absf(y_line) > FB.GOAL_WIDTH * 0.5 + 0.3 or z_line > FB.GOAL_HEIGHT + 0.3:
+		_gk_seen = 0.0
+		return
+	_gk_seen += delta
+	var window := lerpf(0.26, 0.42, _refl) * clampf(18.0 / maxf(vx * dirx, 1.0), 1.0, 2.2)
+	if t > window or _gk_seen < lerpf(0.30, 0.15, _refl):
 		return
 	var y_gk := ball.pos.y + ball.vel.y * t
 	var dy := y_gk - p.pos.y
 	if absf(dy) < 0.7:
 		return
-	var max_v := lerpf(5.0, 8.2, _refl)
-	var need := minf(absf(dy) / t * 0.9, max_v)
+	var max_v := lerpf(4.5, 7.5, _refl)
+	var need := minf(absf(dy) / maxf(t, 0.05) * 1.1, max_v)
 	p.state = FB.PlayerState.DIVING
 	p.state_timer = 0.8
 	p.vel = Vector2(0.0, signf(dy) * need)
 	p.facing = Vector2(0.0, signf(dy))
+	_gk_seen = 0.0
 
 
 ## Goalkeeper handling attempt: catch (hold) or parry. Emits save_made for shots.

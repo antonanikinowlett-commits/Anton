@@ -196,7 +196,7 @@ func _fire_shot(it: PlayerIntent, input: InputController, mv: Vector2, hold: flo
 			side = -signf(p.pos.y)
 		var corner := Vector2(goal.x, side * (FB.GOAL_WIDTH * 0.5 - 0.95))
 		var cdir := (corner - p.pos).normalized()
-		var w := (0.35 + 0.65 * assist) * (1.0 - 0.5 * ang / snap)
+		var w := assist * (1.0 - 0.4 * ang / snap)
 		final_dir = dir.slerp(cdir, w)
 	var power := maxf(clampf(hold / SHOOT_FULL, 0.0, 1.0), 0.25)
 	it.set_action(FB.IntentAction.SHOOT, p.pos + final_dir * 30.0, power)
