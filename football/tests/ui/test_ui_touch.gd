@@ -44,7 +44,10 @@ func test_joystick_floats_and_outputs_vector() -> void:
 	tc.call("handle_drag", 0, Vector2(270, 400))
 	assert_near(m.human_input.get_move_vector().x, 1.0, 0.01, "full right")
 	tc.call("handle_drag", 0, Vector2(235, 400))
-	assert_near(m.human_input.get_move_vector().x, 0.5, 0.01, "half right")
+	# PHYSICS shapes the stick with a response curve (finer control near centre): half
+	# deflection must be a clearly smaller, but non-zero, output.
+	var half := m.human_input.get_move_vector().x
+	assert_true(half > 0.15 and half < 0.5, "half deflection is shaped (got %f)" % half)
 	tc.call("handle_touch", 0, false, Vector2(235, 400))
 	assert_eq(m.human_input.get_move_vector(), Vector2.ZERO, "released")
 	assert_false(tc.call("is_joystick_active"))
