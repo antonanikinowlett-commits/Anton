@@ -77,7 +77,7 @@ static func build() -> Theme:
 	# Panels
 	t.set_stylebox("panel", "PanelContainer", box(PANEL, BORDER, 20, 2))
 	t.set_type_variation("DimPanel", "PanelContainer")
-	t.set_stylebox("panel", "DimPanel", box(Color(0.01, 0.04, 0.02, 0.93), Color(0, 0, 0, 0), 0, 0))
+	t.set_stylebox("panel", "DimPanel", box(Color(0.01, 0.04, 0.02, 0.97), Color(0, 0, 0, 0), 0, 0))
 	t.set_constant("separation", "VBoxContainer", 14)
 	t.set_constant("separation", "HBoxContainer", 14)
 	t.set_constant("h_separation", "GridContainer", 18)

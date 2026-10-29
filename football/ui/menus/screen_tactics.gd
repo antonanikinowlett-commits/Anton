@@ -15,7 +15,6 @@ var value_labels: Dictionary = {}
 var bench_row: HBoxContainer
 var bench_selected: int = -1
 var _bench_buttons: Array[Button] = []
-var _kit: UiKitView
 
 
 func build() -> void:
@@ -31,13 +30,14 @@ func build() -> void:
 
 	# Left: team + pitch + bench.
 	var left := VBoxContainer.new()
+	left.custom_minimum_size = Vector2(580, 0)
 	left.add_theme_constant_override("separation", 8)
 	body.add_child(left)
 	var trow := HBoxContainer.new()
 	left.add_child(trow)
 	var team_btn := UiBigButton.make("", &"", 200.0)
 	team_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	team_btn.custom_minimum_size = Vector2(0, 64)
+	team_btn.custom_minimum_size = Vector2(300, 64)
 	team_btn.pressed.connect(cycle_team)
 	trow.add_child(team_btn)
 	team_label = UiScreen.label("")
@@ -47,12 +47,15 @@ func build() -> void:
 	team_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	team_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pitch = UiMiniPitch.new()
-	pitch.custom_minimum_size = Vector2(600, 372)
+	pitch.custom_minimum_size = Vector2(580, 372)
 	pitch.swapped.connect(_on_swapped)
 	pitch.slot_tapped.connect(_on_slot_tapped)
 	left.add_child(pitch)
-	left.add_child(UiScreen.label("Drag a player onto another to swap. Tap a bench number, then a player.", &"MutedLabel"))
-	(left.get_child(left.get_child_count() - 1) as Label).add_theme_font_size_override("font_size", 20)
+	var hint := UiScreen.label("Drag a player onto another to swap. Tap a bench number, then a player.", &"MutedLabel")
+	hint.add_theme_font_size_override("font_size", 20)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(560, 0)
+	left.add_child(hint)
 	bench_row = HBoxContainer.new()
 	bench_row.add_theme_constant_override("separation", 8)
 	left.add_child(bench_row)
@@ -109,7 +112,7 @@ func team() -> TeamData:
 ## Re-reads everything from state.
 func refresh() -> void:
 	var t := team()
-	team_label.text = "%s  (%s)   tap to change team" % [t.name, "HOME" if state.human_side == 0 else "AWAY"]
+	team_label.text = "%s (%s) - tap to change" % [t.name, "HOME" if state.human_side == 0 else "AWAY"]
 	var f := DataLoader.load_formation(t.tactics.formation_id)
 	formation_label.text = f.name if f.name != "" else f.id
 	pitch.set_data(t, f)
