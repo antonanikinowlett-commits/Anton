@@ -81,21 +81,62 @@ static func nearest_dist(point: Vector2, group: Array[Player], skip: Player = nu
 	return sqrt(best) if best != INF else INF
 
 
+const PATH_N := 27
+const PATH_DT := 0.12
+const PATH_T0 := 0.1
+const PATH_MAX_AGE := 6
+
+## Shared per-cycle sample of the ball's predicted path (reused by every runner).
+static var _path := PackedVector2Array()
+static var _stop := Vector2.ZERO
+static var _c_ball: Ball = null
+static var _c_tick := -1000
+static var _c_pos := Vector2.ZERO
+static var _c_vel := Vector2.ZERO
+static var _c_h := 0.0
+
+
+static func _refresh_path(ball: Ball) -> void:
+	var tick := ball.football_match.tick if ball.football_match != null else 0
+	if _c_ball == ball and tick - _c_tick >= 0 and tick - _c_tick < PATH_MAX_AGE \
+			and ball.pos.distance_squared_to(_c_pos) < 0.09 and ball.vel.distance_squared_to(_c_vel) < 0.25 \
+			and absf(ball.height - _c_h) < 0.15 and _path.size() == PATH_N:
+		return
+	if _path.size() != PATH_N:
+		_path.resize(PATH_N)
+	for i in PATH_N:
+		_path[i] = ball.predict_position(PATH_T0 + PATH_DT * float(i))
+	_stop = ball.predict_stop_position()
+	_c_ball = ball
+	_c_tick = tick
+	_c_pos = ball.pos
+	_c_vel = ball.vel
+	_c_h = ball.height
+
+
+## Predicted ball position at path sample i (t = 0.1 + 0.12 i); call ensure_path() first.
+static func path_at(i: int) -> Vector2:
+	return _path[i]
+
+
+static func ensure_path(ball: Ball) -> void:
+	_refresh_path(ball)
+
+
 ## Earliest point on the (loose) ball's predicted path that a runner at `from` with
 ## `speed` can reach in time. Returns Vector3(time, x, y); falls back to the stop point.
 static func intercept(from: Vector2, speed: float, ball: Ball) -> Vector3:
 	var bp := ball.pos
 	if ball.owner_player != null or ball.vel.length_squared() < 0.36:
 		return Vector3(maxf(0.0, from.distance_to(bp) - 0.5) / speed, bp.x, bp.y)
-	var t := 0.1
-	while t <= 3.2:
-		var pt := ball.predict_position(t)
+	_refresh_path(ball)
+	for i in PATH_N:
+		var pt := _path[i]
+		var t := PATH_T0 + PATH_DT * float(i)
 		var tm := maxf(0.0, from.distance_to(pt) - 0.5) / speed
 		if tm <= t:
 			return Vector3(t, pt.x, pt.y)
-		t += 0.12
-	var sp := ball.predict_stop_position()
-	return Vector3(maxf(0.0, from.distance_to(sp) - 0.5) / speed + 0.5, sp.x, sp.y)
+	return Vector3(maxf(0.0, from.distance_to(_stop) - 0.5) / speed + 0.5, _stop.x, _stop.y)
 
 
 static func is_defender_role(r: int) -> bool:
