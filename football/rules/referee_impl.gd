@@ -589,7 +589,11 @@ func report_contact(tackler: Player, victim: Player, ball_first: bool, intensity
 ## Soft regulator keeping foul counts near FOULS_PER_MATCH however often physics reports contacts.
 func _foul_rate_scale() -> float:
 	var expected := FOULS_PER_MATCH * clock / (FB.HALF_GAME_SECONDS * 2.0)
-	return clampf((expected + 3.0) / (float(fouls_total) + 3.0), 0.25, 2.5)
+	var ratio := (expected + 3.0) / (float(fouls_total) + 3.0)
+	if float(fouls_total) > expected * 1.15 + 3.0:
+		return 0.0
+	var r2 := ratio * ratio
+	return clampf(r2 * r2 * ratio, 0.01, 2.5)
 
 
 func _resolve_foul() -> void:
@@ -597,9 +601,9 @@ func _resolve_foul() -> void:
 	var s := _pf_intensity * 0.6 + (0.2 if _pf_from_behind else 0.0) + (0.0 if _pf_ball_first else 0.1) \
 		+ football_match.rng.randf() * 0.25
 	var sev: int = FB.FoulSeverity.CARELESS
-	if s > 0.97:
+	if s > 1.08:
 		sev = FB.FoulSeverity.EXCESSIVE
-	elif s > 0.70:
+	elif s > 0.88:
 		sev = FB.FoulSeverity.RECKLESS
 	award_foul(_pf_tackler, _pf_victim, sev, true)
 
@@ -702,8 +706,8 @@ func _send_off(p: Player) -> void:
 # Set pieces
 # ======================================================================================
 func _start_restart(type: int, team_id: int, pos: Vector2, direct: bool) -> void:
-	# After the (extended) half has run out, dead-ball restarts that gain nothing end it.
-	if _is_expired() and (type == FB.Restart.THROW_IN or type == FB.Restart.GOAL_KICK or type == FB.Restart.DROP_BALL):
+	# After the (extended) half has run out, the next stoppage ends it (a penalty is still taken).
+	if _is_expired() and type != FB.Restart.PENALTY:
 		_end_half()
 		return
 	restart.reset()
