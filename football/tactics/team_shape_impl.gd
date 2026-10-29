@@ -783,7 +783,23 @@ func _sp_free_kick(r: RestartInfo, taking: bool, taker_i: int) -> void:
 			near_post = Vector2(goal.x, signf(spot.y) * (FB.GOAL_WIDTH * 0.5 - 0.3))
 		var wdir := (near_post - spot).normalized()
 		var wc := spot + wdir * (r.wall_distance + 0.45)
+		# Spots close to the goal line: rotate the wall around the ball until it fits in the pitch.
 		var wperp := Vector2(-wdir.y, wdir.x)
+		if wn > 0 and not _wall_fits(wc, wperp):
+			for deg in range(10, 181, 10):
+				var fitted := false
+				for sgn in [1.0, -1.0]:
+					var cand_dir := wdir.rotated(deg_to_rad(deg) * sgn)
+					var cand_c := spot + cand_dir * (r.wall_distance + 0.45)
+					var cand_perp := Vector2(-cand_dir.y, cand_dir.x)
+					if _wall_fits(cand_c, cand_perp):
+						wdir = cand_dir
+						wc = cand_c
+						wperp = cand_perp
+						fitted = true
+						break
+				if fitted:
+					break
 		var gk_i := _gk_index()
 		if gk_i >= 0:
 			if gd < 40.0:
@@ -809,6 +825,14 @@ func _sp_free_kick(r: RestartInfo, taking: bool, taker_i: int) -> void:
 		for k in rest.size():
 			if gd < 45.0 and k < attackers.size():
 				_put(rest[k], _mark_pos(attackers[k], goal))
+
+
+func _wall_fits(centre: Vector2, perp: Vector2) -> bool:
+	for k in WALL_OFFSETS.size():
+		var w: Vector2 = centre + perp * (WALL_OFFSETS[k] * 0.85)
+		if absf(w.x) > HL - 0.5 or absf(w.y) > HW - 0.5:
+			return false
+	return true
 
 
 # --- Penalty -----------------------------------------------------------------

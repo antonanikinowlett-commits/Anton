@@ -85,9 +85,9 @@ static func _pick_replacement(team: Team, out_p: Player, reason: String, used: A
 		var target_role := out_p.role
 		var cost := TacShapeMath.role_distance(b.role, target_role) * 10.0
 		if reason == "chase the game" and TacShapeMath.group_of(b.role) in [TacShapeMath.Group.FWD, TacShapeMath.Group.AM, TacShapeMath.Group.WIDE]:
-			cost = 3.0 - TacShapeMath.role_distance(b.role, FB.Role.ST)
+			cost = -8.0 + TacShapeMath.role_distance(b.role, FB.Role.ST)
 		elif reason == "protect the lead" and TacShapeMath.group_of(b.role) in [TacShapeMath.Group.DEF, TacShapeMath.Group.DM]:
-			cost = 3.0 - TacShapeMath.role_distance(b.role, FB.Role.CB) * 0.5
+			cost = -8.0 + TacShapeMath.role_distance(b.role, FB.Role.CB) * 0.5
 		cost -= TacTeamLibrary.player_rating(b) * 0.1
 		if cost < best_cost:
 			best_cost = cost
